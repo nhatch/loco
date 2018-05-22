@@ -1,0 +1,2 @@
+# loco
+Hierarchical locomotion project
