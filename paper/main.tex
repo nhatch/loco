@@ -132,6 +132,8 @@ Definitions:
 \subsection*{Curriculum and transfer learning for locomotion}
 
 \begin{itemize}
+  \item \cite{karpathy2012curriculum} \highlight{TODO: read this}
+
   \item The aforementioned paper \cite{heess2017emergence} trains their policies using curriculum learning: the environment gets progressively more difficult as time goes on.
     This achieves great results, but they do not quite succeed on bumpy ground.
     In this project, we hope to explore hierarchical policies as a potential solution to this difficult task.
@@ -148,6 +150,7 @@ Definitions:
 \subsection*{Locomotion policy architectures}
 
 \begin{itemize}
+  \item At the lowest level, we will probably be using some kind of stable PD controller, in order to make the reinforcement learning problem as easy as possible. I need to read these papers: \cite{tan2011stable}, \cite{shrivastava2013stable}
   \item We might want to use something simple, like a linear controller as proposed by Ben Recht \cite{mania2018simple} to see if that works well.
     It seems to do a good job on OpenAI benchmarks, at least.
   \item Otherwise, we'll probably end up using TRPO or PPO or something (get citation later\dots)
