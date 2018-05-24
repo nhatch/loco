@@ -102,6 +102,7 @@ Definitions:
     In contrast, we would like to avoid the kind of stumbling seen in these videos by introducing another level of hierarchy that generates an explicit footstep plan.
 
 
+  \item \cite{peng2017learning} uses bumpy ground to test robustness of learned policies, but again the bumps are not actually perceived and cannot be planned around. The bump height thus must remain small relative to the agent. \highlight{We should compare this quantitatively, later.} Also, this is 2D.
 \end{itemize}
 
 \subsection*{Hierarchical reinforcement learning}
@@ -151,11 +152,18 @@ Definitions:
 
 \begin{itemize}
   \item At the lowest level, we will probably be using some kind of stable PD controller, in order to make the reinforcement learning problem as easy as possible. I need to read these papers: \cite{tan2011stable}, \cite{shrivastava2013stable}
+  \item \cite{peng2015terrain} introduces a very interesting way of parametrizing the action space in terms of reference points for PD controllers, as well as ``virtual forces''. We will want to do something similar.
   \item We might want to use something simple, like a linear controller as proposed by Ben Recht \cite{mania2018simple} to see if that works well.
     It seems to do a good job on OpenAI benchmarks, at least.
   \item Otherwise, we'll probably end up using TRPO or PPO or something (get citation later\dots)
   \item Other things to consider: prioritized experience replay, hindsight experience replay, universal value function approximators.
 \end{itemize}
+
+
+\subsection*{Miscellaneous}
+
+Other things I should read / potential baselines to compare against.
+\cite{de2010feature} \cite{mordatch2010robust} \cite{mordatch2012discovery}
 
 \section{Project summary}
 
