@@ -103,6 +103,7 @@ Definitions:
 
 
   \item \cite{peng2017learning} uses bumpy ground to test robustness of learned policies, but again the bumps are not actually perceived and cannot be planned around. The bump height thus must remain small relative to the agent. \highlight{We should compare this quantitatively, later.} Also, this is 2D.
+  \item \cite{manchester2011stable} This paper stands out in that they derive a provably stable controller that they test on a physical robot. \highlight{I haven't read it in detail yet, though.}
 \end{itemize}
 
 \subsection*{Hierarchical reinforcement learning}
@@ -114,26 +115,27 @@ Definitions:
     The reward signal is a tool, not something given to us a priori.
 
   \item \cite{hausman2018learning} is an interesting theoretical paper showing how to get diverse meta-controls without imposing much structure on the interface between the HLC and the LLC.
-    However, in our case, we have a prior idea about a good hierarchical breakdown of the tasks, which we can use to learn a policy more quickly than we otherwise would. \highlight{I had some trouble with this paper; I should probably reread it and update this summary.}
+    However, in our case, we have a prior idea about a good hierarchical breakdown of the tasks (namely, a footstep plan). \highlight{I had some trouble with this paper; I should probably reread it and update this summary.}
 
   \item \cite{daume18ilrl} consider using hierarchical policies to improve the query efficiency of interactive imitation learning.
     In contrast, our project does not make use of an expert.
     Even if we do end up using motion capture, such an expert is not hierarchical, and it does not specify actual actions, just target poses.
     However, perhaps for some of the tasks in our curriculum, we will use a hand-coded expert for the HLC in order to pretrain the LLC.
 
-  \item \cite{vezhnevets2017feudal}: \highlight{I have not read this yet, but I plan to.}
+  \item \cite{vezhnevets2017feudal} \emph{learns} diverse low-level policies using a latent state space and directional goals. However, we would like a more explicit hierarchical interface in the form of a footstep plan, and our low-level action space is continuous rather than discrete.
 
   \item \cite{frans2018meta} uses HRL for transfer learning, but they do not apply their results to curriculum learning.
     Hence, the tasks they accomplish remain fairly simple (simple maze traversal, etc.).
 
   \item \cite{kulkarni2016hierarchical} uses hierarchical RL to encourage exploration in sparse-reward environments.
     They also only consider discrete action spaces; perhaps we don't need to cite this paper at all.
+  \item \cite{nachum2018data}: This paper tries to do off-policy hierarchical RL by changing the actions from the transitions stored in the high-level replay buffer. This seems like a hacky way to do things, and their experiments are clearly gaming the system to make their method look good. I don't think we should cite this.
 \end{itemize}
 
 \subsection*{Curriculum and transfer learning for locomotion}
 
 \begin{itemize}
-  \item \cite{karpathy2012curriculum} \highlight{TODO: read this}
+  \item \cite{karpathy2012curriculum} use a two-level hand-designed curriculum to achieve impressive acrobatic results for a low-dimenisonal hopper. However, their method involves random search and nonparametric nearest-neighbor policies, which are unlikely to generalize to higher-dimensional morphologies.
 
   \item The aforementioned paper \cite{heess2017emergence} trains their policies using curriculum learning: the environment gets progressively more difficult as time goes on.
     This achieves great results, but they do not quite succeed on bumpy ground.
@@ -151,19 +153,25 @@ Definitions:
 \subsection*{Locomotion policy architectures}
 
 \begin{itemize}
-  \item At the lowest level, we will probably be using some kind of stable PD controller, in order to make the reinforcement learning problem as easy as possible. I need to read these papers: \cite{tan2011stable}, \cite{shrivastava2013stable}
+  \item At the lowest level, we will probably be using some kind of stable PD controller, in order to make the reinforcement learning problem as easy as possible. \highlight{I need to read these papers:} \cite{tan2011stable}, \cite{shrivastava2013stable}
   \item \cite{peng2015terrain} introduces a very interesting way of parametrizing the action space in terms of reference points for PD controllers, as well as ``virtual forces''. We will want to do something similar.
-  \item We might want to use something simple, like a linear controller as proposed by Ben Recht \cite{mania2018simple} to see if that works well.
+  \item We might want to use something simple, like a linear controller as proposed by \cite{mania2018simple} to see if that works well.
     It seems to do a good job on OpenAI benchmarks, at least.
   \item Otherwise, we'll probably end up using TRPO or PPO or something (get citation later\dots)
   \item Other things to consider: prioritized experience replay, hindsight experience replay, universal value function approximators.
 \end{itemize}
 
 
-\subsection*{Miscellaneous}
+\subsection*{Model-based locomotion}
 
-Other things I should read / potential baselines to compare against.
-\cite{de2010feature} \cite{mordatch2010robust} \cite{mordatch2012discovery}
+\begin{itemize}
+  \item \cite{de2010feature} introduce a method for specifying locomotion behaviors with high-level features. From these features, low-level torques can be derived automatically by solving a series of quadratic programs based on physical models. This method is somewhat slow (50\% real time), and we might be able to avoid using hand-engineered models by employing deep networks.
+
+  \item \cite{mordatch2010robust} use \cite{de2010feature} to execute a footstep plan which is generated using a lower-dimensional simplified physics model (a spring-loaded inverted pendulum). We might be able to use such an optimization- / model-based method as an expert, if we want to employ some kind of imitation learning. This could be similar to the approach of AlphaGo Zero.
+
+  \item \cite{mordatch2012discovery} handles contacts in a clever way, using piecewise-constant, smooth contact variables and a continuation scheme. This allows complex motions to emerge from a quadratic optimization procedure. However, this method is very slow (2\% real time) and it generates only static motion (no jumping or slipping). Again, maybe we could use it as an expert.
+
+\end{itemize}
 
 \section{Project summary}
 
