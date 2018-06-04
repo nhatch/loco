@@ -6,10 +6,11 @@ import numpy as np
 EPISODE_TIME_LIMIT = 5.0 # seconds
 
 class Controller:
-    def __init__(self, skel):
+    def __init__(self, skel, low_level_controller):
         self.skel = skel
         self.target = None
-        self.inactive = True
+        self.inactive = False
+        self.low_level_controller = low_level_controller
         brickdof = 3 # We're in 2D
         self.Kp = np.array([0.0] * brickdof + [400.0] * (self.skel.ndofs - brickdof))
         self.Kd = np.array([0.0] * brickdof + [40.0] * (self.skel.ndofs - brickdof))
@@ -35,17 +36,21 @@ class Episode:
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
 
-        controller = Controller(walker)
-        target = walker.positions()
-        target[3] = 1
-        walker.set_positions(target)
-        controller.target = target
-        controller.inactive = False
+        controller = Controller(walker, low_level_controller)
+        pos = walker.positions()
+        pos[3] = 1
+        # TODO: introduce some randomness to the starting conditions
+        walker.set_positions(pos)
+        # For now, just set a static PD controller target pose
+        # TODO: Choose this target pose from some other policy
+        controller.target = pos
 
         walker.set_controller(controller)
         self.state = State.INIT
-        #pydart.gui.viewer.launch(world)
+        pydart.gui.viewer.launch(world)
 
+    # We locate heeldown events for a given foot based on the first contact
+    # for that foot after it has been in the air for at least one frame.
     def find_contact(self, bodynode):
         # TODO: It is possible for a body node to have multiple contacts.
         # Which one should be returned?
@@ -53,6 +58,8 @@ class Episode:
             if c.bodynode2 == bodynode:
                 return c
 
+    # On each heeldown event, we get points based on how close we were to
+    # the target step location. Maximum 1 point per step.
     def calc_score(self, contact):
         # p[0] is the X position of the contact
         return np.exp(-(contact.p[0] - self.target)**2)
@@ -63,6 +70,8 @@ class Episode:
             self.world.time(), self.score, self.state,
             contact.bodynode2, contact.p[0], self.target))
 
+    # The episode terminates after one right footstep and one left footstep,
+    # or if the time limit is reached.
     def run(self):
         while True:
             if self.world.time() > EPISODE_TIME_LIMIT:
