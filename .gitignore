@@ -5,5 +5,8 @@
 *.pdf
 *.swp
 *.log
-junk
+
+junk/
+__pycache__/
+
 notes.txt
