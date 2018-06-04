@@ -102,6 +102,8 @@ We consider both necessary, because the relative expense of more experience vers
 We collect both quantitative and qualitative metrics to measure ``achieving better results''.
 Quantitatively, we compare the average rate of forward progress.
 We also consider the robustness of the model to force perturbations and various measures of the ``difficulty'' of the terrain (such as stair height).
+\footnote{Another interesting question would be robustness with respect to accuracy of perception.
+If the potential step target locations / surface normals are perturbed, what happens?}
 Qualitatively, we document motion quality by means of supplementary videos, which we encourage the reader to consult.
 
 Our secondary hypothesis is that the learned policy can be run in real-time while still achieving results comparable to more expensive, model-based optimization methods.
@@ -145,7 +147,8 @@ Unlike the HLC, it does not observe the external environment.
 
 \textbf{Low-level actions.}
 On the one hand, we could have low-level actions being the raw torques.
-On the other hand, this might make the learning problem harder, so we could specify some more abstract actions and use PD controllers or other analytical formulas to derive the actual torques.
+On the other hand, this might make the learning problem harder.
+Instead, we could specify ``abstract actions'' and use PD controllers or other analytical formulas to derive the actual torques.
 For instance, the output could be a target pose or end-effector position which is chosen more infrequently than the simulation framerate.
 Then we could solve an inverse kinematics or inverse dynamics problem to calculate a target pose, which is then achieved using PD controllers.
 \nhatch{We probably don't need all of this machinery.
@@ -155,6 +158,12 @@ For the initial proof of concept, it might make sense to see how we can do using
 \textbf{PD control.}
 \nhatch{We might have to rethink this abstraction layer once the ground includes inclines.
 For instance, the PD controller might now have to handle different target ankle angles.}
+
+\textbf{Miscellaneous ideas.}
+\begin{itemize}
+  \item Could the HLC-LLC interface be in terms of a \emph{force} that the LLC should try to generate on the next foot contact?
+  \item How can we design the LLC to generate good motion quality (e.g. low energy, low angular momentum)?
+\end{itemize}
 
 \section{Timeline of work}
 

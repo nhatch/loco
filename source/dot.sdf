@@ -1,0 +1,19 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+<model name="my_model">
+  <pose>0 0 0 0 0 0</pose>
+  <link name="link">
+    <gravity>0</gravity>
+    <visual name="visual">
+      <geometry>
+        <sphere>
+          <radius>0.1</radius>
+        </sphere>
+      </geometry>
+      <material>
+        <diffuse>0.8 0 0 1</diffuse>
+      </material>
+    </visual>
+  </link>
+</model>
+</sdf>
