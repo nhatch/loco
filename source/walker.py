@@ -12,9 +12,10 @@ SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 5.0 # seconds
 LLC_QUERY_PERIOD = 1.0 / 30.0 # seconds
 STEPS_PER_QUERY = int(LLC_QUERY_PERIOD / SIMULATION_RATE)
+STEPS_PER_RENDER = STEPS_PER_QUERY // 4
 BRICK_DOF = 3 # We're in 2D
-KP_GAIN = 400.0
-KD_GAIN = 40.0
+KP_GAIN = 100.0
+KD_GAIN = 10.0
 
 class Controller:
     def __init__(self, skel):
@@ -50,30 +51,31 @@ class TwoStepEnv:
         self.action_space = np.zeros(6)
 
         self.controller = Controller(walker)
+        walker.set_controller(self.controller)
         self.reset_x = (walker.q.copy(), walker.dq.copy())
         #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
         # For now, just set a static PD controller target pose
-        self.controller.target_q = self.reset_x[0]
 
         title = None
         win = StaticGLUTWindow(self.world, title)
-        win.scene.add_camera(Trackball(theta=-45.0, phi = 0.0, zoom=10.0), 'gym_camera')
+        # For some reason setting 'zoom' doesn't do anything
+        win.scene.add_camera(Trackball(theta=-45.0, phi = 0.0), 'gym_camera')
         win.scene.set_camera(win.scene.num_cameras()-1)
         win.run()
         self.viewer = win
 
-        walker.set_controller(self.controller)
-
     def seed(self, seed):
+        # TODO this isn't used for anything yet
         self._seed = seed
 
     def reset(self):
-        self.agent.q = self.reset_x[0]
-        self.agent.dq = self.reset_x[1]
-        # TODO incorporate randomness using self.seed
+        self.world.reset()
+        self.agent.q = self.reset_x[0].copy()
+        self.agent.dq = self.reset_x[1].copy()
         self.target = 0.5
         self.score = 0.0
         self.state = State.INIT
+        self.controller.target_q = self.reset_x[0].copy()
         return self.current_observation()
 
     # We locate heeldown events for a given foot based on the first contact
@@ -100,9 +102,12 @@ class TwoStepEnv:
     # The episode terminates after one right footstep and one left footstep,
     # or if the time limit is reached.
     def simulation_step(self):
-        # TODO: also end the episode if numerical explosions cause infinite values
         if self.world.time() > EPISODE_TIME_LIMIT:
             print("Time limit reached")
+            return True
+        obs = self.current_observation()
+        if not np.isfinite(obs).all():
+            print("Numerical explosion")
             return True
 
         l_foot_contact = self.find_contact(self.l_foot)
@@ -139,8 +144,9 @@ class TwoStepEnv:
     def step(self, action):
         self.controller.target_q[BRICK_DOF:] = action
         done = False
-        for _ in range(STEPS_PER_QUERY):
-            self.render() # For debugging -- if weird things happen between LLC actions
+        for i in range(STEPS_PER_QUERY):
+            #if i % STEPS_PER_RENDER == 0:
+            #    self.render() # For debugging -- if weird things happen between LLC actions
             done = self.simulation_step()
             if done:
                 return self.current_observation(), self.score, True, None
@@ -148,8 +154,8 @@ class TwoStepEnv:
 
     def render(self):
         #pydart.gui.viewer.launch(world)
-        #self.viewer.scene.tb.trans[0] = -self.agent.com()[0]*1
-        self.viewer.scene.tb.trans[2] = -5
+        self.viewer.scene.tb.trans[0] = -self.agent.com()[0]*1
+        self.viewer.scene.tb.trans[2] = -5 # adjust zoom
         self.viewer.runSingleStep()
 
 def load_world():
@@ -173,6 +179,9 @@ if __name__ == '__main__':
     world = load_world()
     env = TwoStepEnv(world)
     rs = random_search.RandomSearch(env, 4, 0.01, 0.05)
-    #rs.random_search(25)
-    rs.demo()
+    #rs.demo()
+    for _ in range(25):
+        rs.random_search(1)
+        print("Starting demo")
+        rs.demo()
 

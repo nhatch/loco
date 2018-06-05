@@ -21,7 +21,7 @@ class Whitener:
     def whiten_observation(self, obs, stats):
         if stats:
             self.update_stats(obs)
-        var_to_use = 1 if self.N < 2 else self.var
+        var_to_use = self.var + (self.var == 0) # Avoid dividing by zero
         return (obs - self.mean) / var_to_use**(0.5)
 
     def run_trajectory(self, controller, seed, visual=True, stats=True, shift=SHIFT):
