@@ -13,19 +13,21 @@ EPISODE_TIME_LIMIT = 5.0 # seconds
 LLC_QUERY_PERIOD = 1.0 / 30.0 # seconds
 STEPS_PER_QUERY = int(LLC_QUERY_PERIOD / SIMULATION_RATE)
 BRICK_DOF = 3 # We're in 2D
+KP_GAIN = 400.0
+KD_GAIN = 40.0
 
 class Controller:
     def __init__(self, skel):
         self.skel = skel
-        self.target = None
+        self.target_q = None
         self.inactive = False
-        self.Kp = np.array([0.0] * BRICK_DOF + [400.0] * (self.skel.ndofs - BRICK_DOF))
-        self.Kd = np.array([0.0] * BRICK_DOF + [40.0] * (self.skel.ndofs - BRICK_DOF))
+        self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
+        self.Kd = np.array([0.0] * BRICK_DOF + [KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
 
     def compute(self):
         if self.inactive:
             return np.zeros_like(self.Kp)
-        return -self.Kp * (self.skel.q - self.target) - self.Kd * self.skel.dq
+        return -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
 
 class State(Enum):
     INIT = 0
@@ -48,10 +50,10 @@ class TwoStepEnv:
         self.action_space = np.zeros(6)
 
         self.controller = Controller(walker)
-        self.reset_x = (walker.q, walker.dq)
+        self.reset_x = (walker.q.copy(), walker.dq.copy())
         #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
         # For now, just set a static PD controller target pose
-        self.controller.target = self.reset_x[0]
+        self.controller.target_q = self.reset_x[0]
 
         title = None
         win = StaticGLUTWindow(self.world, title)
@@ -98,6 +100,7 @@ class TwoStepEnv:
     # The episode terminates after one right footstep and one left footstep,
     # or if the time limit is reached.
     def simulation_step(self):
+        # TODO: also end the episode if numerical explosions cause infinite values
         if self.world.time() > EPISODE_TIME_LIMIT:
             print("Time limit reached")
             return True
@@ -134,9 +137,10 @@ class TwoStepEnv:
         return self.agent.x
 
     def step(self, action):
-        self.controller.target[BRICK_DOF:] = action
+        self.controller.target_q[BRICK_DOF:] = action
         done = False
         for _ in range(STEPS_PER_QUERY):
+            self.render() # For debugging -- if weird things happen between LLC actions
             done = self.simulation_step()
             if done:
                 return self.current_observation(), self.score, True, None
@@ -144,11 +148,11 @@ class TwoStepEnv:
 
     def render(self):
         #pydart.gui.viewer.launch(world)
-        self.viewer.scene.tb.trans[0] = -self.agent.com()[0]*1
+        #self.viewer.scene.tb.trans[0] = -self.agent.com()[0]*1
         self.viewer.scene.tb.trans[2] = -5
         self.viewer.runSingleStep()
 
-if __name__ == '__main__':
+def load_world():
     SKEL_ROOT = "/home/nathan/research/pydart2/examples/data/skel/"
     DARTENV_SKEL_ROOT = "/home/nathan/research/dart-env/gym/envs/dart/assets/"
     skel = DARTENV_SKEL_ROOT + "walker2d.skel"
@@ -163,7 +167,12 @@ if __name__ == '__main__':
         q[3] = t
         dot.q = q
 
+    return world
+
+if __name__ == '__main__':
+    world = load_world()
     env = TwoStepEnv(world)
-    rs = random_search.RandomSearch(env, 16, 0.01, 0.05)
-    rs.random_search(25)
+    rs = random_search.RandomSearch(env, 4, 0.01, 0.05)
+    #rs.random_search(25)
+    rs.demo()
 

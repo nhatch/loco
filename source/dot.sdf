@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version="1.4">
-<model name="my_model">
+<model name="dot">
   <pose>0 0 0 0 0 0</pose>
   <link name="link">
     <gravity>0</gravity>
