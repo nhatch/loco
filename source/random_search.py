@@ -1,5 +1,6 @@
 import numpy as np
 from IPython import embed
+import pickle
 
 SHIFT = 0.0
 
@@ -43,7 +44,7 @@ class Whitener:
         return self.run_trajectory(c, seed, visual, stats, shift)
 
 class RandomSearch:
-    def __init__(self, env, n_dirs, step_size, eps):
+    def __init__(self, env, n_dirs, step_size=0.01, eps=0.05):
         obs_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         self.w_policy = np.zeros((action_dim, obs_dim))
@@ -78,8 +79,17 @@ class RandomSearch:
             print(i)
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
-            ret = self.whitener.rt(self.w_policy)
-            print("New return:", ret)
+        self.demo()
+
+    def save(self, name):
+        f = open('saved_controllers/{}.pkl'.format(name), 'wb')
+        pickle.dump(self.w_policy, f)
+        f.close()
+
+    def load(self, name):
+        f = open('saved_controllers/{}.pkl'.format(name), 'rb')
+        self.w_policy = pickle.load(f)
+        f.close()
 
     def demo(self):
         ret = self.whitener.rt(self.w_policy, seed=None, visual=True, stats=False, shift=0.0)

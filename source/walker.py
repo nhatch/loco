@@ -28,6 +28,7 @@ class Controller:
     def compute(self):
         if self.inactive:
             return np.zeros_like(self.Kp)
+        # TODO clamp control
         return -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
 
 class State(Enum):
@@ -65,13 +66,15 @@ class TwoStepEnv:
         self.viewer = win
 
     def seed(self, seed):
-        # TODO this isn't used for anything yet
-        self._seed = seed
+        np.random.seed(seed)
 
     def reset(self):
         self.world.reset()
-        self.agent.q = self.reset_x[0].copy()
-        self.agent.dq = self.reset_x[1].copy()
+        self.place_footstep_targets([0.5, 1.0])
+        self.agent.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.agent.ndofs)
+        self.agent.dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.agent.ndofs)
+        # TODO make step targets random as well
+        # (this will require providing the target as an observation)
         self.target = 0.5
         self.score = 0.0
         self.state = State.INIT
@@ -87,14 +90,26 @@ class TwoStepEnv:
             if c.bodynode2 == bodynode:
                 return c
 
+    def crashed(self):
+        allowed_contact = [
+                'ground',
+                'h_shin',
+                'h_foot',
+                'h_shin_left',
+                'h_foot_left']
+        for b in self.world.collision_result.contacted_bodies:
+            if not (b.name in allowed_contact):
+                return True
+
     # On each heeldown event, we get points based on how close we were to
     # the target step location. Maximum 1 point per step.
     def calc_score(self, contact):
         # p[0] is the X position of the contact
-        return np.exp(-(contact.p[0] - self.target)**2)
+        # TODO: penalize large actuation and/or hitting joint limits?
+        return np.exp(-10 * np.abs(contact.p[0] - self.target))
 
-    def print_contact(self, contact):
-        print(
+    def log_contact(self, contact):
+        self.log(
             "{:.3f}, {:.3f}, {}: {} made contact at {:.3f} (target: {:.3f})".format(
             self.world.time(), self.score, self.state,
             contact.bodynode2, contact.p[0], self.target))
@@ -103,12 +118,12 @@ class TwoStepEnv:
     # or if the time limit is reached.
     def simulation_step(self):
         if self.world.time() > EPISODE_TIME_LIMIT:
-            print("Time limit reached")
-            return True
+            return "Time limit reached"
         obs = self.current_observation()
         if not np.isfinite(obs).all():
-            print("Numerical explosion")
-            return True
+            return "Numerical explosion"
+        if self.crashed():
+            return "Crashed"
 
         l_foot_contact = self.find_contact(self.l_foot)
         r_foot_contact = self.find_contact(self.r_foot)
@@ -126,20 +141,22 @@ class TwoStepEnv:
             else:
                 self.state = State.LEFT_SWING
             self.score += self.calc_score(r_foot_contact)
-            self.print_contact(r_foot_contact)
+            self.log_contact(r_foot_contact)
             self.target += 0.5
         elif self.state == State.LEFT_PLANT and l_foot_contact is None:
             self.state = State.LEFT_SWING
         elif self.state == State.LEFT_SWING and l_foot_contact is not None:
             self.score += self.calc_score(l_foot_contact)
-            self.print_contact(l_foot_contact)
-            print("Finished episode")
-            return True
+            self.log_contact(l_foot_contact)
+            return "Finished episode"
 
         world.step()
 
     def current_observation(self):
         return self.agent.x
+
+    def log(self, string):
+        print(string)
 
     def step(self, action):
         self.controller.target_q[BRICK_DOF:] = action
@@ -147,8 +164,9 @@ class TwoStepEnv:
         for i in range(STEPS_PER_QUERY):
             #if i % STEPS_PER_RENDER == 0:
             #    self.render() # For debugging -- if weird things happen between LLC actions
-            done = self.simulation_step()
-            if done:
+            result = self.simulation_step()
+            if result:
+                self.log("{}: {}".format(result, self.score))
                 return self.current_observation(), self.score, True, None
         return self.current_observation(), 0, False, None
 
@@ -158,6 +176,14 @@ class TwoStepEnv:
         self.viewer.scene.tb.trans[2] = -5 # adjust zoom
         self.viewer.runSingleStep()
 
+    def place_footstep_targets(self, targets):
+        # Place visual markers at the target footstep locations
+        for i, t in enumerate(targets):
+            dot = self.world.skeletons[2 + i]
+            q = dot.q
+            q[3] = t
+            dot.q = q
+
 def load_world():
     SKEL_ROOT = "/home/nathan/research/pydart2/examples/data/skel/"
     DARTENV_SKEL_ROOT = "/home/nathan/research/dart-env/gym/envs/dart/assets/"
@@ -165,23 +191,16 @@ def load_world():
 
     pydart.init()
     world = pydart.World(SIMULATION_RATE, skel)
-
-    # Place visual markers at the target footstep locations
-    for t in [0.5, 1.0]:
-        dot = world.add_skeleton('./dot.sdf')
-        q = dot.q
-        q[3] = t
-        dot.q = q
+    # These will mark footstep target locations
+    dot = world.add_skeleton('./dot.sdf')
+    dot = world.add_skeleton('./dot.sdf')
 
     return world
 
 if __name__ == '__main__':
     world = load_world()
     env = TwoStepEnv(world)
-    rs = random_search.RandomSearch(env, 4, 0.01, 0.05)
-    #rs.demo()
-    for _ in range(25):
-        rs.random_search(1)
-        print("Starting demo")
-        rs.demo()
+    rs = random_search.RandomSearch(env, 8, step_size=0.3, eps=0.3)
+    rs.random_search(10)
+    embed()
 
