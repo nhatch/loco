@@ -82,13 +82,24 @@ class RandomSearch:
         self.demo()
 
     def save(self, name):
+        w = self.whitener
+        params = (self.w_policy, self.episodes, self.n_dirs, self.eps, self.step_size,
+                w.N, w.mean, w.var)
         f = open('saved_controllers/{}.pkl'.format(name), 'wb')
-        pickle.dump(self.w_policy, f)
+        pickle.dump(params, f)
         f.close()
 
     def load(self, name):
         f = open('saved_controllers/{}.pkl'.format(name), 'rb')
-        self.w_policy = pickle.load(f)
+        params = pickle.load(f)
+        self.w_policy = params[0]
+        self.episodes = params[1]
+        self.n_dirs = params[2]
+        self.eps = params[3]
+        self.step_size = params[4]
+        self.whitener.N = params[5]
+        self.whitener.mean = params[6]
+        self.whitener.var = params[7]
         f.close()
 
     def demo(self):

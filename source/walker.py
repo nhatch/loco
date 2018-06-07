@@ -105,8 +105,10 @@ class TwoStepEnv:
     # the target step location. Maximum 1 point per step.
     def calc_score(self, contact):
         # p[0] is the X position of the contact
+        #placement_score = np.exp(-10 * np.abs(contact.p[0] - self.target))
+        placement_score = np.exp(- (contact.p[0] - self.target)**2)
         # TODO: penalize large actuation and/or hitting joint limits?
-        return np.exp(-10 * np.abs(contact.p[0] - self.target))
+        return placement_score
 
     def log_contact(self, contact):
         self.log(
@@ -201,6 +203,5 @@ if __name__ == '__main__':
     world = load_world()
     env = TwoStepEnv(world)
     rs = random_search.RandomSearch(env, 8, step_size=0.3, eps=0.3)
-    rs.random_search(10)
     embed()
 
