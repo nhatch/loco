@@ -9,5 +9,6 @@
 junk/
 __pycache__/
 saved_controllers/
+monitoring/
 
 notes.txt

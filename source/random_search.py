@@ -1,16 +1,27 @@
 import numpy as np
 from IPython import embed
 import pickle
+import time
+import gym
 
 SHIFT = 0.0
 
 class Whitener:
-    def __init__(self, env):
+    def __init__(self, env, record_video=False):
         self.N = 0
         self.env = env
         obs_dim = env.observation_space.shape[0]
         self.mean = np.zeros(obs_dim)
         self.var = np.ones(obs_dim)
+
+        if record_video:
+            n = int(time.time())
+            m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n))
+            self.env = m
+
+    def close(self):
+        if type(self.env) == gym.wrappers.Monitor:
+            self.env.close()
 
     def update_stats(self, obs):
         mean = (self.N * self.mean + obs) / (self.N+1)
@@ -42,31 +53,6 @@ class Whitener:
     def rt(self, controller_matrix, seed=None, visual=False, stats=True, shift=SHIFT):
         c = lambda obs: np.dot(controller_matrix, obs)
         return self.run_trajectory(c, seed, visual, stats, shift)
-
-def test_invkine_controller(env, target):
-    # Random stuff to conform to Monitor API
-    env.spec = None
-    env.reward_range = range(100)
-    env.metadata = {}
-
-    import time
-    n = int(time.time())
-    import gym
-    m = gym.wrappers.Monitor(env, 'recorded_vids/{}'.format(n), video_callable=lambda _: True)
-    m.enabled = True
-
-    def ctrl(obs):
-        td, tf = env.transform_frame(target, 0.0)
-        # Right foot step
-        q = env.inv_kine_pose(td, tf, True)
-        q[6] = 0
-        q[7] = 0
-        q[5] = 0
-        q[8] = 0
-        return q[3:]
-    w = Whitener(env)
-    w.run_trajectory(ctrl, 0, True, False)
-    m.close()
 
 class RandomSearch:
     def __init__(self, env, n_dirs, step_size=0.01, eps=0.05):
