@@ -12,9 +12,9 @@ class InverseKinematics:
         td, tf = self.transform_frame(self.target, 0.0)
         # Right foot step
         q = self.inv_kine_pose(td, tf, True)
+        q[5] = 0
         q[6] = 0
         q[7] = 0
-        q[5] = 0
         q[8] = 0
         return q[3:]
 
@@ -55,6 +55,10 @@ class InverseKinematics:
     def test_inv_kine(self):
         # Generate a random starting pose and target (marked with a dot),
         # then edit the right hip and knee joints to hit the target.
+        #
+        # TODO: this test actually fails for:
+        #   pose = [-0.12118236,  0.13867071,  0.00750066]
+        #   target = [-0.416734251601, 1.24994977515, 0] (after adding 0.5)
         center = np.array([0, 0.3, 0])
         pose = center + np.random.uniform(low=-0.2, high = 0.2, size = 3)
         q = self.agent.q
@@ -105,8 +109,6 @@ if __name__ == "__main__":
     import gym
 
     env = gym.make('Stepper-v0')
-    c = InverseKinematics(env.env, 0.5).controller
-
-    w = Whitener(env, True)
-    w.run_trajectory(c, 0, True, False)
-    w.close()
+    ik = InverseKinematics(env.env, 0.5)
+    ik.test_inv_kine()
+    embed()
