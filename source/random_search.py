@@ -16,7 +16,8 @@ class Whitener:
 
         if record_video:
             n = int(time.time())
-            m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n))
+            m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n),
+                    video_callable=lambda _: True)
             self.env = m
 
     def close(self):

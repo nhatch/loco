@@ -42,10 +42,15 @@ class TwoStepEnv:
     def __init__(self, world):
         self.world = world
         walker = world.skeletons[1]
-        self.agent = walker
+        self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
         self.target = 0
+
+        # Hacks to make this work with the gym.wrappers Monitor API
+        self.metadata = {'render.modes': ['rgb_array', 'human']}
+        self.reward_range = range(10)
+        self.spec = None
 
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
@@ -71,9 +76,9 @@ class TwoStepEnv:
 
     def reset(self):
         self.world.reset()
-        self.place_footstep_targets([0.5, 1.0])
-        self.agent.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.agent.ndofs)
-        self.agent.dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.agent.ndofs)
+        self.place_footstep_targets([0.5])
+        self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+        self.robot_skeleton.dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
         # TODO make step targets random as well
         # (this will require providing the target as an observation)
         self.target = 0.5
@@ -81,87 +86,6 @@ class TwoStepEnv:
         self.state = State.INIT
         self.controller.target_q = self.reset_x[0].copy()
         return self.current_observation()
-
-    def inv_kine(self, targ_down, targ_forward):
-        L_LEG = 0.45
-        L_SHIN = 0.5
-
-        r = np.sqrt(targ_down**2 + targ_forward**2)
-        cos_knee = (r**2 - L_LEG**2 - L_SHIN**2) / (2 * L_LEG * L_SHIN)
-        tan_theta3 = targ_forward / targ_down
-        cos_theta4 = (r**2 + L_LEG**2 - L_SHIN**2) / (2 * L_LEG * r)
-
-        # Handle out-of-reach targets by clamping cosines to 1
-        if cos_knee > 1:
-            cos_knee = 1
-        if cos_theta4 > 1:
-            cos_theta4 = 1
-
-        # We want knee angle to be < 0
-        knee = - np.arccos(cos_knee)
-        # The geometry makes more sense if theta4 is > 0
-        theta4 = np.arccos(cos_theta4)
-        # Since knee < 0, we add theta3 and theta4 to get hip angle
-        hip = np.arctan(tan_theta3) + theta4
-        return hip, knee
-
-    def inv_kine_pose(self, targ_down, targ_forward, is_right_foot=True):
-        hip, knee = self.inv_kine(targ_down, targ_forward)
-        q = self.agent.q.copy()
-        if is_right_foot:
-            q[3] = hip
-            q[4] = knee
-        else: # left foot
-            q[6] = hip
-            q[7] = knee
-        return q
-
-    def test_inv_kine(self):
-        # Generate a random starting pose and target (marked with a dot),
-        # then edit the right hip and knee joints to hit the target.
-        center = np.array([0, 0.3, 0])
-        pose = center + np.random.uniform(low=-0.2, high = 0.2, size = 3)
-        q = self.agent.q
-        q[:3] = pose
-        self.agent.q = q
-        target = center + np.random.uniform(low=-0.5, high=0.5, size=3)
-        target[1] += 0.5
-        self.put_dot(target[0], target[1])
-        print("TARGET:", target[0], target[1])
-        down, forward = self.transform_frame(target[0], target[1], verbose=True)
-        q = self.inv_kine_pose(down, forward)
-        self.agent.q = q
-        self.render()
-
-    def transform_frame(self, x, y, verbose=False):
-        # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
-        # relative to the pelvis joint's absolute location and rotation.
-        pelvis_com = self.agent.bodynodes[2].com()
-        theta = self.agent.q[2]
-        L_PELVIS = 0.4
-        self.put_dot(pelvis_com[0], pelvis_com[1], 1)
-        if verbose:
-            print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
-        # Put pelvis COM at origin
-        x = x - pelvis_com[0]
-        y = y - pelvis_com[1]
-        # Transform to polar coordinates
-        r = np.sqrt(x**2 + y**2)
-        phi = np.arctan(y/x)
-        if phi*y < 0:
-            phi = phi - np.pi
-        if verbose:
-            print("ANGLES:", phi, theta)
-        # Rotate
-        phi = phi - theta
-        # Transform back to Euclidean coordinates
-        down = -r * np.sin(phi)
-        forward = r * np.cos(phi)
-        # Use bottom of pelvis instead of COM
-        down = down - L_PELVIS / 2
-        if verbose:
-            print("RELATIVE TO JOINT:", down, forward)
-        return down, forward
 
     # We locate heeldown events for a given foot based on the first contact
     # for that foot after it has been in the air for at least one frame.
@@ -233,13 +157,14 @@ class TwoStepEnv:
             self.state = State.LEFT_SWING
         elif self.state == State.LEFT_SWING and l_foot_contact is not None:
             self.score += self.calc_score(l_foot_contact)
-            self.log_contact(l_foot_contact)
-            return "Finished episode"
+            # TODO: fix step contact detection to avoid premature episode ending
+            #self.log_contact(l_foot_contact)
+            #return "Finished episode"
 
         world.step()
 
     def current_observation(self):
-        return np.concatenate((self.agent.x, [self.target]))
+        return np.concatenate((self.robot_skeleton.x, [self.target]))
 
     def log(self, string):
         print(string)
@@ -252,14 +177,18 @@ class TwoStepEnv:
             result = self.simulation_step()
             if result:
                 self.log("{}: {}".format(result, self.score))
-                return self.current_observation(), self.score, True, None
-        return self.current_observation(), 0, False, None
+                return self.current_observation(), self.score, True, {}
+        return self.current_observation(), 0, False, {}
 
-    def render(self):
+    def render(self, mode='human', close=False):
         #pydart.gui.viewer.launch(world)
-        #self.viewer.scene.tb.trans[0] = -self.agent.com()[0]*1
+        #self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
         self.viewer.scene.tb.trans[2] = -5 # adjust zoom
-        self.viewer.runSingleStep()
+        if mode == 'rgb_array':
+            data = self.viewer.getFrame()
+            return data
+        elif mode == 'human':
+            self.viewer.runSingleStep()
 
     def put_dot(self, x, y, idx=0):
         dot = self.world.skeletons[2+idx]
@@ -270,6 +199,7 @@ class TwoStepEnv:
 
     def place_footstep_targets(self, targets):
         # Place visual markers at the target footstep locations
+        # TODO: allow placing variable numbers of dots in the environment
         for i, t in enumerate(targets):
             self.put_dot(t, 0, i)
 
@@ -281,14 +211,20 @@ def load_world():
     pydart.init()
     world = pydart.World(SIMULATION_RATE, skel)
     # These will mark footstep target locations
+    # TODO: allow placing variable numbers of dots in the environment
     dot = world.add_skeleton('./dot.sdf')
-    dot = world.add_skeleton('./dot.sdf')
+    #dot = world.add_skeleton('./dot.sdf') # A second dot, not used yet
 
     return world
 
 if __name__ == '__main__':
+    from inverse_kinematics import InverseKinematics
     world = load_world()
     env = TwoStepEnv(world)
-    rs = random_search.RandomSearch(env, 8, step_size=0.3, eps=0.3)
-    embed()
+    ik = InverseKinematics(env, 0.5)
+    w = random_search.Whitener(env, False)
+    for t in [0.5, 1.0, 0.2]:
+        ik.target = t
+        w.run_trajectory(ik.controller, 0, True, False)
+    w.close()
 

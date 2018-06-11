@@ -62,7 +62,6 @@ class InverseKinematics:
         self.agent.q = q
         target = center + np.random.uniform(low=-0.5, high=0.5, size=3)
         target[1] += 0.5
-        self.env.put_dot(target[0], target[1])
         print("TARGET:", target[0], target[1])
         down, forward = self.transform_frame(target[0], target[1], verbose=True)
         q = self.inv_kine_pose(down, forward)
@@ -75,7 +74,7 @@ class InverseKinematics:
         pelvis_com = self.agent.bodynodes[2].com()
         theta = self.agent.q[2]
         L_PELVIS = 0.4
-        self.env.put_dot(pelvis_com[0], pelvis_com[1], 1)
+        self.env.put_dot(x, y)
         if verbose:
             print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
         # Put pelvis COM at origin
