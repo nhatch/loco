@@ -126,5 +126,5 @@ register(
         id='Stepper-v0',
         entry_point='stepper:DartStepperEnv',
         max_episode_steps=150,
-        reward_threshold=1.99
+        reward_threshold=1.99 # I don't actually know what this number does
         )
