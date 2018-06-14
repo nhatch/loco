@@ -17,10 +17,11 @@ BRICK_DOF = 3 # We're in 2D
 KP_GAIN = 200.0
 KD_GAIN = 15.0
 
-class Controller:
-    def __init__(self, skel):
+class PDController:
+    def __init__(self, skel, world):
         self.skel = skel
-        self.target_q = None
+        self.world = world
+        self.target_q = skel.q
         self.inactive = False
         self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
         self.Kd = np.array([0.0] * BRICK_DOF + [KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
@@ -31,6 +32,10 @@ class Controller:
         # TODO clamp control
         return -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
 
+    def state_complete(self, left, right):
+        # Stub to conform to Simbicon interface
+        pass
+
 class State(Enum):
     INIT = 0
     RIGHT_PLANT = 1
@@ -39,7 +44,8 @@ class State(Enum):
     LEFT_SWING = 4
 
 class TwoStepEnv:
-    def __init__(self, world):
+    def __init__(self, controller_class):
+        world = load_world()
         self.world = world
         walker = world.skeletons[1]
         self.robot_skeleton = walker
@@ -57,7 +63,7 @@ class TwoStepEnv:
         self.observation_space = np.zeros_like(self.current_observation())
         self.action_space = np.zeros(6)
 
-        self.controller = Controller(walker)
+        self.controller = controller_class(walker, world)
         walker.set_controller(self.controller)
         self.reset_x = (walker.q.copy(), walker.dq.copy())
         #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
@@ -137,6 +143,8 @@ class TwoStepEnv:
 
         l_foot_contact = self.find_contact(self.l_foot)
         r_foot_contact = self.find_contact(self.r_foot)
+        if self.controller.state_complete(l_foot_contact, r_foot_contact):
+            self.controller.change_state()
 
         if self.state == State.INIT and l_foot_contact is not None:
             if r_foot_contact is not None:
@@ -161,7 +169,7 @@ class TwoStepEnv:
             #self.log_contact(l_foot_contact)
             #return "Finished episode"
 
-        world.step()
+        self.world.step()
 
     def current_observation(self):
         return np.concatenate((self.robot_skeleton.x, [self.target]))
@@ -181,14 +189,16 @@ class TwoStepEnv:
         return self.current_observation(), 0, False, {}
 
     def render(self, mode='human', close=False):
-        #pydart.gui.viewer.launch(world)
-        #self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
+        self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
         self.viewer.scene.tb.trans[2] = -5 # adjust zoom
         if mode == 'rgb_array':
             data = self.viewer.getFrame()
             return data
         elif mode == 'human':
             self.viewer.runSingleStep()
+
+    def gui(self):
+        pydart.gui.viewer.launch(self.world)
 
     def put_dot(self, x, y, idx=0):
         dot = self.world.skeletons[2+idx]
@@ -219,8 +229,7 @@ def load_world():
 
 if __name__ == '__main__':
     from inverse_kinematics import InverseKinematics
-    world = load_world()
-    env = TwoStepEnv(world)
+    env = TwoStepEnv(PDController)
     ik = InverseKinematics(env, 0.5)
     w = random_search.Whitener(env, False)
     for t in [0.5, 1.0, 0.2]:
