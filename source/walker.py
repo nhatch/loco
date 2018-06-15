@@ -16,6 +16,7 @@ BRICK_DOF = 3 # We're in 2D
 KP_GAIN = 200.0
 KD_GAIN = 15.0
 
+# TODO implement Stable PD controllers?
 class PDController:
     def __init__(self, skel, world):
         self.skel = skel
@@ -183,6 +184,8 @@ class TwoStepEnv:
         for _ in range(STEPS_PER_QUERY):
             if self.visual and self.world.frame % self.steps_per_render == 0:
                 self.render() # For debugging -- if weird things happen between LLC actions
+            if self.world.frame % 2000 == 0:
+                print(np.round(self.world.time()), "seconds")
             result = self.simulation_step()
             if result:
                 self.log("{}: {}".format(result, self.score))

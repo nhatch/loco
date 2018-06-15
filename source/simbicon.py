@@ -20,21 +20,25 @@ walk = {
   "down": FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
   }
 
-_r = FSMState([0.21, 0.0, 0.2, 0.0, 0.8, -1.84, 0.2, -0.05, 0.27])
+_r = FSMState([0.35, 0.0, 0.2, 0.0, 0.8, -1.84, 0.2, -0.05, 0.27])
 run = {
   "down": _r, "up": _r
   }
 
-_fr = FSMState([0.15, 0.0, 0.2, -0.2, 1.08, -2.18, 0.2, -0.05, 0.27])
+_fr = FSMState([0.21, 0.0, 0.2, -0.2, 1.08, -2.18, 0.2, -0.05, 0.27])
 fast_run = {
   "down": _fr, "up": _fr
   }
+
+REAL_TIME = 1.2
+RENDER_FACTOR = 1.2
+GAIT = fast_run
 
 class Simbicon(PDController):
 
     def __init__(self, skel, world):
         super().__init__(skel, world)
-        self.FSM = fast_run
+        self.FSM = GAIT
         if self.FSM != walk:
             # Needs a running start
             dq = skel.dq.copy()
@@ -96,7 +100,7 @@ class Simbicon(PDController):
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon, render_factor = 10.0)
+    env = TwoStepEnv(Simbicon, render_factor = RENDER_FACTOR)
     from random_search import Whitener
     w = Whitener(env, False)
     zero_ctrl = lambda _: np.zeros(6)
