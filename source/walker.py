@@ -9,10 +9,9 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 5.0 # seconds
+EPISODE_TIME_LIMIT = 10.0 # seconds
 LLC_QUERY_PERIOD = 1.0 / 30.0 # seconds
 STEPS_PER_QUERY = int(LLC_QUERY_PERIOD / SIMULATION_RATE)
-STEPS_PER_RENDER = STEPS_PER_QUERY // 4
 BRICK_DOF = 3 # We're in 2D
 KP_GAIN = 200.0
 KD_GAIN = 15.0
@@ -44,9 +43,11 @@ class State(Enum):
     LEFT_SWING = 4
 
 class TwoStepEnv:
-    def __init__(self, controller_class):
+    def __init__(self, controller_class, render_factor=1.0):
         world = load_world()
         self.world = world
+        self.steps_per_render = int(STEPS_PER_QUERY / render_factor) + 1
+        self.visual = (render_factor > 1.0)
         walker = world.skeletons[1]
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
@@ -179,9 +180,9 @@ class TwoStepEnv:
 
     def step(self, action):
         self.controller.target_q[BRICK_DOF:] = action
-        for i in range(STEPS_PER_QUERY):
-            #if i % STEPS_PER_RENDER == 0:
-            #    self.render() # For debugging -- if weird things happen between LLC actions
+        for _ in range(STEPS_PER_QUERY):
+            if self.visual and self.world.frame % self.steps_per_render == 0:
+                self.render() # For debugging -- if weird things happen between LLC actions
             result = self.simulation_step()
             if result:
                 self.log("{}: {}".format(result, self.score))

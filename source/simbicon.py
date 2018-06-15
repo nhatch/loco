@@ -15,14 +15,33 @@ class FSMState:
         self.stance_ankle_relative = params[8]
 
 # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
-FSM = {"up": FSMState([0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2]),
-        "down": FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])}
+walk = {
+  "up": FSMState([0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2]),
+  "down": FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
+  }
+
+_r = FSMState([0.21, 0.0, 0.2, 0.0, 0.8, -1.84, 0.2, -0.05, 0.27])
+run = {
+  "down": _r, "up": _r
+  }
+
+_fr = FSMState([0.15, 0.0, 0.2, -0.2, 1.08, -2.18, 0.2, -0.05, 0.27])
+fast_run = {
+  "down": _fr, "up": _fr
+  }
 
 class Simbicon(PDController):
 
     def __init__(self, skel, world):
         super().__init__(skel, world)
-        self.state = FSM['up']
+        self.FSM = fast_run
+        if self.FSM != walk:
+            # Needs a running start
+            dq = skel.dq.copy()
+            dq[0] = 1.0
+            skel.dq = dq
+
+        self.state = self.FSM['up']
         self.state_started = self.world.time()
         self.swing_idx = 3
         self.stance_idx = 6
@@ -32,6 +51,8 @@ class Simbicon(PDController):
         if self.state.dwell_duration is not None:
             if self.world.time() - self.state_started >= self.state.dwell_duration:
                 return True
+            else:
+                return False
         else:
             if right is not None and self.swing_idx == 3:
                 self.contact_x = right.p[0] # TODO ideally put this in change_state (currently a side effect)
@@ -39,14 +60,16 @@ class Simbicon(PDController):
             elif left is not None and self.swing_idx == 6:
                 self.contact_x = left.p[0]
                 return True
+            else:
+                return False
 
     def change_state(self):
-        if self.state == FSM['down']:
+        if self.state == self.FSM['down']:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-            self.state = FSM['up']
+            self.state = self.FSM['up']
         else:
             # TODO skip this state if the swing foot is already in contact?
-            self.state = FSM['down']
+            self.state = self.FSM['down']
         self.state_started = self.world.time()
 
     def compute(self):
@@ -73,7 +96,7 @@ class Simbicon(PDController):
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon)
+    env = TwoStepEnv(Simbicon, render_factor = 10.0)
     from random_search import Whitener
     w = Whitener(env, False)
     zero_ctrl = lambda _: np.zeros(6)
