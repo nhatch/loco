@@ -4,44 +4,18 @@ from enum import Enum
 import numpy as np
 import random_search
 
+from simbicon import SIMBICON_ACTION_SIZE
+from pd_control import PDController
+from inverse_dynamics import flip_stance
+
 # For rendering
 from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 10.0 # seconds
+EPISODE_TIME_LIMIT = 5.0 # seconds
 LLC_QUERY_PERIOD = 1.0 / 30.0 # seconds
 STEPS_PER_QUERY = int(LLC_QUERY_PERIOD / SIMULATION_RATE)
-BRICK_DOF = 3 # We're in 2D
-KP_GAIN = 200.0
-KD_GAIN = 15.0
-
-# TODO implement Stable PD controllers?
-class PDController:
-    def __init__(self, skel, world):
-        self.skel = skel
-        self.world = world
-        self.target_q = skel.q
-        self.inactive = False
-        self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
-        self.Kd = np.array([0.0] * BRICK_DOF + [KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
-
-    def compute(self):
-        if self.inactive:
-            return np.zeros_like(self.Kp)
-        # TODO clamp control
-        return -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
-
-    def state_complete(self, left, right):
-        # Stub to conform to Simbicon interface
-        pass
-
-class State(Enum):
-    INIT = 0
-    RIGHT_PLANT = 1
-    RIGHT_SWING = 2
-    LEFT_PLANT = 3
-    LEFT_SWING = 4
 
 class TwoStepEnv:
     def __init__(self, controller_class, render_factor=1.0):
@@ -53,7 +27,6 @@ class TwoStepEnv:
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
-        self.target = 0
 
         # Hacks to make this work with the gym.wrappers Monitor API
         self.metadata = {'render.modes': ['rgb_array', 'human']}
@@ -63,7 +36,7 @@ class TwoStepEnv:
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
         self.observation_space = np.zeros_like(self.current_observation())
-        self.action_space = np.zeros(6)
+        self.action_space = np.zeros(SIMBICON_ACTION_SIZE)
 
         self.controller = controller_class(walker, world)
         walker.set_controller(self.controller)
@@ -84,15 +57,10 @@ class TwoStepEnv:
 
     def reset(self):
         self.world.reset()
+        self.controller.reset()
         self.place_footstep_targets([0.5])
         self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
         self.robot_skeleton.dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
-        # TODO make step targets random as well
-        # (this will require providing the target as an observation)
-        self.target = 0.5
-        self.score = 0.0
-        self.state = State.INIT
-        self.controller.target_q = self.reset_x[0].copy()
         return self.current_observation()
 
     # We locate heeldown events for a given foot based on the first contact
@@ -115,23 +83,6 @@ class TwoStepEnv:
             if not (b.name in allowed_contact):
                 return True
 
-    # On each heeldown event, we get points based on how close we were to
-    # the target step location. Maximum 1 point per step.
-    def calc_score(self, contact):
-        # p[0] is the X position of the contact
-        d = np.abs(contact.p[0] - self.target)
-        #placement_score = np.exp(-10 * d)
-        #placement_score = np.exp(-d**2)
-        placement_score = 1 - d
-        # TODO: penalize large actuation and/or hitting joint limits?
-        return placement_score
-
-    def log_contact(self, contact):
-        self.log(
-            "{:.3f}, {:.3f}, {}: {} made contact at {:.3f} (target: {:.3f})".format(
-            self.world.time(), self.score, self.state,
-            contact.bodynode2, contact.p[0], self.target))
-
     # The episode terminates after one right footstep and one left footstep,
     # or if the time limit is reached.
     def simulation_step(self):
@@ -143,54 +94,64 @@ class TwoStepEnv:
         if self.crashed():
             return "Crashed"
 
-        l_foot_contact = self.find_contact(self.l_foot)
-        r_foot_contact = self.find_contact(self.r_foot)
-        if self.controller.state_complete(l_foot_contact, r_foot_contact):
+        l_contact = self.find_contact(self.l_foot)
+        r_contact = self.find_contact(self.r_foot)
+        state_complete, step_dist = self.controller.state_complete(l_contact, r_contact)
+        if state_complete:
             self.controller.change_state()
-
-        if self.state == State.INIT and l_foot_contact is not None:
-            if r_foot_contact is not None:
-                self.state = State.RIGHT_PLANT
-            else:
-                self.state = State.RIGHT_SWING
-        elif self.state == State.RIGHT_PLANT and r_foot_contact is None:
-            self.state = State.RIGHT_SWING
-        elif self.state == State.RIGHT_SWING and r_foot_contact is not None:
-            if l_foot_contact is not None:
-                self.state = State.LEFT_PLANT
-            else:
-                self.state = State.LEFT_SWING
-            self.score += self.calc_score(r_foot_contact)
-            self.log_contact(r_foot_contact)
-            self.target += 0.5
-        elif self.state == State.LEFT_PLANT and l_foot_contact is None:
-            self.state = State.LEFT_SWING
-        elif self.state == State.LEFT_SWING and l_foot_contact is not None:
-            self.score += self.calc_score(l_foot_contact)
-            # TODO: fix step contact detection to avoid premature episode ending
-            #self.log_contact(l_foot_contact)
-            #return "Finished episode"
+            if step_dist:
+                return step_dist
 
         self.world.step()
 
     def current_observation(self):
-        return np.concatenate((self.robot_skeleton.x, [self.target]))
+        # TODO remove the first element? (x location) -- it doesn't matter. The more important thing is perhaps x location relative to the stance foot?
+        return self.robot_skeleton.x
 
     def log(self, string):
         print(string)
 
-    def step(self, action):
-        self.controller.target_q[BRICK_DOF:] = action
-        for _ in range(STEPS_PER_QUERY):
+    # Run one footstep of simulation, returning the final state and the achieved step distance
+    def simulate(self, start_state=None, action=None):
+        if start_state is not None:
+            self.robot_skeleton.x = start_state
+        if action is not None:
+            self.controller.set_gait_raw(action)
+        while True:
             if self.visual and self.world.frame % self.steps_per_render == 0:
-                self.render() # For debugging -- if weird things happen between LLC actions
-            if self.world.frame % 2000 == 0:
-                print(np.round(self.world.time()), "seconds")
-            result = self.simulation_step()
-            if result:
-                self.log("{}: {}".format(result, self.score))
-                return self.current_observation(), self.score, True, {}
-        return self.current_observation(), 0, False, {}
+                self.render()
+            step_dist = self.simulation_step()
+            if type(step_dist) == str:
+                self.log("ERROR: " + step_dist)
+                return None, None
+            if step_dist:
+                end_state = self.robot_skeleton.x.copy()
+                return end_state, step_dist
+
+    def step(self, action):
+        end_state, step_dist = self.simulate(action=action)
+        if step_dist is not None:
+            # Reward is step distance for now . . . this isn't meant to be used as RL though.
+            return self.current_observation(), step_dist, False, {}
+        return self.current_observation(), 0.0, True, {}
+
+    def collect_starting_states(self, size=8, n_resets=4):
+        self.log("Collecting initial starting states")
+        start_states = []
+        self.controller.set_gait_raw(np.zeros(self.action_space.shape[0]))
+        for i in range(n_resets):
+            self.log("Starting trajectory {}".format(i))
+            self.reset()
+            # TODO should we include this first state? It will be very different from the rest.
+            #start_states.append(self.robot_skeleton.x)
+            for j in range(size):
+                end_state, step_dist = self.simulate()
+                if end_state is not None:
+                    if j % 2 == 0:
+                        # This was a left foot swing, so flip it.
+                        end_state = flip_stance(end_state)
+                    start_states.append(end_state)
+        return start_states
 
     def render(self, mode='human', close=False):
         self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
@@ -232,6 +193,8 @@ def load_world():
     return world
 
 if __name__ == '__main__':
+    # TODO this code doesn't work anymore since the action interface changed
+    # I should probably write two separate environments (one for raw torques, one for Simbicon parameters)
     from inverse_kinematics import InverseKinematics
     env = TwoStepEnv(PDController)
     ik = InverseKinematics(env, 0.5)

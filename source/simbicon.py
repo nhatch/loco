@@ -1,6 +1,9 @@
 
-from walker import PDController, KP_GAIN, KD_GAIN
+from pd_control import PDController, KP_GAIN, KD_GAIN
 import numpy as np
+from IPython import embed
+
+SIMBICON_ACTION_SIZE = 17
 
 class FSMState:
     def __init__(self, params):
@@ -34,40 +37,57 @@ REAL_TIME = 1.2
 RENDER_FACTOR = 1.2
 GAIT = fast_run
 
+# Walking gait, so that a zero controller still behaves reasonably
+GAIT_BIAS = np.array([
+    0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2,
+    2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
+
 class Simbicon(PDController):
 
     def __init__(self, skel, world):
         super().__init__(skel, world)
-        self.FSM = GAIT
-        if self.FSM != walk:
-            # Needs a running start
-            dq = skel.dq.copy()
-            dq[0] = 1.0
-            skel.dq = dq
+        self.reset()
 
-        self.state = self.FSM['up']
+    def reset(self):
         self.state_started = self.world.time()
         self.swing_idx = 3
         self.stance_idx = 6
         self.contact_x = 0
+        self.printed_error = False
+
+    def set_gait_raw(self, raw_gait_centered):
+        raw_gait = raw_gait_centered + GAIT_BIAS
+        up = raw_gait[0:9]
+        down = np.concatenate(([None], raw_gait[9:SIMBICON_ACTION_SIZE]))
+        gait = {"up": FSMState(up), "down": FSMState(down)}
+        self.set_gait(gait)
+
+    def set_gait(self, gait):
+        self.FSM = gait
+        self.state = self.FSM['up']
 
     def state_complete(self, left, right):
         if self.state.dwell_duration is not None:
             if self.world.time() - self.state_started >= self.state.dwell_duration:
-                return True
+                return True, None
             else:
-                return False
+                return False, None
         else:
+            prev_x = self.contact_x
             if right is not None and self.swing_idx == 3:
                 self.contact_x = right.p[0] # TODO ideally put this in change_state (currently a side effect)
-                return True
+                return True, self.contact_x - prev_x
             elif left is not None and self.swing_idx == 6:
                 self.contact_x = left.p[0]
-                return True
+                return True, self.contact_x - prev_x
             else:
-                return False
+                return False, None
 
     def change_state(self):
+        swing = "RIGHT" if self.stance_idx == 6 else "LEFT"
+        direction = "UP" if self.state == self.FSM['up'] else "DOWN"
+        suffix = " at {:.3f}".format(self.contact_x) if direction == "DOWN" else ""
+        print("Ended state {} {}{}".format(swing, direction, suffix))
         if self.state == self.FSM['down']:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
             self.state = self.FSM['up']
@@ -77,22 +97,29 @@ class Simbicon(PDController):
         self.state_started = self.world.time()
 
     def compute(self):
-        q = self.target_q.copy()
+        q = np.zeros(9)
         q[self.swing_idx+1] = self.state.swing_knee_relative
         q[self.swing_idx+2] = self.state.swing_ankle_relative
         q[self.stance_idx+1] = self.state.stance_knee_relative
         q[self.stance_idx+2] = self.state.stance_ankle_relative
-        self.target_q = q
 
         cd = self.state.position_balance_gain
         cv = self.state.velocity_balance_gain
         v = self.skel.dq[0]
         d = self.skel.q[0] - self.contact_x
         balance_feedback = cd*d + cv*v
+        target_swing_angle = self.state.swing_hip_world + balance_feedback
+
+        # TODO: I have a bug where from some initializations, the right leg would will behind
+        # the left during the RIGHT DOWN phase. Then somehow gain corrections prevent
+        # the right leg from *ever* hitting the ground (the walker does some crazy splits
+        # instead). I might be able to fix this by not starting state_started until the
+        # stance foot touches the ground.
 
         torso_actual = self.skel.q[2]
-        self.target_q[self.swing_idx] = self.state.swing_hip_world - torso_actual + balance_feedback
+        q[self.swing_idx] = target_swing_angle - torso_actual
 
+        self.target_q = q
         control = super().compute()
         torso_torque = - KP_GAIN * (torso_actual - self.state.torso_world) - KD_GAIN * self.skel.dq[2]
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
@@ -101,7 +128,9 @@ class Simbicon(PDController):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon, render_factor = RENDER_FACTOR)
+    env.controller.set_gait(walk)
     from random_search import Whitener
     w = Whitener(env, False)
-    zero_ctrl = lambda _: np.zeros(6)
+    zero_ctrl = lambda _: np.zeros(env.action_space.shape[0])
+    env.reset()
     w.run_trajectory(zero_ctrl, 0, True, False)
