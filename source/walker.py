@@ -13,15 +13,12 @@ from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 5.0 # seconds
-LLC_QUERY_PERIOD = 1.0 / 30.0 # seconds
-STEPS_PER_QUERY = int(LLC_QUERY_PERIOD / SIMULATION_RATE)
+REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 class TwoStepEnv:
     def __init__(self, controller_class, render_factor=1.0):
         world = load_world()
         self.world = world
-        self.steps_per_render = int(STEPS_PER_QUERY / render_factor) + 1
-        self.visual = (render_factor > 1.0)
         walker = world.skeletons[1]
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
@@ -130,14 +127,16 @@ class TwoStepEnv:
         print(string)
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, start_state=None, action=None):
+    def simulate(self, start_state=None, action=None, render=False):
+        if render:
+            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
         if start_state is not None:
             self.robot_skeleton.x = start_state
             self.controller.contact_x = 0.0 # Relative to start_state[0] (cf current_observation)
         if action is not None:
             self.controller.set_gait_raw(action)
         while True:
-            if self.visual and self.world.frame % self.steps_per_render == 0:
+            if steps_per_render and self.world.frame % steps_per_render == 0:
                 self.render()
             step_dist = self.simulation_step()
             if type(step_dist) == str:
