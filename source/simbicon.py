@@ -101,6 +101,8 @@ class Simbicon(PDController):
         self.state_started = self.world.time()
 
     def compute(self):
+        # TODO the walking controller can start from rest,
+        # but not from (rest + small perturbation). (It does the splits and falls over.)
         state = self.state()
         q = np.zeros(9)
         q[self.swing_idx+1] = state.swing_knee_relative
@@ -114,12 +116,6 @@ class Simbicon(PDController):
         d = self.skel.q[0] - self.contact_x
         balance_feedback = cd*d + cv*v
         target_swing_angle = state.swing_hip_world + balance_feedback
-
-        # TODO: I have a bug where from some initializations, the right leg will get behind
-        # the left during the RIGHT DOWN phase. Then somehow gain corrections prevent
-        # the right leg from *ever* hitting the ground (the walker does some crazy splits
-        # instead). I might be able to fix this by not starting state_started until the
-        # stance foot touches the ground.
 
         torso_actual = self.skel.q[2]
         q[self.swing_idx] = target_swing_angle - torso_actual

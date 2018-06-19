@@ -1,6 +1,7 @@
 from IPython import embed
 import numpy as np
 
+# TODO there is some foot slip happening. Is this because these gains are too high?
 BRICK_DOF = 3 # We're in 2D
 KP_GAIN = 200.0
 KD_GAIN = 15.0

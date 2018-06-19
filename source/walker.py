@@ -60,7 +60,10 @@ class TwoStepEnv:
         self.controller.reset()
         self.place_footstep_targets([0.5])
         self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
-        self.robot_skeleton.dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+        dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+        # Start with some forward momentum (Simbicon has some trouble otherwise)
+        dq[0] += np.random.uniform(low=0.25, high=1.5)
+        self.robot_skeleton.dq = dq
         return self.current_observation()
 
     # We locate heeldown events for a given foot based on the first contact
