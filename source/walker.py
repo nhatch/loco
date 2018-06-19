@@ -51,15 +51,11 @@ class TwoStepEnv:
     def seed(self, seed):
         np.random.seed(seed)
 
-    def reset(self):
+    def reset(self, state=None):
         self.world.reset()
         self.controller.reset()
         self.place_footstep_targets([0.5])
-        self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
-        dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
-        # Start with some forward momentum (Simbicon has some trouble otherwise)
-        dq[0] += np.random.uniform(low=0.25, high=1.5)
-        self.robot_skeleton.dq = dq
+        self.set_state(state)
         return self.current_observation()
 
     # We locate heeldown events for a given foot based on the first contact
@@ -126,14 +122,22 @@ class TwoStepEnv:
     def log(self, string):
         print(string)
 
+    def set_state(self, state):
+        if state is None:
+            self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+            dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+            # Start with some forward momentum (Simbicon has some trouble otherwise)
+            dq[0] += np.random.uniform(low=0.25, high=1.5)
+            self.robot_skeleton.dq = dq
+        else:
+            self.robot_skeleton.x = state
+            self.controller.contact_x = 0.0 # Relative to state[0] (cf current_observation)
+
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, start_state=None, action=None, render=False):
+    def simulate(self, action=None, render=False):
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-        if start_state is not None:
-            self.robot_skeleton.x = start_state
-            self.controller.contact_x = 0.0 # Relative to start_state[0] (cf current_observation)
         if action is not None:
             self.controller.set_gait_raw(action)
         while True:
