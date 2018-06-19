@@ -36,8 +36,6 @@ fast_run = {
   DOWN: _fr, UP: _fr
   }
 
-REAL_TIME = 1.2
-RENDER_FACTOR = 1.2
 GAIT = fast_run
 
 # Walking gait, so that a zero controller still behaves reasonably
@@ -128,10 +126,8 @@ class Simbicon(PDController):
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon, render_factor = 2*RENDER_FACTOR)
+    env = TwoStepEnv(Simbicon)
     env.controller.set_gait(walk)
-    from random_search import Whitener
-    w = Whitener(env, False)
-    zero_ctrl = lambda _: np.zeros(env.action_space.shape[0])
     env.reset()
-    w.run_trajectory(zero_ctrl, 0, True, False)
+    for _ in range(12):
+        env.simulate(render=1.0)

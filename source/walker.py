@@ -16,7 +16,7 @@ EPISODE_TIME_LIMIT = 5.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 class TwoStepEnv:
-    def __init__(self, controller_class, render_factor=1.0):
+    def __init__(self, controller_class):
         world = load_world()
         self.world = world
         walker = world.skeletons[1]
@@ -128,6 +128,7 @@ class TwoStepEnv:
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
     def simulate(self, start_state=None, action=None, render=False):
+        steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
         if start_state is not None:

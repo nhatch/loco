@@ -6,5 +6,6 @@ To test the proof-of-concept environment, run this script:
 
 ```
 cd source
-python walker.py
+python simbicon.py
 ```
+
