@@ -145,7 +145,7 @@ class TwoStepEnv:
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.robot_skeleton.x)
             for j in range(size):
-                end_state, step_dist = self.simulate()
+                end_state, _ = self.simulate()
                 if end_state is not None:
                     if j % 2 == 0:
                         # This was a left foot swing, so flip it.

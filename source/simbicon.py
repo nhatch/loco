@@ -17,20 +17,23 @@ class FSMState:
         self.stance_knee_relative  = params[7]
         self.stance_ankle_relative = params[8]
 
+UP = 'up'
+DOWN = 'down'
+
 # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
 walk = {
-  "up": FSMState([0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2]),
-  "down": FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
+  UP: FSMState([0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2]),
+  DOWN: FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
   }
 
 _r = FSMState([0.35, 0.0, 0.2, 0.0, 0.8, -1.84, 0.2, -0.05, 0.27])
 run = {
-  "down": _r, "up": _r
+  DOWN: _r, UP: _r
   }
 
 _fr = FSMState([0.21, 0.0, 0.2, -0.2, 1.08, -2.18, 0.2, -0.05, 0.27])
 fast_run = {
-  "down": _fr, "up": _fr
+  DOWN: _fr, UP: _fr
   }
 
 REAL_TIME = 1.2
@@ -53,22 +56,24 @@ class Simbicon(PDController):
         self.swing_idx = 3
         self.stance_idx = 6
         self.contact_x = 0
-        self.printed_error = False
+        self.direction = UP
 
     def set_gait_raw(self, raw_gait_centered):
         raw_gait = raw_gait_centered + GAIT_BIAS
         up = raw_gait[0:9]
         down = np.concatenate(([None], raw_gait[9:SIMBICON_ACTION_SIZE]))
-        gait = {"up": FSMState(up), "down": FSMState(down)}
+        gait = {UP: FSMState(up), DOWN: FSMState(down)}
         self.set_gait(gait)
 
     def set_gait(self, gait):
         self.FSM = gait
-        self.state = self.FSM['up']
+
+    def state(self):
+        return self.FSM[self.direction]
 
     def state_complete(self, left, right):
-        if self.state.dwell_duration is not None:
-            if self.world.time() - self.state_started >= self.state.dwell_duration:
+        if self.state().dwell_duration is not None:
+            if self.world.time() - self.state_started >= self.state().dwell_duration:
                 return True, None
             else:
                 return False, None
@@ -85,32 +90,32 @@ class Simbicon(PDController):
 
     def change_state(self):
         swing = "RIGHT" if self.stance_idx == 6 else "LEFT"
-        direction = "UP" if self.state == self.FSM['up'] else "DOWN"
-        suffix = " at {:.3f}".format(self.contact_x) if direction == "DOWN" else ""
-        print("Ended state {} {}{}".format(swing, direction, suffix))
-        if self.state == self.FSM['down']:
+        suffix = " at {:.3f}".format(self.contact_x) if self.direction == DOWN else ""
+        print("Ended state {} {}{}".format(swing, self.direction, suffix))
+        if self.direction == DOWN:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-            self.state = self.FSM['up']
+            self.direction = UP
         else:
             # TODO skip this state if the swing foot is already in contact?
-            self.state = self.FSM['down']
+            self.direction = DOWN
         self.state_started = self.world.time()
 
     def compute(self):
+        state = self.state()
         q = np.zeros(9)
-        q[self.swing_idx+1] = self.state.swing_knee_relative
-        q[self.swing_idx+2] = self.state.swing_ankle_relative
-        q[self.stance_idx+1] = self.state.stance_knee_relative
-        q[self.stance_idx+2] = self.state.stance_ankle_relative
+        q[self.swing_idx+1] = state.swing_knee_relative
+        q[self.swing_idx+2] = state.swing_ankle_relative
+        q[self.stance_idx+1] = state.stance_knee_relative
+        q[self.stance_idx+2] = state.stance_ankle_relative
 
-        cd = self.state.position_balance_gain
-        cv = self.state.velocity_balance_gain
+        cd = state.position_balance_gain
+        cv = state.velocity_balance_gain
         v = self.skel.dq[0]
         d = self.skel.q[0] - self.contact_x
         balance_feedback = cd*d + cv*v
-        target_swing_angle = self.state.swing_hip_world + balance_feedback
+        target_swing_angle = state.swing_hip_world + balance_feedback
 
-        # TODO: I have a bug where from some initializations, the right leg would will behind
+        # TODO: I have a bug where from some initializations, the right leg will get behind
         # the left during the RIGHT DOWN phase. Then somehow gain corrections prevent
         # the right leg from *ever* hitting the ground (the walker does some crazy splits
         # instead). I might be able to fix this by not starting state_started until the
@@ -121,13 +126,13 @@ class Simbicon(PDController):
 
         self.target_q = q
         control = super().compute()
-        torso_torque = - KP_GAIN * (torso_actual - self.state.torso_world) - KD_GAIN * self.skel.dq[2]
+        torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * self.skel.dq[2]
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon, render_factor = RENDER_FACTOR)
+    env = TwoStepEnv(Simbicon, render_factor = 2*RENDER_FACTOR)
     env.controller.set_gait(walk)
     from random_search import Whitener
     w = Whitener(env, False)

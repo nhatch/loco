@@ -81,4 +81,4 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon, render_factor=3)
     learn = LearnInvDynamics(env)
     #learn.training_iter()
-    embed()
+    #embed()
