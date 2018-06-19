@@ -6,7 +6,6 @@ import random_search
 
 from simbicon import SIMBICON_ACTION_SIZE
 from pd_control import PDController
-from inverse_dynamics import flip_stance
 
 # For rendering
 from gym.envs.dart.static_window import *
@@ -28,21 +27,21 @@ class TwoStepEnv:
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
 
-        # Hacks to make this work with the gym.wrappers Monitor API
-        self.metadata = {'render.modes': ['rgb_array', 'human']}
-        self.reward_range = range(10)
-        self.spec = None
+        self.controller = controller_class(walker, world)
+        walker.set_controller(self.controller)
+        self.reset_x = (walker.q.copy(), walker.dq.copy())
+        #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
+        # For now, just set a static PD controller target pose
 
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
         self.observation_space = np.zeros_like(self.current_observation())
         self.action_space = np.zeros(SIMBICON_ACTION_SIZE)
 
-        self.controller = controller_class(walker, world)
-        walker.set_controller(self.controller)
-        self.reset_x = (walker.q.copy(), walker.dq.copy())
-        #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
-        # For now, just set a static PD controller target pose
+        # Hacks to make this work with the gym.wrappers Monitor API
+        self.metadata = {'render.modes': ['rgb_array', 'human']}
+        self.reward_range = range(10)
+        self.spec = None
 
         title = None
         win = StaticGLUTWindow(self.world, title)
@@ -108,8 +107,24 @@ class TwoStepEnv:
         self.world.step()
 
     def current_observation(self):
-        # TODO remove the first element? (x location) -- it doesn't matter. The more important thing is perhaps x location relative to the stance foot?
-        return self.robot_skeleton.x
+        obs = self.robot_skeleton.x.copy()
+        # Absolute x location doesn't matter -- just location relative to the stance contact
+        obs[0] -= self.controller.contact_x
+        return self.standardize_stance(obs)
+
+    def standardize_stance(self, state):
+        # Ensure the stance state is contained in state[6:9] and state[15:18].
+        # Do this by flipping the left state with the right state if necessary.
+        stance_idx, swing_idx = self.controller.stance_idx, self.controller.swing_idx
+        stance_q = state[stance_idx:stance_idx+3].copy()
+        stance_dq = state[stance_idx+9:stance_idx+12].copy()
+        swing_q = state[swing_idx:swing_idx+3].copy()
+        swing_dq = state[swing_idx+9:swing_idx+12].copy()
+        state[3:6] = swing_q
+        state[6:9] = stance_q
+        state[12:15] = swing_dq
+        state[15:18] = stance_dq
+        return state
 
     def log(self, string):
         print(string)
@@ -118,6 +133,7 @@ class TwoStepEnv:
     def simulate(self, start_state=None, action=None):
         if start_state is not None:
             self.robot_skeleton.x = start_state
+            self.controller.contact_x = 0.0 # Relative to start_state[0] (cf current_observation)
         if action is not None:
             self.controller.set_gait_raw(action)
         while True:
@@ -128,7 +144,7 @@ class TwoStepEnv:
                 self.log("ERROR: " + step_dist)
                 return None, None
             if step_dist:
-                end_state = self.robot_skeleton.x.copy()
+                end_state = self.current_observation()
                 return end_state, step_dist
 
     def step(self, action):
@@ -150,9 +166,6 @@ class TwoStepEnv:
             for j in range(size):
                 end_state, _ = self.simulate()
                 if end_state is not None:
-                    if j % 2 == 0:
-                        # This was a left foot swing, so flip it.
-                        end_state = flip_stance(end_state)
                     start_states.append(end_state)
         return start_states
 

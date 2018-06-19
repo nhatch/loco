@@ -7,17 +7,6 @@ N_STATES_PER_ITER = 32
 MINIBATCH_SIZE = 16 # Actually, maybe stochastic GD is not a good idea?
 EXPLORATION_STD = 0.1
 
-def flip_stance(state):
-    # Flips the left state with the right state.
-    state = state.copy()
-    temp = state[3:6]
-    state[3:6] = state[6:9]
-    state[6:9] = temp
-    temp = state[12:15]
-    state[12:15] = state[15:18]
-    state[15:18] = temp
-    return state
-
 class LearnInvDynamics:
     def __init__(self, env):
         self.env = env
@@ -32,32 +21,37 @@ class LearnInvDynamics:
         self.start_states = env.collect_starting_states()
 
     def collect_samples(self, start_state):
-        current_x = start_state[0] # Should this be stance heel location instead?
-        current_v = start_state[9]
-
-        # Choose some random targets that are hopefully representative of what
-        # we will see during testing episodes.
-        # TODO should target locations be relative or absolute?
-        target_dist = 0.5 + (0.5 * np.random.uniform() - 0.25)
-        target_v = current_v + (0.5 * np.random.uniform() - 0.25)
-        target = [target_dist, target_v]
-
-        # TODO whiten actions and observations?
-        mean_action = np.dot(self.f, np.concatenate((start_state, target)))
+        mean_action = self.act(start_state, target=None)
 
         for _ in range(N_ACTIONS_PER_STATE):
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             action = mean_action + perturbation
             end_state, step_dist = self.env.simulate(start_state, action)
-            achieved_target = (step_dist, end_state[9]) # Include ending velocity
-            self.train_set.append((start_state, action, achieved_target))
-            self.start_states.append(flip_stance(end_state))
+            if end_state is not None:
+                achieved_target = (step_dist, end_state[9]) # Include ending velocity
+                self.train_set.append((start_state, action, achieved_target))
+                self.start_states.append(end_state)
+            else:
+                print("ERROR: Ignoring this training datapoint")
+
+    def act(self, state, target=None):
+        if target is None:
+            # Choose some random targets that are hopefully representative of what
+            # we will see during testing episodes.
+            current_v = state[9]
+            target_dist = 0.5 + (0.5 * np.random.uniform() - 0.25)
+            target_v = current_v + (0.5 * np.random.uniform() - 0.25)
+            target = [target_dist, target_v]
+
+        # TODO whiten actions and observations?
+        return np.dot(self.f, np.concatenate((state, target)))
 
     def collect_dataset(self):
-        for start_state in np.random.choice(self.start_states, size=N_STATES_PER_ITER):
-            self.collect_samples(start_state)
+        for i in np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER):
+            self.collect_samples(self.start_states[i])
 
     def training_iter(self):
+        print("Starting new training iteration")
         self.collect_dataset()
         self.train_inverse_dynamics()
 
@@ -68,17 +62,18 @@ class LearnInvDynamics:
 
     def demo_start_state(self, i, n_steps=12):
         start_state = self.start_states[i]
-        action = np.zeros(self.f.shape[0])
         self.env.reset()
         self.env.visual=True
-        self.env.simulate(start_state, action)
+        action = self.act(start_state)
+        state, _ = self.env.simulate(start_state, action)
         for _ in range(n_steps-1):
-            self.env.simulate()
+            action = self.act(state)
+            state, _ = self.env.simulate(action=action)
         self.env.visual=False
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon, render_factor=3)
+    env = TwoStepEnv(Simbicon)
     learn = LearnInvDynamics(env)
     #learn.training_iter()
-    #embed()
+    embed()
