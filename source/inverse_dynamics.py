@@ -70,9 +70,12 @@ class LearnInvDynamics:
         target_dist = 0.5 + (0.5 * np.random.uniform() - 0.25)
         target_v = current_v + (0.5 * np.random.uniform() - 0.25)
         target = [target_dist, target_v]
-        absolute_x = self.env.controller.contact_x + target_dist
-        self.env.put_dot(absolute_x, 0.0)
+        self.show_target(target)
         return target
+
+    def show_target(self, target):
+        absolute_x = self.env.controller.contact_x + target[0]
+        self.env.put_dot(absolute_x, 0.0)
 
     def collect_dataset(self):
         for i in np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER):
@@ -117,6 +120,14 @@ class LearnInvDynamics:
             total += loss
         print("Total loss:", total)
 
+    def demo_train_example(self, i, render=3.0, show_orig_action=False):
+        start, action, target = self.train_set[i]
+        self.env.reset(start)
+        self.show_target(target)
+        if not show_orig_action:
+            action = self.act(start, target=target)
+        state, step_dist = self.env.simulate(action, render=render)
+        print("Achieved dist {:.3f} ({:.3f}), vel {:.3f} ({:.3f})".format(step_dist, target[0], state[9], target[1]))
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
@@ -124,5 +135,5 @@ if __name__ == '__main__':
     learn = LearnInvDynamics(env)
     learn.load_train_set()
     learn.train_inverse_dynamics()
-    learn.training_iter()
+    #learn.training_iter()
     embed()
