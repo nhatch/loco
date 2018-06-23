@@ -8,9 +8,9 @@ KD_GAIN = 15.0
 
 # TODO implement Stable PD controllers?
 class PDController:
-    def __init__(self, skel, world):
+    def __init__(self, skel, env):
         self.skel = skel
-        self.world = world
+        self.env = env
         self.inactive = False
         self.reset()
         self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))

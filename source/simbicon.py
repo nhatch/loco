@@ -2,6 +2,7 @@
 from pd_control import PDController, KP_GAIN, KD_GAIN
 import numpy as np
 from IPython import embed
+from inverse_kinematics import InverseKinematics
 
 SIMBICON_ACTION_SIZE = 17
 
@@ -16,9 +17,10 @@ class FSMState:
         self.swing_ankle_relative  = params[6]
         self.stance_knee_relative  = params[7]
         self.stance_ankle_relative = params[8]
+        self.raw_params = params
 
-UP = 'up'
-DOWN = 'down'
+UP = 'UP'
+DOWN = 'DOWN'
 
 # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
 walk = {
@@ -36,24 +38,21 @@ fast_run = {
   DOWN: _fr, UP: _fr
   }
 
-GAIT = fast_run
-
-# Walking gait, so that a zero controller still behaves reasonably
-GAIT_BIAS = np.array([
-    0.3, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2,
-    2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
+GAIT_BIAS = np.concatenate((walk[UP].raw_params, walk[DOWN].raw_params[1:]))
 
 class Simbicon(PDController):
 
-    def __init__(self, skel, world):
-        super().__init__(skel, world)
+    def __init__(self, skel, env):
+        super().__init__(skel, env)
         self.reset()
+        self.ik = InverseKinematics(env)
 
     def reset(self):
-        self.state_started = self.world.time()
+        self.state_started = self.time()
         self.swing_idx = 3
         self.stance_idx = 6
         self.contact_x = 0
+        self.stance_heel = 0
         self.direction = UP
 
     def set_gait_raw(self, raw_gait_centered):
@@ -69,34 +68,39 @@ class Simbicon(PDController):
     def state(self):
         return self.FSM[self.direction]
 
+    def time(self):
+        return self.env.world.time()
+
     def state_complete(self, left, right):
         if self.state().dwell_duration is not None:
-            if self.world.time() - self.state_started >= self.state().dwell_duration:
+            if self.time() - self.state_started >= self.state().dwell_duration:
                 return True, None
             else:
                 return False, None
-        else:
-            prev_x = self.contact_x
-            if right is not None and self.swing_idx == 3:
-                self.contact_x = right.p[0] # TODO ideally put this in change_state (currently a side effect)
-                return True, self.contact_x - prev_x
-            elif left is not None and self.swing_idx == 6:
-                self.contact_x = left.p[0]
-                return True, self.contact_x - prev_x
-            else:
-                return False, None
+        else: # This state should end when the swing foot makes contact with the ground.
+            contacts_to_check = right if self.swing_idx == 3 else left
+            #print("New frame; checking {} contacts".format(len(contacts_to_check)))
+            swing_heel = self.ik.forward_kine(self.swing_idx)
+            # TODO there may be multiple contacts; which should we use?
+            for contact in contacts_to_check:
+                # TODO ideally put this in change_state (currently a side effect)
+                self.contact_x = contact.p[0]
+                prev_stance_heel = self.stance_heel
+                self.stance_heel = swing_heel[0]
+                return True, self.stance_heel - prev_stance_heel
+            return False, None
 
     def change_state(self):
         swing = "RIGHT" if self.stance_idx == 6 else "LEFT"
         suffix = " at {:.3f}".format(self.contact_x) if self.direction == DOWN else ""
-        print("Ended state {} {}{}".format(swing, self.direction, suffix))
+        print("{:.3f}: Ended state {} {}{}".format(self.time(), swing, self.direction, suffix))
         if self.direction == DOWN:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
             self.direction = UP
         else:
             # TODO skip this state if the swing foot is already in contact?
             self.direction = DOWN
-        self.state_started = self.world.time()
+        self.state_started = self.time()
 
     def compute(self):
         # TODO the walking controller can start from rest,
@@ -129,5 +133,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     env.controller.set_gait(walk)
     env.reset()
-    for _ in range(12):
+    for _ in range(8):
         env.simulate(render=1.0)

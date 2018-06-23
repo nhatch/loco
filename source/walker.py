@@ -24,7 +24,7 @@ class TwoStepEnv:
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
 
-        self.controller = controller_class(walker, world)
+        self.controller = controller_class(walker, self)
         walker.set_controller(self.controller)
         self.reset_x = (walker.q.copy(), walker.dq.copy())
         #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
@@ -58,14 +58,8 @@ class TwoStepEnv:
         self.set_state(state)
         return self.current_observation()
 
-    # We locate heeldown events for a given foot based on the first contact
-    # for that foot after it has been in the air for at least one frame.
-    def find_contact(self, bodynode):
-        # TODO: It is possible for a body node to have multiple contacts.
-        # Which one should be returned?
-        for c in self.world.collision_result.contacts:
-            if c.bodynode2 == bodynode:
-                return c
+    def find_contacts(self, bodynode):
+        return [c for c in self.world.collision_result.contacts if c.bodynode2 == bodynode]
 
     def crashed(self):
         allowed_contact = [
@@ -89,8 +83,8 @@ class TwoStepEnv:
         if self.crashed():
             return "Crashed"
 
-        l_contact = self.find_contact(self.l_foot)
-        r_contact = self.find_contact(self.r_foot)
+        l_contact = self.find_contacts(self.l_foot)
+        r_contact = self.find_contacts(self.r_foot)
         state_complete, step_dist = self.controller.state_complete(l_contact, r_contact)
         if state_complete:
             self.controller.change_state()
