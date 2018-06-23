@@ -1,8 +1,13 @@
 from IPython import embed
 import numpy as np
 
+L_PELVIS = 0.40
+L_LEG =    0.45
+L_SHIN =   0.50
+L_FOOT =   0.20
+
 class InverseKinematics:
-    def __init__(self, env, target):
+    def __init__(self, env, target=None):
         self.env = env
         self.agent = self.env.robot_skeleton
         self.target = target
@@ -18,9 +23,23 @@ class InverseKinematics:
         q[8] = 0
         return q[3:]
 
+    def forward_kine(self, swing_idx=3):
+        q = self.agent.q
+        # Adding torso, hip, knee, and ankle angles gives the angle of the foot
+        # relative to flat ground.
+        foot_angle = q[2]+q[swing_idx]+q[swing_idx+1]+q[swing_idx+2]
+        foot_com = self.agent.bodynodes[swing_idx+2].com()
+        offset = -0.5 * L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
+        return foot_com + offset
+
+    def test_forward_kine(self):
+        self.test_inv_kine()
+        r_heel = self.forward_kine()
+        # If something's broken, this will move the dot away from the ankle
+        self.env.put_dot(r_heel[0], r_heel[1])
+        self.env.render()
+
     def inv_kine(self, targ_down, targ_forward):
-        L_LEG = 0.45
-        L_SHIN = 0.5
 
         r = np.sqrt(targ_down**2 + targ_forward**2)
         cos_knee = (r**2 - L_LEG**2 - L_SHIN**2) / (2 * L_LEG * L_SHIN)
@@ -77,7 +96,6 @@ class InverseKinematics:
         # relative to the pelvis joint's absolute location and rotation.
         pelvis_com = self.agent.bodynodes[2].com()
         theta = self.agent.q[2]
-        L_PELVIS = 0.4
         self.env.put_dot(x, y)
         if verbose:
             print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
@@ -110,5 +128,6 @@ if __name__ == "__main__":
 
     env = gym.make('Stepper-v0')
     ik = InverseKinematics(env.env, 0.5)
-    ik.test_inv_kine()
+    #ik.test_inv_kine()
+    ik.test_forward_kine()
     embed()
