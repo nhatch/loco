@@ -5,6 +5,7 @@ L_PELVIS = 0.40
 L_LEG =    0.45
 L_SHIN =   0.50
 L_FOOT =   0.20
+FOOT_RADIUS = 0.06
 
 class InverseKinematics:
     def __init__(self, env, target=None):
@@ -30,6 +31,7 @@ class InverseKinematics:
         foot_angle = q[2]+q[swing_idx]+q[swing_idx+1]+q[swing_idx+2]
         foot_com = self.agent.bodynodes[swing_idx+2].com()
         offset = -0.5 * L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
+        offset[1] -= FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
 
     def test_forward_kine(self):
