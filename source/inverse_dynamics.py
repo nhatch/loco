@@ -41,6 +41,7 @@ class LearnInvDynamics:
     def load_train_set(self):
         with open(TRAIN_FILENAME, 'rb') as f:
             self.start_states, self.train_set = pickle.load(f)
+        self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
         mean_action = self.act(start_state, target=None)
@@ -74,7 +75,7 @@ class LearnInvDynamics:
         return target
 
     def show_target(self, target):
-        absolute_x = self.env.controller.contact_x + target[0]
+        absolute_x = self.env.controller.stance_heel + target[0]
         self.env.put_dot(absolute_x, 0.0)
 
     def collect_dataset(self):
@@ -108,17 +109,22 @@ class LearnInvDynamics:
             state = start_state
             step_dist = -1000
         loss = (step_dist - t[0])**2 + (state[9] - t[1])**2
-        print("sq. loss:", loss)
-        return state, loss
+        error = np.abs(step_dist - t[0])
+        print("sq. loss: {:.3f}, error: {:.3f}".format(loss, error))
+        return state, loss, error
 
     def demo_start_state(self, i, n_steps=8, render=1.0):
         state = self.start_states[i]
         self.env.reset(state)
         total = 0
+        max_error = 0
         for _ in range(n_steps):
-            state, loss = self.run_step(state, render)
+            state, loss, error = self.run_step(state, render)
+            if error > max_error:
+                max_error = error
             total += loss
-        print("Total loss:", total)
+        print("Avg. loss: {:.3f}".format(total/n_steps))
+        print("Max error: {:.3f}".format(max_error))
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, target = self.train_set[i]
@@ -134,6 +140,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInvDynamics(env)
     learn.load_train_set()
-    learn.train_inverse_dynamics()
     #learn.training_iter()
     embed()
