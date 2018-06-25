@@ -3,8 +3,8 @@ import numpy as np
 
 # TODO there is some foot slip happening. Is this because these gains are too high?
 BRICK_DOF = 3 # We're in 2D
-KP_GAIN = 200.0
-KD_GAIN = 15.0
+KP_GAIN = 300.0
+KD_GAIN = 30.0
 
 # TODO implement Stable PD controllers?
 class PDController:

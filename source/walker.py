@@ -16,6 +16,8 @@ SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 5.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
+FRICTION_COEFF = 100.0
+
 class TwoStepEnv:
     def __init__(self, controller_class):
         world = load_world()
@@ -24,6 +26,11 @@ class TwoStepEnv:
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
+        # TODO: somehow, despite this, the feet are still slipping.
+        # It also makes the walker trip unless I increase the PD gains.
+        walker.bodynodes[5].set_friction_coeff(FRICTION_COEFF)
+        walker.bodynodes[8].set_friction_coeff(FRICTION_COEFF)
+        world.skeletons[0].bodynodes[0].set_friction_coeff(FRICTION_COEFF)
 
         self.controller = controller_class(walker, self)
         walker.set_controller(self.controller)
@@ -209,7 +216,6 @@ class TwoStepEnv:
             self.put_dot(t, 0, i)
 
 def load_world():
-    SKEL_ROOT = "/home/nathan/research/pydart2/examples/data/skel/"
     DARTENV_SKEL_ROOT = "/home/nathan/research/dart-env/gym/envs/dart/assets/"
     skel = DARTENV_SKEL_ROOT + "walker2d.skel"
 

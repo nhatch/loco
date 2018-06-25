@@ -132,6 +132,8 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     env.controller.set_gait(walk)
+    #env.seed(133712)
+    #env.seed(42)
     env.reset()
     for _ in range(8):
         env.simulate(render=1.0)
