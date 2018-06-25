@@ -6,6 +6,12 @@ import gym
 
 SHIFT = 0.0
 
+def monitor(env):
+    n = int(time.time())
+    m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n),
+            video_callable=lambda _: True)
+    return m
+
 class Whitener:
     def __init__(self, env, record_video=False):
         self.N = 0
@@ -15,10 +21,7 @@ class Whitener:
         self.var = np.ones(obs_dim)
 
         if record_video:
-            n = int(time.time())
-            m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n),
-                    video_callable=lambda _: True)
-            self.env = m
+            self.env = monitor(env)
 
     def close(self):
         if type(self.env) == gym.wrappers.Monitor:
