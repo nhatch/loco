@@ -103,9 +103,10 @@ class TwoStepEnv:
 
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
-        # Absolute x location doesn't matter -- just location relative to the stance contact
-        obs[0] -= self.controller.contact_x
-        return self.standardize_stance(obs)
+        obs = self.standardize_stance(obs)
+        base_x = self.robot_skeleton.x[0]
+        stance = np.array([self.controller.contact_x, self.controller.stance_heel]) - base_x
+        return np.concatenate((obs, stance))
 
     def standardize_stance(self, state):
         # Ensure the stance state is contained in state[6:9] and state[15:18].
@@ -132,8 +133,9 @@ class TwoStepEnv:
             dq[0] += np.random.uniform(low=0.25, high=1.5)
             self.robot_skeleton.dq = dq
         else:
-            self.robot_skeleton.x = state
-            self.controller.contact_x = 0.0 # Relative to state[0] (cf current_observation)
+            self.robot_skeleton.x = state[:18]
+            self.controller.contact_x = state[18]
+            self.controller.stance_heel = state[19]
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
     def simulate(self, action=None, render=False):
