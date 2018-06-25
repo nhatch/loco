@@ -6,6 +6,7 @@ import random_search
 
 from simbicon import SIMBICON_ACTION_SIZE
 from pd_control import PDController
+from video_recorder import video_recorder
 
 # For rendering
 from gym.envs.dart.static_window import *
@@ -35,10 +36,11 @@ class TwoStepEnv:
         self.observation_space = np.zeros_like(self.current_observation())
         self.action_space = np.zeros(SIMBICON_ACTION_SIZE)
 
+        self.video_recorder = None
         # Hacks to make this work with the gym.wrappers Monitor API
         self.metadata = {'render.modes': ['rgb_array', 'human']}
-        self.reward_range = range(10)
-        self.spec = None
+        #self.reward_range = range(10)
+        #self.spec = None
 
         title = None
         win = StaticGLUTWindow(self.world, title)
@@ -51,11 +53,17 @@ class TwoStepEnv:
     def seed(self, seed):
         np.random.seed(seed)
 
-    def reset(self, state=None):
+    def reset(self, state=None, record_video=False):
         self.world.reset()
         self.controller.reset()
         self.place_footstep_targets([0.5])
         self.set_state(state)
+        if self.video_recorder:
+            self.video_recorder.close()
+        if record_video:
+            self.video_recorder = video_recorder(self)
+        else:
+            self.video_recorder = None
         return self.current_observation()
 
     def find_contacts(self, bodynode):
@@ -136,7 +144,7 @@ class TwoStepEnv:
             self.controller.set_gait_raw(action)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
-                self.render()
+                self._render()
             step_dist = self.simulation_step()
             if type(step_dist) == str:
                 self.log("ERROR: " + step_dist)
@@ -166,6 +174,12 @@ class TwoStepEnv:
                 if end_state is not None:
                     start_states.append(end_state)
         return start_states
+
+    def _render(self):
+        if self.video_recorder:
+            self.video_recorder.capture_frame()
+        else:
+            self.render()
 
     def render(self, mode='human', close=False):
         self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1

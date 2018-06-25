@@ -6,26 +6,13 @@ import gym
 
 SHIFT = 0.0
 
-def monitor(env):
-    n = int(time.time())
-    m = gym.wrappers.Monitor(env, 'monitoring/{}'.format(n),
-            video_callable=lambda _: True)
-    return m
-
 class Whitener:
-    def __init__(self, env, record_video=False):
+    def __init__(self, env):
         self.N = 0
         self.env = env
         obs_dim = env.observation_space.shape[0]
         self.mean = np.zeros(obs_dim)
         self.var = np.ones(obs_dim)
-
-        if record_video:
-            self.env = monitor(env)
-
-    def close(self):
-        if type(self.env) == gym.wrappers.Monitor:
-            self.env.close()
 
     def update_stats(self, obs):
         mean = (self.N * self.mean + obs) / (self.N+1)

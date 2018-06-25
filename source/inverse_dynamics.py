@@ -113,9 +113,9 @@ class LearnInvDynamics:
         print("sq. loss: {:.3f}, error: {:.3f}".format(loss, error))
         return state, loss, error
 
-    def demo_start_state(self, i, n_steps=8, render=1.0):
+    def demo_start_state(self, i, n_steps=8, render=1.0, record_video=False):
         state = self.start_states[i]
-        self.env.reset(state)
+        self.env.reset(state, record_video=record_video)
         total = 0
         max_error = 0
         for _ in range(n_steps):
@@ -125,6 +125,7 @@ class LearnInvDynamics:
             total += loss
         print("Avg. loss: {:.3f}".format(total/n_steps))
         print("Max error: {:.3f}".format(max_error))
+        self.env.reset() # This ensures the video recorder is closed properly.
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, target = self.train_set[i]
