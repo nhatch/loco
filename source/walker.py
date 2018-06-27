@@ -111,6 +111,7 @@ class TwoStepEnv:
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
         obs = self.standardize_stance(obs)
+        obs[0] = 0.0 # Exact x location doesn't affect dynamics; let's ignore this
         base_x = self.robot_skeleton.x[0]
         stance = np.array([self.controller.contact_x, self.controller.stance_heel]) - base_x
         return np.concatenate((obs, stance))
@@ -137,7 +138,7 @@ class TwoStepEnv:
             self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
             dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
             # Start with some forward momentum (Simbicon has some trouble otherwise)
-            dq[0] += np.random.uniform(low=0.25, high=1.5)
+            dq[0] += np.random.uniform(low=0.8, high=1.2)
             self.robot_skeleton.dq = dq
         else:
             self.robot_skeleton.x = state[:18]
@@ -169,7 +170,7 @@ class TwoStepEnv:
             return self.current_observation(), step_dist, False, {}
         return self.current_observation(), 0.0, True, {}
 
-    def collect_starting_states(self, size=8, n_resets=4):
+    def collect_starting_states(self, size=8, n_resets=16):
         self.log("Collecting initial starting states")
         start_states = []
         self.controller.set_gait_raw(np.zeros(self.action_space.shape[0]))
@@ -179,7 +180,7 @@ class TwoStepEnv:
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.robot_skeleton.x)
             for j in range(size):
-                end_state, _ = self.simulate()
+                end_state, _ = self.simulate(render=1.0)
                 if end_state is not None:
                     start_states.append(end_state)
         return start_states

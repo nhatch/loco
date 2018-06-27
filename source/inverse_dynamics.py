@@ -13,6 +13,8 @@ EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
 
+RIDGE_ALPHA = 10.0
+
 class LearnInvDynamics:
     def __init__(self, env):
         self.env = env
@@ -22,7 +24,7 @@ class LearnInvDynamics:
         target_space_shape = 2
         self.n_action = env.action_space.shape[0]
         self.n_dynamic = env.observation_space.shape[0] + target_space_shape
-        self.lm = Ridge(alpha=1.0)
+        self.lm = Ridge(alpha=RIDGE_ALPHA)
         # Initialize the model with all zeros
         self.lm.fit(np.zeros((1, self.n_dynamic)), np.zeros((1,self.n_action)))
 
@@ -64,12 +66,15 @@ class LearnInvDynamics:
         # TODO whiten actions and observations?
         return self.lm.predict(np.concatenate((state, target)).reshape(1,-1)).reshape(-1)
 
-    def generate_target(self, state):
+    def generate_target(self, prev_target=None):
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        current_v = state[9]
-        target_dist = 0.5 + (0.5 * np.random.uniform() - 0.25)
-        target_v = current_v + (0.5 * np.random.uniform() - 0.25)
+        if prev_target:
+            current_v = prev_target[1]
+        else:
+            current_v = 1.0
+        target_dist = current_v * 0.5 + (0.5 * np.random.uniform() - 0.25)
+        target_v = current_v + (0.3 * np.random.uniform() - 0.15)
         target = [target_dist, target_v]
         self.show_target(target)
         return target
@@ -100,16 +105,15 @@ class LearnInvDynamics:
             y[i] = sample[1]
         self.lm.fit(X, y)
 
-    def run_step(self, start_state, render):
-        t = self.generate_target(start_state)
-        action = self.act(start_state, target=t)
+    def run_step(self, start_state, render, target):
+        action = self.act(start_state, target=target)
         state, step_dist = self.env.simulate(action, render=render)
         if state is None:
             # The robot crashed or something. Just hack so the script doesn't *also* crash.
             state = start_state
             step_dist = -1000
-        loss = (step_dist - t[0])**2 + (state[9] - t[1])**2
-        error = np.abs(step_dist - t[0])
+        loss = (step_dist - target[0])**2 + (state[9] - target[1])**2
+        error = np.abs(step_dist - target[0])
         print("sq. loss: {:.3f}, error: {:.3f}".format(loss, error))
         return state, loss, error
 
@@ -118,11 +122,13 @@ class LearnInvDynamics:
         self.env.reset(state, record_video=record_video)
         total = 0
         max_error = 0
+        t = self.generate_target()
         for _ in range(n_steps):
-            state, loss, error = self.run_step(state, render)
+            state, loss, error = self.run_step(state, render, t)
             if error > max_error:
                 max_error = error
             total += loss
+            t = self.generate_target(t)
         print("Avg. loss: {:.3f}".format(total/n_steps))
         print("Max error: {:.3f}".format(max_error))
         self.env.reset() # This ensures the video recorder is closed properly.
@@ -141,5 +147,6 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInvDynamics(env)
     learn.load_train_set()
+    #learn.training_iter()
     #learn.training_iter()
     embed()
