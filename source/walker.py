@@ -36,6 +36,8 @@ class TwoStepEnv:
         walker.bodynodes[5].set_friction_coeff(FRICTION_COEFF)
         walker.bodynodes[8].set_friction_coeff(FRICTION_COEFF)
         world.skeletons[0].bodynodes[0].set_friction_coeff(FRICTION_COEFF)
+        for j in walker.joints:
+            j.set_position_limit_enforced()
 
         self.controller = controller_class(walker, self)
         walker.set_controller(self.controller)
@@ -225,9 +227,7 @@ class TwoStepEnv:
             self.put_dot(t, 0, i)
 
 def load_world():
-    DARTENV_SKEL_ROOT = "/home/nathan/research/dart-env/gym/envs/dart/assets/"
-    skel = DARTENV_SKEL_ROOT + "walker2d.skel"
-
+    skel = "walker2d.skel"
     pydart.init()
     world = pydart.World(SIMULATION_RATE, skel)
     # These will mark footstep target locations

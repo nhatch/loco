@@ -96,8 +96,8 @@ class Simbicon(PDController):
         result = None
         if self.direction == DOWN:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-            self.direction = UP
             result = "{:.3f}: Ended state {} {}{}".format(self.time(), swing, self.direction, suffix)
+            self.direction = UP
         else:
             # TODO skip this state if the swing foot is already in contact?
             self.direction = DOWN
