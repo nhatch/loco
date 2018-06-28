@@ -16,7 +16,7 @@ SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 5.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
-FRICTION_COEFF = 100.0
+FRICTION_COEFF = 5.0
 
 class StepResult(Enum):
     ERROR = -1
