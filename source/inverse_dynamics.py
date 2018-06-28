@@ -20,10 +20,10 @@ class LearnInverseDynamics:
         self.env = env
         self.initialize_start_states()
         self.train_set = []
-        # Use a linear policy for now
-        target_space_shape = 2
+        target_space_shape = 1
         self.n_action = env.action_space.shape[0]
         self.n_dynamic = env.observation_space.shape[0] + target_space_shape
+        # Use a linear policy for now
         self.lm = Ridge(alpha=RIDGE_ALPHA)
         # Initialize the model with all zeros
         self.lm.fit(np.zeros((1, self.n_dynamic)), np.zeros((1,self.n_action)))
@@ -53,7 +53,7 @@ class LearnInverseDynamics:
             self.env.reset(start_state)
             end_state, step_dist = self.env.simulate(action)
             if end_state is not None:
-                achieved_target = (step_dist, end_state[9]) # Include ending velocity
+                achieved_target = [step_dist] # Include ending velocity
                 self.train_set.append((start_state, action, achieved_target))
                 self.start_states.append(end_state)
             else:
@@ -69,13 +69,8 @@ class LearnInverseDynamics:
     def generate_target(self, prev_target=None):
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        if prev_target is not None:
-            current_v = prev_target[1]
-        else:
-            current_v = 1.0
-        target_dist = current_v * 0.5 + (0.5 * np.random.uniform() - 0.25)
-        target_v = current_v + (0.3 * np.random.uniform() - 0.15)
-        target = [target_dist, target_v]
+        target = 0.5 + (0.5 * np.random.uniform() - 0.25)
+        target = [target]
         self.show_target(target)
         return target
 
@@ -89,7 +84,6 @@ class LearnInverseDynamics:
         print(len(self.start_states), len(self.train_set))
 
     def training_iter(self, demo=True):
-        print("Starting new training iteration")
         self.collect_dataset()
         self.train_inverse_dynamics()
         if demo:
@@ -112,26 +106,25 @@ class LearnInverseDynamics:
             # The robot crashed or something. Just hack so the script doesn't *also* crash.
             state = start_state
             step_dist = -1 # Should make this bigger, but then the graph gets way out of scale
-        loss = (step_dist - target[0])**2 + (state[9] - target[1])**2
         error = np.abs(step_dist - target[0])
-        return state, loss, error
+        return state, error
 
     def evaluate(self, n_steps=8, render=None, record_video=False, seed=None):
         if seed:
             self.env.seed(seed)
         state = self.env.reset(record_video=record_video)
-        total_loss = 0
+        total_error = 0
         max_error = 0
         t = self.generate_target()
         for _ in range(n_steps):
-            state, loss, error = self.run_step(state, render, t)
+            state, error = self.run_step(state, render, t)
             if error > max_error:
                 max_error = error
-            total_loss += loss
+            total_error += error
             t = self.generate_target(t)
-        avg_loss = total_loss/n_steps
+        avg_error = total_error/n_steps
         self.env.reset() # This ensures the video recorder is closed properly.
-        return avg_loss, max_error
+        return avg_error, max_error
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, target = self.train_set[i]
@@ -140,7 +133,7 @@ class LearnInverseDynamics:
         if not show_orig_action:
             action = self.act(start, target=target)
         state, step_dist = self.env.simulate(action, render=render)
-        print("Achieved dist {:.3f} ({:.3f}), vel {:.3f} ({:.3f})".format(step_dist, target[0], state[9], target[1]))
+        print("Achieved dist {:.3f} ({:.3f})".format(step_dist, target[0]))
 
 if __name__ == '__main__':
     from walker import TwoStepEnv

@@ -14,7 +14,7 @@ class Experiment:
         self.learner = learner
         self.name = name
         self.iter = 0
-        self.avg_losses = []
+        self.avg_errors = []
         self.max_errors = []
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
         self.run_evaluations()
@@ -24,37 +24,38 @@ class Experiment:
         pass
 
     def run_evaluations(self):
-        avg_losses = []
+        avg_errors = []
         max_errors = []
         for k in range(self.n_eval_trajectories):
             print("Starting evaluation", k)
-            avg_loss, max_error = self.learner.evaluate()
-            avg_losses.append(avg_loss)
+            avg_error, max_error = self.learner.evaluate()
+            avg_errors.append(avg_error)
             max_errors.append(max_error)
-        self.avg_losses.append(avg_losses)
+        self.avg_errors.append(avg_errors)
         self.max_errors.append(max_errors)
 
     def run_iters(self, n_iters):
         for i in range(n_iters):
+            self.iter += 1
+            print("Starting training iteration ", self.iter)
             self.learner.training_iter()
             self.run_evaluations()
-            self.iter += 1
         self.plot_results()
 
     def plot_results(self):
         n_points = self.iter+1
-        avg_losses = np.array(self.avg_losses)
+        avg_errors = np.array(self.avg_errors)
         max_errors = np.array(self.max_errors)
         x = range(n_points)
-        avg_loss_line, = plt.plot(x, np.mean(avg_losses, 1), color="red")
+        avg_error_line, = plt.plot(x, np.mean(avg_errors, 1), color="red")
         max_error_line, = plt.plot(x, np.mean(max_errors, 1), color="blue")
-        plt.fill_between(x, np.min(avg_losses, 1), np.max(avg_losses, 1), color="red", alpha=0.2)
+        plt.fill_between(x, np.min(avg_errors, 1), np.max(avg_errors, 1), color="red", alpha=0.2)
         plt.fill_between(x, np.min(max_errors, 1), np.max(max_errors, 1), color="blue", alpha=0.2)
 
         plt.title("Training curve")
         plt.xlabel("Number of data collection iterations")
-        plt.ylabel("Average loss / maximum placement error")
-        plt.legend([avg_loss_line, max_error_line], ["Average loss", "Max error"])
+        plt.ylabel("Foot placement error")
+        plt.legend([avg_error_line, max_error_line], ["Average error", "Max error"])
 
         sns.set_style('white')
         sns.despine()
@@ -68,5 +69,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
-    ex.run_iters(0)
+    ex.run_iters(6)
     embed()
