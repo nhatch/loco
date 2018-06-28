@@ -116,7 +116,9 @@ class LearnInverseDynamics:
         error = np.abs(step_dist - target[0])
         return state, loss, error
 
-    def evaluate(self, n_steps=8, render=None, record_video=False):
+    def evaluate(self, n_steps=8, render=None, record_video=False, seed=None):
+        if seed:
+            self.env.seed(seed)
         state = self.env.reset(record_video=record_video)
         total_loss = 0
         max_error = 0
