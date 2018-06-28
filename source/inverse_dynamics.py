@@ -30,7 +30,7 @@ class LearnInverseDynamics:
 
     def initialize_start_states(self):
         if not os.path.exists(START_STATES_FILENAME):
-            states = env.collect_starting_states()
+            states = self.env.collect_starting_states()
             with open(START_STATES_FILENAME, 'wb') as f:
                 pickle.dump(states, f)
         with open(START_STATES_FILENAME, 'rb') as f:
