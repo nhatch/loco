@@ -5,6 +5,7 @@
 *.pdf
 *.swp
 *.log
+*.png
 
 junk/
 __pycache__/

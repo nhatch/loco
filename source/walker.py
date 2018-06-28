@@ -18,6 +18,11 @@ REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so
 
 FRICTION_COEFF = 100.0
 
+class StepResult(Enum):
+    ERROR = -1
+    IN_PROGRESS = 0
+    COMPLETE = 1
+
 class TwoStepEnv:
     def __init__(self, controller_class):
         world = load_world()
@@ -87,26 +92,27 @@ class TwoStepEnv:
             if not (b.name in allowed_contact):
                 return True
 
-    # The episode terminates after one right footstep and one left footstep,
-    # or if the time limit is reached.
+    # Executes one world step.
+    # Returns (status code, step distance, human-readable message) tuple.
     def simulation_step(self):
         if self.world.time() > EPISODE_TIME_LIMIT:
-            return "Time limit reached"
+            return StepResult.ERROR, None, "Time limit reached"
         obs = self.current_observation()
         if not np.isfinite(obs).all():
-            return "Numerical explosion"
+            return StepResult.ERROR, None, "Numerical explosion"
         if self.crashed():
-            return "Crashed"
+            return StepResult.ERROR, None, "Crashed"
 
         l_contact = self.find_contacts(self.l_foot)
         r_contact = self.find_contacts(self.r_foot)
         state_complete, step_dist = self.controller.state_complete(l_contact, r_contact)
         if state_complete:
-            self.controller.change_state()
+            status_string = self.controller.change_state()
             if step_dist:
-                return step_dist
+                return StepResult.COMPLETE, step_dist, status_string
 
         self.world.step()
+        return StepResult.IN_PROGRESS, None, None
 
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
@@ -155,12 +161,14 @@ class TwoStepEnv:
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
-            step_dist = self.simulation_step()
-            if type(step_dist) == str:
-                self.log("ERROR: " + step_dist)
+            status_code, step_dist, status_string = self.simulation_step()
+            if status_code == StepResult.ERROR:
+                self.log("ERROR: " + status_string)
                 return None, None
-            if step_dist:
+            if status_code == StepResult.COMPLETE:
                 end_state = self.current_observation()
+                if render:
+                    self.log(status_string)
                 return end_state, step_dist
 
     def step(self, action):

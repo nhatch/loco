@@ -15,7 +15,7 @@ TRAIN_FILENAME = 'data/train.pkl'
 
 RIDGE_ALPHA = 10.0
 
-class LearnInvDynamics:
+class LearnInverseDynamics:
     def __init__(self, env):
         self.env = env
         self.initialize_start_states()
@@ -69,7 +69,7 @@ class LearnInvDynamics:
     def generate_target(self, prev_target=None):
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        if prev_target:
+        if prev_target is not None:
             current_v = prev_target[1]
         else:
             current_v = 1.0
@@ -93,7 +93,7 @@ class LearnInvDynamics:
         self.collect_dataset()
         self.train_inverse_dynamics()
         if demo:
-            self.demo_start_state(0, render=1)
+            self.evaluate(render=1.0)
 
     def train_inverse_dynamics(self):
         # TODO find some library to do gradient descent
@@ -111,27 +111,25 @@ class LearnInvDynamics:
         if state is None:
             # The robot crashed or something. Just hack so the script doesn't *also* crash.
             state = start_state
-            step_dist = -1000
+            step_dist = -1 # Should make this bigger, but then the graph gets way out of scale
         loss = (step_dist - target[0])**2 + (state[9] - target[1])**2
         error = np.abs(step_dist - target[0])
-        print("sq. loss: {:.3f}, error: {:.3f}".format(loss, error))
         return state, loss, error
 
-    def demo_start_state(self, i, n_steps=8, render=1.0, record_video=False):
-        state = self.start_states[i]
-        self.env.reset(state, record_video=record_video)
-        total = 0
+    def evaluate(self, n_steps=8, render=None, record_video=False):
+        state = self.env.reset(record_video=record_video)
+        total_loss = 0
         max_error = 0
         t = self.generate_target()
         for _ in range(n_steps):
             state, loss, error = self.run_step(state, render, t)
             if error > max_error:
                 max_error = error
-            total += loss
+            total_loss += loss
             t = self.generate_target(t)
-        print("Avg. loss: {:.3f}".format(total/n_steps))
-        print("Max error: {:.3f}".format(max_error))
+        avg_loss = total_loss/n_steps
         self.env.reset() # This ensures the video recorder is closed properly.
+        return avg_loss, max_error
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, target = self.train_set[i]
@@ -145,8 +143,8 @@ class LearnInvDynamics:
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    learn = LearnInvDynamics(env)
-    learn.load_train_set()
+    learn = LearnInverseDynamics(env)
+    #learn.load_train_set()
     #learn.training_iter()
     #learn.training_iter()
     embed()

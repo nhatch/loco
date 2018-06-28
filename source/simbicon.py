@@ -93,14 +93,16 @@ class Simbicon(PDController):
     def change_state(self):
         swing = "RIGHT" if self.stance_idx == 6 else "LEFT"
         suffix = " at {:.3f}".format(self.contact_x) if self.direction == DOWN else ""
-        print("{:.3f}: Ended state {} {}{}".format(self.time(), swing, self.direction, suffix))
+        result = None
         if self.direction == DOWN:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
             self.direction = UP
+            result = "{:.3f}: Ended state {} {}{}".format(self.time(), swing, self.direction, suffix)
         else:
             # TODO skip this state if the swing foot is already in contact?
             self.direction = DOWN
         self.state_started = self.time()
+        return result
 
     def compute(self):
         # TODO the walking controller can start from rest,
