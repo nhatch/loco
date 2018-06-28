@@ -257,6 +257,8 @@ The goal is to submit this to ICRA on September 15.
 \subsection*{Curriculum and transfer learning for locomotion}
 
 \begin{itemize}
+  \item \cite{2018-ICLR-distill} This paper uses a similar curriculum-learning approach to 2D-biped locomotion on varied terrains, starting with flat ground and working up to a mixture of slopes, steps, and gaps. We may want to use their distillation approach when integrating multiple skills. (Alternatively, we could use what they call ``pure transfer learning'', but have each new task incorporate the relevant challenges of previous tasks.) They use motion capture, and the actions are target joint angles.
+
   \item \cite{karpathy2012curriculum} use a two-level hand-designed curriculum to achieve impressive acrobatic results for a low-dimenisonal hopper.
     However, their method involves random search and nonparametric nearest-neighbor policies, which are unlikely to generalize to higher-dimensional morphologies.
 
