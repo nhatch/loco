@@ -4,6 +4,7 @@ import pickle
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 
 N_EVAL_TRAJECTORIES = 8
@@ -14,48 +15,57 @@ class Experiment:
         self.learner = learner
         self.name = name
         self.iter = 0
-        self.avg_errors = []
-        self.max_errors = []
+        self.results = defaultdict(lambda: [])
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
         self.run_evaluations()
+        self.settings = {
+                "total_score": "blue",
+                "max_error": "red",
+                "n_steps": "black",
+                "avg_error": "green",
+                }
 
     def checkpoint(self):
         # TODO add checkpointing (save model params, collected data, training curve statistics)
         pass
 
     def run_evaluations(self):
-        avg_errors = []
-        max_errors = []
-        for k in range(self.n_eval_trajectories):
-            print("Starting evaluation", k)
-            avg_error, max_error = self.learner.evaluate()
-            avg_errors.append(avg_error)
-            max_errors.append(max_error)
-        self.avg_errors.append(avg_errors)
-        self.max_errors.append(max_errors)
+        results = defaultdict(lambda: [])
+        for i in range(self.n_eval_trajectories):
+            print("Starting evaluation", i)
+            result = self.learner.evaluate()
+            for k,v in result.items():
+                results[k].append(v)
+        for k,v in results.items():
+            self.results[k].append(v)
+        self.learner.evaluate(render=1.0) # For human consumption
 
     def run_iters(self, n_iters):
         for i in range(n_iters):
             self.iter += 1
-            print("Starting training iteration ", self.iter)
+            print("Starting training iteration", self.iter)
             self.learner.training_iter()
             self.run_evaluations()
         self.plot_results()
 
     def plot_results(self):
         n_points = self.iter+1
-        avg_errors = np.array(self.avg_errors)
-        max_errors = np.array(self.max_errors)
-        x = range(n_points)
-        avg_error_line, = plt.plot(x, np.mean(avg_errors, 1), color="red")
-        max_error_line, = plt.plot(x, np.mean(max_errors, 1), color="blue")
-        plt.fill_between(x, np.min(avg_errors, 1), np.max(avg_errors, 1), color="red", alpha=0.2)
-        plt.fill_between(x, np.min(max_errors, 1), np.max(max_errors, 1), color="blue", alpha=0.2)
+        lines = []
+        labels = []
+        keys_to_plot = ['total_score', 'max_error']
+        for k in keys_to_plot:
+            data = np.array(self.results[k])
+            x = range(data.shape[0])
+            color = self.settings[k]
+            line, = plt.plot(x, np.mean(data, 1), color=color)
+            plt.fill_between(x, np.min(data, 1), np.max(data, 1), color=color, alpha=0.2)
+            labels.append(k)
+            lines.append(line)
 
         plt.title("Training curve")
         plt.xlabel("Number of data collection iterations")
         plt.ylabel("Foot placement error")
-        plt.legend([avg_error_line, max_error_line], ["Average error", "Max error"])
+        plt.legend(lines, labels)
 
         sns.set_style('white')
         sns.despine()
@@ -69,5 +79,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
-    ex.run_iters(6)
+    ex.run_iters(3)
     embed()
