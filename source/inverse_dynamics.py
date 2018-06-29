@@ -61,18 +61,19 @@ class LearnInverseDynamics:
 
     def act(self, state, target=None):
         if target is None:
-            target = self.generate_target(state)
+            target = [self.generate_targets(1)[0]]
 
         # TODO whiten actions and observations?
         return self.lm.predict(np.concatenate((state, target)).reshape(1,-1)).reshape(-1)
 
-    def generate_target(self, prev_target=None):
+    def generate_targets(self, num_steps, mean=0.42, width=0.3):
+        targets = []
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        target = 0.5 + (0.5 * np.random.uniform() - 0.25)
-        target = [target]
-        self.show_target(target)
-        return target
+        for _ in range(num_steps):
+            dist = mean + width * (np.random.uniform() - 0.5)
+            targets.append(dist)
+        return targets
 
     def show_target(self, target):
         absolute_x = self.env.controller.stance_heel + target[0]
@@ -83,15 +84,12 @@ class LearnInverseDynamics:
             self.collect_samples(self.start_states[i])
         print(len(self.start_states), len(self.train_set))
 
-    def training_iter(self, demo=True):
+    def training_iter(self):
         self.collect_dataset()
         self.train_inverse_dynamics()
-        if demo:
-            self.evaluate(render=1.0)
 
     def train_inverse_dynamics(self):
-        # TODO find some library to do gradient descent
-        # Or just implement it myself, it's not that hard...
+        # TODO try some model more complicated than linear?
         X = np.zeros((len(self.train_set), self.n_dynamic))
         y = np.zeros((len(self.train_set), self.n_action))
         for i, sample in enumerate(self.train_set):
@@ -103,28 +101,44 @@ class LearnInverseDynamics:
         action = self.act(start_state, target=target)
         state, step_dist = self.env.simulate(action, render=render)
         if state is None:
-            # The robot crashed or something. Just hack so the script doesn't *also* crash.
-            state = start_state
-            step_dist = -1 # Should make this bigger, but then the graph gets way out of scale
+            # The robot crashed.
+            return None, None
         error = np.abs(step_dist - target[0])
         return state, error
 
-    def evaluate(self, n_steps=8, render=None, record_video=False, seed=None):
+    def evaluate(self, n_steps=16, render=None, record_video=False, seed=None, width=0.3):
         if seed:
             self.env.seed(seed)
         state = self.env.reset(record_video=record_video)
         total_error = 0
         max_error = 0
-        t = self.generate_target()
-        for _ in range(n_steps):
-            state, error = self.run_step(state, render, t)
+        total_score = 0
+        DISCOUNT = 0.8
+        distance_targets = self.generate_targets(n_steps, width=width)
+        total_offset = 0
+        num_successful_steps = 0
+        for i in range(n_steps):
+            target = [sum(distance_targets[:i+1]) - self.env.controller.stance_heel]
+            self.show_target(target)
+            state, error = self.run_step(state, render, target)
+            if state is None:
+                # The robot crashed
+                break
+            num_successful_steps += 1
             if error > max_error:
                 max_error = error
             total_error += error
-            t = self.generate_target(t)
-        avg_error = total_error/n_steps
+            if error < 1:
+                total_score += (1-error) * (DISCOUNT**i)
+        avg_error = total_error/num_successful_steps # TODO what if there were no suc. steps?
         self.env.reset() # This ensures the video recorder is closed properly.
-        return avg_error, max_error
+        result = {
+                "total_score": total_score,
+                "n_steps": num_successful_steps,
+                "max_error": max_error,
+                "avg_error": avg_error,
+                }
+        return result
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, target = self.train_set[i]
@@ -140,6 +154,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     #learn.load_train_set()
-    #learn.training_iter()
     #learn.training_iter()
     embed()

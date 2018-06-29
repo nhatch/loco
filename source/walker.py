@@ -13,7 +13,7 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 5.0 # seconds
+EPISODE_TIME_LIMIT = 8.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 FRICTION_COEFF = 5.0
@@ -173,13 +173,6 @@ class TwoStepEnv:
                     self.log(status_string)
                 return end_state, step_dist
 
-    def step(self, action):
-        end_state, step_dist = self.simulate(action=action)
-        if step_dist is not None:
-            # Reward is step distance for now . . . this isn't meant to be used as RL though.
-            return self.current_observation(), step_dist, False, {}
-        return self.current_observation(), 0.0, True, {}
-
     def collect_starting_states(self, size=8, n_resets=16):
         self.log("Collecting initial starting states")
         start_states = []
@@ -233,7 +226,7 @@ def load_world():
     # These will mark footstep target locations
     # TODO: allow placing variable numbers of dots in the environment
     dot = world.add_skeleton('./dot.sdf')
-    #dot = world.add_skeleton('./dot.sdf') # A second dot, not used yet
+    dot = world.add_skeleton('./dot.sdf') # A second dot, to track the location of the origin
 
     return world
 
