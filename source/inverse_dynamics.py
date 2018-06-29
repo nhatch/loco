@@ -24,9 +24,13 @@ class LearnInverseDynamics:
         self.n_action = env.action_space.shape[0]
         self.n_dynamic = env.observation_space.shape[0] + target_space_shape
         # Use a linear policy for now
-        self.lm = Ridge(alpha=RIDGE_ALPHA)
+        self.lm = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         # Initialize the model with all zeros
         self.lm.fit(np.zeros((1, self.n_dynamic)), np.zeros((1,self.n_action)))
+        self.X_mean = np.zeros(self.n_dynamic)
+        self.X_std = np.ones(self.n_dynamic)
+        self.y_mean = np.zeros(self.n_action)
+        self.y_std = np.ones(self.n_action)
 
     def initialize_start_states(self):
         if not os.path.exists(START_STATES_FILENAME):
@@ -62,9 +66,10 @@ class LearnInverseDynamics:
     def act(self, state, target=None):
         if target is None:
             target = [self.generate_targets(1)[0]]
-
-        # TODO whiten actions and observations?
-        return self.lm.predict(np.concatenate((state, target)).reshape(1,-1)).reshape(-1)
+        X = np.concatenate((state, target)).reshape(1,-1)
+        X = (X - self.X_mean) / self.X_std
+        white_action = self.lm.predict(X).reshape(-1)
+        return white_action * self.y_std + self.y_mean
 
     def generate_targets(self, num_steps, mean=0.42, width=0.3):
         targets = []
@@ -95,6 +100,16 @@ class LearnInverseDynamics:
         for i, sample in enumerate(self.train_set):
             X[i] = np.concatenate((sample[0], sample[2]))
             y[i] = sample[1]
+        self.X_mean = X.mean(0)
+        # For some reason, whitening X leads to very poor performance
+        # TODO this is probably a bug
+        #self.X_std = X.std(0)
+        #embed()
+        #self.X_std[0] = 1.0 # Observed absolute x location is always zero, so has no variance
+        self.y_mean = y.mean(0)
+        self.y_std = y.std(0)
+        X = (X - self.X_mean) / self.X_std
+        y = (y - self.y_mean) / self.y_std
         self.lm.fit(X, y)
 
     def run_step(self, start_state, render, target):
