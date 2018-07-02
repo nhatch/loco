@@ -12,18 +12,18 @@ N_EVAL_TRAJECTORIES = 8
 
 class Experiment:
     def __init__(self, name, learner):
-        self.learner = learner
-        self.name = name
-        self.iter = 0
-        self.results = defaultdict(lambda: [])
-        self.n_eval_trajectories = N_EVAL_TRAJECTORIES
-        self.run_evaluations()
         self.settings = {
                 "total_score": "blue",
                 "max_error": "red",
                 "n_steps": "black",
                 "avg_error": "green",
                 }
+        self.learner = learner
+        self.name = name
+        self.iter = 0
+        self.results = defaultdict(lambda: [])
+        self.n_eval_trajectories = N_EVAL_TRAJECTORIES
+        self.run_evaluations()
 
     def checkpoint(self):
         # TODO add checkpointing (save model params, collected data, training curve statistics)
@@ -38,6 +38,7 @@ class Experiment:
                 results[k].append(v)
         for k,v in results.items():
             self.results[k].append(v)
+        self.plot_results()
         self.learner.evaluate(render=1.0) # For human consumption
 
     def run_iters(self, n_iters):
@@ -46,7 +47,6 @@ class Experiment:
             print("Starting training iteration", self.iter)
             self.learner.training_iter()
             self.run_evaluations()
-        self.plot_results()
 
     def plot_results(self):
         n_points = self.iter+1
@@ -79,5 +79,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
-    ex.run_iters(3)
+    #ex.run_iters(10)
     embed()

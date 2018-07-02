@@ -107,7 +107,7 @@ class LearnInverseDynamics:
         #embed()
         #self.X_std[0] = 1.0 # Observed absolute x location is always zero, so has no variance
         self.y_mean = y.mean(0)
-        self.y_std = y.std(0)
+        #self.y_std = y.std(0)
         X = (X - self.X_mean) / self.X_std
         y = (y - self.y_mean) / self.y_std
         self.lm.fit(X, y)
@@ -121,7 +121,7 @@ class LearnInverseDynamics:
         error = np.abs(step_dist - target[0])
         return state, error
 
-    def evaluate(self, n_steps=16, render=None, record_video=False, seed=None, width=0.3):
+    def evaluate(self, n_steps=16, render=None, record_video=False, seed=None, width=0.3, mean=0.42):
         if seed:
             self.env.seed(seed)
         state = self.env.reset(record_video=record_video)
@@ -129,7 +129,7 @@ class LearnInverseDynamics:
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
-        distance_targets = self.generate_targets(n_steps, width=width)
+        distance_targets = self.generate_targets(n_steps, mean=mean, width=width)
         total_offset = 0
         num_successful_steps = 0
         for i in range(n_steps):
