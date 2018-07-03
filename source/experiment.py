@@ -16,7 +16,6 @@ class Experiment:
                 "total_score": "blue",
                 "max_error": "red",
                 "n_steps": "black",
-                "avg_error": "green",
                 }
         self.learner = learner
         self.name = name
@@ -79,5 +78,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
-    #ex.run_iters(10)
+    ex.run_iters(1)
     embed()

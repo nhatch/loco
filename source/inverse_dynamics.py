@@ -4,11 +4,10 @@ from simbicon import Simbicon
 import pickle
 import os
 
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, RANSACRegressor
 
 N_ACTIONS_PER_STATE = 4
-N_STATES_PER_ITER = 32
-MINIBATCH_SIZE = 16 # Actually, maybe stochastic GD is not a good idea?
+N_STATES_PER_ITER = 128
 EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
@@ -24,13 +23,18 @@ class LearnInverseDynamics:
         self.n_action = env.action_space.shape[0]
         self.n_dynamic = env.observation_space.shape[0] + target_space_shape
         # Use a linear policy for now
-        self.lm = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
-        # Initialize the model with all zeros
-        self.lm.fit(np.zeros((1, self.n_dynamic)), np.zeros((1,self.n_action)))
+        r = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
+        self.lm = RANSACRegressor(base_estimator=r, residual_threshold=2.0)
         self.X_mean = np.zeros(self.n_dynamic)
-        self.X_std = np.ones(self.n_dynamic)
         self.y_mean = np.zeros(self.n_action)
-        self.y_std = np.ones(self.n_action)
+        # Maybe try varying these.
+        # Increasing X factor increases the penalty for using that feature as a predictor.
+        # Increasing y factor increases the penalty for mispredicting that action parameter.
+        # Originally I tried scaling by the variance, but that led to very poor performance.
+        # It appears that variance in whatever arbitrary units is not a good indicator of
+        # importance in fitting a linear model of the dynamics for this environment.
+        self.X_scale_factor = np.ones(self.n_dynamic)
+        self.y_scale_factor = np.ones(self.n_action)
 
     def initialize_start_states(self):
         if not os.path.exists(START_STATES_FILENAME):
@@ -67,9 +71,12 @@ class LearnInverseDynamics:
         if target is None:
             target = [self.generate_targets(1)[0]]
         X = np.concatenate((state, target)).reshape(1,-1)
-        X = (X - self.X_mean) / self.X_std
-        white_action = self.lm.predict(X).reshape(-1)
-        return white_action * self.y_std + self.y_mean
+        X = (X - self.X_mean) / self.X_scale_factor
+        if hasattr(self.lm, 'estimator_'):
+            rescaled_action = self.lm.predict(X).reshape(-1)
+        else:
+            rescaled_action = np.zeros(self.n_action)
+        return rescaled_action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, num_steps, mean=0.42, width=0.3):
         targets = []
@@ -101,15 +108,9 @@ class LearnInverseDynamics:
             X[i] = np.concatenate((sample[0], sample[2]))
             y[i] = sample[1]
         self.X_mean = X.mean(0)
-        # For some reason, whitening X leads to very poor performance
-        # TODO this is probably a bug
-        #self.X_std = X.std(0)
-        #embed()
-        #self.X_std[0] = 1.0 # Observed absolute x location is always zero, so has no variance
         self.y_mean = y.mean(0)
-        #self.y_std = y.std(0)
-        X = (X - self.X_mean) / self.X_std
-        y = (y - self.y_mean) / self.y_std
+        X = (X - self.X_mean) / self.X_scale_factor
+        y = (y - self.y_mean) * self.y_scale_factor
         self.lm.fit(X, y)
 
     def run_step(self, start_state, render, target):
@@ -145,13 +146,12 @@ class LearnInverseDynamics:
             total_error += error
             if error < 1:
                 total_score += (1-error) * (DISCOUNT**i)
-        avg_error = total_error/num_successful_steps # TODO what if there were no suc. steps?
         self.env.reset() # This ensures the video recorder is closed properly.
         result = {
                 "total_score": total_score,
                 "n_steps": num_successful_steps,
                 "max_error": max_error,
-                "avg_error": avg_error,
+                "total_error": total_error,
                 }
         return result
 
