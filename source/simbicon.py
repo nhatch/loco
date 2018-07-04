@@ -28,6 +28,12 @@ walk = {
   DOWN: FSMState([None, 2.2, 0.0, 0.0, -0.7, -0.05, 0.2, -0.1, 0.2])
   }
 
+# Modified from the original because that didn't work on our model.
+in_place_walk = {
+  UP: FSMState([0.3, 0.0, 0.2, 0.0, 0.62, -1.1, 0.2, -0.15, 0.0]),
+  DOWN: FSMState([None, 0.0, 0.0, 0.0, -0.1, -0.05, 0.2, -0.3, 0.1])
+  }
+
 _r = FSMState([0.35, 0.0, 0.2, 0.0, 0.8, -1.84, 0.2, -0.05, 0.27])
 run = {
   DOWN: _r, UP: _r
@@ -133,9 +139,9 @@ class Simbicon(PDController):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    env.controller.set_gait(walk)
+    env.controller.set_gait(in_place_walk)
     #env.seed(133712)
     #env.seed(42)
     env.reset()
-    for _ in range(8):
+    for _ in range(12):
         env.simulate(render=1.0)
