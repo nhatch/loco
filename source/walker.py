@@ -2,6 +2,7 @@ import pydart2 as pydart
 from IPython import embed
 from enum import Enum
 import numpy as np
+import os
 import random_search
 
 from simbicon import SIMBICON_ACTION_SIZE
@@ -27,6 +28,7 @@ class TwoStepEnv:
     def __init__(self, controller_class):
         world = load_world()
         self.world = world
+        self.num_dots = 0
         walker = world.skeletons[1]
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
@@ -41,9 +43,6 @@ class TwoStepEnv:
 
         self.controller = controller_class(walker, self)
         walker.set_controller(self.controller)
-        self.reset_x = (walker.q.copy(), walker.dq.copy())
-        #self.reset_x[0][3] = 1 # Experimenting with what the DOFs mean
-        # For now, just set a static PD controller target pose
 
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
@@ -67,11 +66,11 @@ class TwoStepEnv:
     def seed(self, seed):
         np.random.seed(seed)
 
-    def reset(self, state=None, record_video=False):
+    def reset(self, state=None, record_video=False, random=1.0):
         self.world.reset()
+        # TODO remove extra dot skeletons?
         self.controller.reset()
-        self.place_footstep_targets([0.5])
-        self.set_state(state)
+        self.set_state(state, random)
         if self.video_recorder:
             self.video_recorder.close()
         if record_video:
@@ -141,12 +140,13 @@ class TwoStepEnv:
     def log(self, string):
         print(string)
 
-    def set_state(self, state):
+    def set_state(self, state, random):
+        # If random = 0.0, no randomness will be added
         if state is None:
-            self.robot_skeleton.q = self.reset_x[0].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
-            dq = self.reset_x[1].copy() + np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+            self.robot_skeleton.q += random * np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
             # Start with some forward momentum (Simbicon has some trouble otherwise)
-            dq[0] += np.random.uniform(low=0.8, high=1.2)
+            dq = self.robot_skeleton.dq
+            dq[0] += 0.8 + random * np.random.uniform(low=0.0, high=0.4)
             self.robot_skeleton.dq = dq
         else:
             self.robot_skeleton.x = state[:18]
@@ -206,28 +206,22 @@ class TwoStepEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
-    def put_dot(self, x, y, idx=0):
-        dot = self.world.skeletons[2+idx]
+    def put_dot(self, x, y):
+        # Change the skeleton name so that the console output is not cluttered
+        # with warnings about duplicate names.
+        os.system("sed -e 's/dot/dot_" + str(self.num_dots) + "/' dot.sdf > _dot.sdf")
+        self.num_dots += 1
+
+        dot = self.world.add_skeleton('./_dot.sdf')
         q = dot.q
         q[3] = x
         q[4] = y
         dot.q = q
 
-    def place_footstep_targets(self, targets):
-        # Place visual markers at the target footstep locations
-        # TODO: allow placing variable numbers of dots in the environment
-        for i, t in enumerate(targets):
-            self.put_dot(t, 0, i)
-
 def load_world():
     skel = "walker2d.skel"
-    pydart.init()
+    pydart.init(verbose=False)
     world = pydart.World(SIMULATION_RATE, skel)
-    # These will mark footstep target locations
-    # TODO: allow placing variable numbers of dots in the environment
-    dot = world.add_skeleton('./dot.sdf')
-    dot = world.add_skeleton('./dot.sdf') # A second dot, to track the location of the origin
-
     return world
 
 if __name__ == '__main__':
