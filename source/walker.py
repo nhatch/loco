@@ -154,16 +154,14 @@ class TwoStepEnv:
             self.controller.stance_heel = state[19]
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, action=None, render=False, target_x=None):
-        if target_x is not None:
-            self.put_dot(target_x, 0)
+    def simulate(self, target_x, action=None, render=False):
+        self.put_dot(target_x, 0)
+        self.controller.target_x = target_x
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
         if action is not None:
             self.controller.set_gait_raw(action)
-        if target_x is not None:
-            self.controller.target_x = target_x
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
@@ -187,7 +185,7 @@ class TwoStepEnv:
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.robot_skeleton.x)
             for j in range(size):
-                end_state, _ = self.simulate(render=1.0)
+                end_state, _ = self.simulate(render=1.0) #TODO this is broken now that a target is required
                 if end_state is not None:
                     start_states.append(end_state)
         return start_states
