@@ -133,12 +133,11 @@ class Simbicon(PDController):
         self.FSM[DOWN].swing_knee_relative = knee
 
     def compute(self):
-        # TODO the walking controller can start from rest,
-        # but not from (rest + small perturbation). (It does the splits and falls over.)
         state = self.state()
         q = np.zeros(9)
         q[self.swing_idx+1] = state.swing_knee_relative
         q[self.swing_idx+2] = state.swing_ankle_relative
+
         q[self.stance_idx+1] = state.stance_knee_relative
         q[self.stance_idx+2] = state.stance_ankle_relative
 
@@ -155,7 +154,9 @@ class Simbicon(PDController):
         q[self.swing_idx] = target_swing_angle - torso_actual
 
         self.target_q = q
+        self.Kd[self.stance_idx+1] *= 2
         control = super().compute()
+        self.Kd[self.stance_idx+1] /= 2
         torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * self.skel.dq[2]
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     env.reset(random=0.0)
     up = env.controller.FSM[UP]
     down = env.controller.FSM[DOWN]
-    for i in range(12):
-        t = 0.3 + 0.4*i
+    for i in range(20):
+        t = 0.3 + 0.30*i + np.random.uniform(low=0.0, high=0.1)
         env.simulate(render=1.0, target_x=t)
 
