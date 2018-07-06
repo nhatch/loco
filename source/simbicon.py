@@ -5,6 +5,9 @@ from IPython import embed
 from inverse_kinematics import InverseKinematics
 
 SIMBICON_ACTION_SIZE = 17
+# This is assuming that the downstroke will take about 0.1s.
+# If we're going 1 m/s, we should adjust our target_x back by 1 m/s * 0.1 s = 0.1 m.
+IK_GAIN = 0.14
 
 class FSMState:
     def __init__(self, params):
@@ -78,15 +81,18 @@ class Simbicon(PDController):
         return self.env.world.time()
 
     def state_complete(self, left, right):
+        swing_heel = self.ik.forward_kine(self.swing_idx)
+        contacts_to_check = right if self.swing_idx == 3 else left
+        duration = self.time() - self.state_started
         if self.state().dwell_duration is not None:
-            if self.time() - self.state_started >= self.state().dwell_duration:
+            time_up = (duration >= self.state().dwell_duration) and (len(contacts_to_check) > 0)
+            target_diff = IK_GAIN * self.skel.dq[0]
+            if self.target_x < swing_heel[0] + target_diff or time_up:
                 return True, None
             else:
                 return False, None
-        else: # This state should end when the swing foot makes contact with the ground.
-            contacts_to_check = right if self.swing_idx == 3 else left
-            #print("New frame; checking {} contacts".format(len(contacts_to_check)))
-            swing_heel = self.ik.forward_kine(self.swing_idx)
+        else:
+            # This state should end when the swing foot makes contact with the ground.
             # TODO there may be multiple contacts; which should we use?
             for contact in contacts_to_check:
                 # TODO ideally put this in change_state (currently a side effect)
@@ -98,17 +104,33 @@ class Simbicon(PDController):
 
     def change_state(self):
         swing = "RIGHT" if self.stance_idx == 6 else "LEFT"
-        suffix = " at {:.3f}".format(self.contact_x) if self.direction == DOWN else ""
+        suffix = " at {:.2f}".format(self.contact_x) if self.direction == DOWN else ""
         result = None
         if self.direction == DOWN:
             self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-            result = "{:.3f}: Ended state {} {}{}".format(self.time(), swing, self.direction, suffix)
+            err = self.stance_heel - self.target_x
+            result = "{:.3f}: Ended state {} {}{} ({:+.2f})".format(self.time(), swing, self.direction, suffix, err)
             self.direction = UP
         else:
             # TODO skip this state if the swing foot is already in contact?
             self.direction = DOWN
+            self.calc_down_ik()
         self.state_started = self.time()
         return result
+
+    def calc_down_ik(self):
+        if self.target_x is None:
+            return
+        # Upon starting the DOWN part of the step, choose target swing leg angles
+        # based on the location on the ground at target_x.
+
+
+        ty = -0.1 # TODO should we also adjust this based on vertical velocity?
+        tx = self.target_x - IK_GAIN * self.skel.dq[0]
+        down, forward = self.ik.transform_frame(tx, ty)
+        relative_hip, knee = self.ik.inv_kine(down, forward)
+        self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[2]
+        self.FSM[DOWN].swing_knee_relative = knee
 
     def compute(self):
         # TODO the walking controller can start from rest,
@@ -125,6 +147,8 @@ class Simbicon(PDController):
         v = self.skel.dq[0]
         d = self.skel.q[0] - self.contact_x
         balance_feedback = cd*d + cv*v
+        if self.direction == DOWN:
+            balance_feedback = 0.0
         target_swing_angle = state.swing_hip_world + balance_feedback
 
         torso_actual = self.skel.q[2]
@@ -139,9 +163,13 @@ class Simbicon(PDController):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    env.controller.set_gait(in_place_walk)
+    env.controller.set_gait(walk)
     #env.seed(133712)
     #env.seed(42)
-    env.reset()
-    for _ in range(12):
-        env.simulate(render=1.0)
+    env.reset(random=0.0)
+    up = env.controller.FSM[UP]
+    down = env.controller.FSM[DOWN]
+    for i in range(12):
+        t = 0.3 + 0.4*i
+        env.simulate(render=1.0, target_x=t)
+

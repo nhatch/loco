@@ -14,10 +14,10 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 8.0 # seconds
+EPISODE_TIME_LIMIT = 80.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
-FRICTION_COEFF = 5.0
+FRICTION_COEFF = 1.0
 
 class StepResult(Enum):
     ERROR = -1
@@ -154,12 +154,16 @@ class TwoStepEnv:
             self.controller.stance_heel = state[19]
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, action=None, render=False):
+    def simulate(self, action=None, render=False, target_x=None):
+        if target_x is not None:
+            self.put_dot(target_x, 0)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
         if action is not None:
             self.controller.set_gait_raw(action)
+        if target_x is not None:
+            self.controller.target_x = target_x
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
