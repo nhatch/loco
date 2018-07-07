@@ -31,7 +31,7 @@ walk = {
   DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2])
   }
 
-SIMBICON_ACTION_SIZE = 12
+SIMBICON_ACTION_SIZE = 14
 
 class Simbicon(PDController):
 
@@ -53,11 +53,11 @@ class Simbicon(PDController):
         up = raw_gait[0:9]
         up = walk[UP].copy()
         # Skip the parameters that are not configurable
-        up[0:3] += raw_gait[0:3]
-        up[4:9] += raw_gait[3:8]
+        up += raw_gait[0:9]
         down = walk[DOWN].copy()
-        down[0:1] += raw_gait[8:9]
-        down[6:9] += raw_gait[9:12]
+        down[0:1] += raw_gait[9:10]
+        down[3:4] += raw_gait[10:11]
+        down[6:9] += raw_gait[11:14]
         gait = {UP: FSMState(up), DOWN: FSMState(down)}
         self.set_gait(gait)
 
