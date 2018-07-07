@@ -48,13 +48,12 @@ class Simbicon(PDController):
         self.stance_heel = 0
         self.direction = UP
 
-    def set_gait_raw(self, raw_gait_centered):
-        raw_gait = raw_gait_centered + GAIT_BIAS
+    def set_gait_raw(self, raw_gait):
         up = raw_gait[0:9]
-        up = walk[UP].copy()
+        up = walk[UP].raw_params.copy()
         # Skip the parameters that are not configurable
         up += raw_gait[0:9]
-        down = walk[DOWN].copy()
+        down = walk[DOWN].raw_params.copy()
         down[0:1] += raw_gait[9:10]
         down[3:4] += raw_gait[10:11]
         down[6:9] += raw_gait[11:14]

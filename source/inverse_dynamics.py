@@ -7,7 +7,7 @@ import os
 from sklearn.linear_model import Ridge, RANSACRegressor
 
 N_ACTIONS_PER_STATE = 4
-N_STATES_PER_ITER = 128
+N_STATES_PER_ITER = 32
 EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
@@ -21,7 +21,8 @@ class LearnInverseDynamics:
         self.train_set = []
         target_space_shape = 1
         self.n_action = env.action_space.shape[0]
-        self.n_dynamic = env.observation_space.shape[0] + target_space_shape
+        # The actual target is sort of part of the state, hence the *2.
+        self.n_dynamic = env.observation_space.shape[0] + target_space_shape*2
         # Use a linear policy for now
         r = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         self.lm = RANSACRegressor(base_estimator=r, residual_threshold=2.0)
@@ -54,23 +55,27 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
-        mean_action = self.act(start_state, target=None)
+        print("starting a new state")
+        target = [self.generate_targets(1)[0]]
+        mean_action = self.act(start_state, target)
         for _ in range(N_ACTIONS_PER_STATE):
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             action = mean_action + perturbation
             self.env.reset(start_state)
-            end_state, step_dist = self.env.simulate(action)
+            end_state, step_dist = self.sim(target, action)
             if end_state is not None:
                 achieved_target = [step_dist] # Include ending velocity
-                self.train_set.append((start_state, action, achieved_target))
+                self.train_set.append((start_state, action, target, achieved_target))
                 self.start_states.append(end_state)
             else:
                 print("ERROR: Ignoring this training datapoint")
 
-    def act(self, state, target=None):
-        if target is None:
-            target = [self.generate_targets(1)[0]]
-        X = np.concatenate((state, target)).reshape(1,-1)
+    def sim(self, target, action, render=None):
+        abs_target = self.env.controller.stance_heel + target[0]
+        return self.env.simulate(abs_target, action, render=render)
+
+    def act(self, state, target):
+        X = np.concatenate((state, target, target)).reshape(1,-1)
         X = (X - self.X_mean) / self.X_scale_factor
         if hasattr(self.lm, 'estimator_'):
             rescaled_action = self.lm.predict(X).reshape(-1)
@@ -105,7 +110,7 @@ class LearnInverseDynamics:
         X = np.zeros((len(self.train_set), self.n_dynamic))
         y = np.zeros((len(self.train_set), self.n_action))
         for i, sample in enumerate(self.train_set):
-            X[i] = np.concatenate((sample[0], sample[2]))
+            X[i] = np.concatenate((sample[0], sample[2], sample[3]))
             y[i] = sample[1]
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
@@ -114,8 +119,8 @@ class LearnInverseDynamics:
         self.lm.fit(X, y)
 
     def run_step(self, start_state, render, target):
-        action = self.act(start_state, target=target)
-        state, step_dist = self.env.simulate(action, render=render)
+        action = self.act(start_state, target)
+        state, step_dist = self.sim(target, action, render=render)
         if state is None:
             # The robot crashed.
             return None, None
@@ -156,18 +161,18 @@ class LearnInverseDynamics:
         return result
 
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
-        start, action, target = self.train_set[i]
+        start, action, goal_target, achieved_target = self.train_set[i]
         self.env.reset(start)
-        self.show_target(target)
+        self.show_target(goal_target)
         if not show_orig_action:
-            action = self.act(start, target=target)
-        state, step_dist = self.env.simulate(action, render=render)
+            action = self.act(start, goal_target)
+        state, step_dist = self.sim(goal_target, action, render=render)
         print("Achieved dist {:.3f} ({:.3f})".format(step_dist, target[0]))
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
-    #learn.load_train_set()
+    learn.load_train_set()
     #learn.training_iter()
     embed()

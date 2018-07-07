@@ -67,8 +67,8 @@ class TwoStepEnv:
         np.random.seed(seed)
 
     def reset(self, state=None, record_video=False, random=1.0):
+        self.world.skeletons = self.world.skeletons[:2] # remove extra dot skeletons
         self.world.reset()
-        # TODO remove extra dot skeletons?
         self.controller.reset()
         self.set_state(state, random)
         if self.video_recorder:
@@ -155,13 +155,13 @@ class TwoStepEnv:
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
     def simulate(self, target_x, action=None, render=False):
-        self.put_dot(target_x, 0)
+        if action is not None:
+            self.controller.set_gait_raw(action)
         self.controller.set_target(target_x)
+        self.put_dot(target_x, 0)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-        if action is not None:
-            self.controller.set_gait_raw(action)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
@@ -175,17 +175,20 @@ class TwoStepEnv:
                     self.log(status_string)
                 return end_state, step_dist
 
-    def collect_starting_states(self, size=8, n_resets=16):
+    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.6):
         self.log("Collecting initial starting states")
         start_states = []
         self.controller.set_gait_raw(np.zeros(self.action_space.shape[0]))
+        starter = 0.3
         for i in range(n_resets):
+            length = min_length + (max_length - min_length) * (i / n_resets)
             self.log("Starting trajectory {}".format(i))
             self.reset()
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.robot_skeleton.x)
             for j in range(size):
-                end_state, _ = self.simulate(render=1.0) #TODO this is broken now that a target is required
+                target = starter + length * j
+                end_state, _ = self.simulate(target, render=1.0)
                 if end_state is not None:
                     start_states.append(end_state)
         return start_states
