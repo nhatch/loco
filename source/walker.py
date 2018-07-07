@@ -156,7 +156,7 @@ class TwoStepEnv:
     # Run one footstep of simulation, returning the final state and the achieved step distance
     def simulate(self, target_x, action=None, render=False):
         self.put_dot(target_x, 0)
-        self.controller.target_x = target_x
+        self.controller.set_target(target_x)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)

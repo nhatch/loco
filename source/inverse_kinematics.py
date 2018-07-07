@@ -98,7 +98,6 @@ class InverseKinematics:
         # relative to the pelvis joint's absolute location and rotation.
         pelvis_com = self.agent.bodynodes[2].com()
         theta = self.agent.q[2]
-        self.env.put_dot(x, y)
         if verbose:
             print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
         # Put pelvis COM at origin

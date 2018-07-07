@@ -4,7 +4,9 @@ import numpy as np
 from IPython import embed
 from inverse_kinematics import InverseKinematics
 
-MAX_UP_DURATION = 0.8
+# The maximum time it should take to get (e.g.) the right foot off the ground
+# after the left-foot heel strike.
+LIFTOFF_DURATION = 0.3
 
 class FSMState:
     def __init__(self, params):
@@ -49,11 +51,11 @@ class Simbicon(PDController):
     def set_gait_raw(self, raw_gait_centered):
         raw_gait = raw_gait_centered + GAIT_BIAS
         up = raw_gait[0:9]
-        up = walk[UP]
+        up = walk[UP].copy()
         # Skip the parameters that are not configurable
         up[0:3] += raw_gait[0:3]
         up[4:9] += raw_gait[3:8]
-        down = walk[DOWN]
+        down = walk[DOWN].copy()
         down[0:1] += raw_gait[8:9]
         down[6:9] += raw_gait[9:12]
         gait = {UP: FSMState(up), DOWN: FSMState(down)}
@@ -73,10 +75,12 @@ class Simbicon(PDController):
         contacts_to_check = right if self.swing_idx == 3 else left
         if self.direction == UP:
             duration = self.time() - self.state_started
-            time_up = (duration >= MAX_UP_DURATION) and (len(contacts_to_check) > 0)
+            early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts_to_check) > 0)
+            if early_strike:
+                print("Early strike!")
             target_diff = self.state().ik_gain * self.skel.dq[0]
             # Start DOWN once heel is close enough to target (or time expires)
-            if self.target_x < swing_heel[0] + target_diff or time_up:
+            if self.target_x < swing_heel[0] + target_diff or early_strike:
                 return True, None
         else:
             # Start UP once swing foot makes contact with the ground.
@@ -100,12 +104,26 @@ class Simbicon(PDController):
             res = "{:.2f} ({:+.2f})".format(self.stance_heel, self.stance_heel - self.target_x)
             return "{:.3f}: Ended step at {}".format(self.time(), res)
 
+    def set_target(self, target):
+        # TODO: all of these gain adjustments are just rough linear estimates from
+        # fiddling around manually. In theory, learning the inverse dynamics with
+        # a linear model should do all this work automatically.
+        self.target_x = target
+        step_dist_diff = self.target_x - self.stance_heel - 0.4
+        self.FSM[UP].stance_knee_relative = -0.05 - step_dist_diff * 0.6
+        self.FSM[UP].stance_ankle_relative = 0.2 + step_dist_diff * 0.6
+        self.FSM[UP].swing_hip_world = 0.4 + step_dist_diff * 0.1
+
+        self.FSM[UP].ik_gain = 0.14 # good for target length 0.2-0.4
+        #self.FSM[UP].ik_gain = 0.09 # good for target length 0.5
+        #self.FSM[UP].ik_gain = 0.04 # good for target length 0.6
+        #self.FSM[UP].swing_knee_relative = -1.1
+
     def calc_down_ik(self):
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target_x.
-
-        ty = -0.1 # TODO should we also adjust this based on vertical velocity?
         tx = self.target_x - self.state().ik_gain * self.skel.dq[0]
+        ty = -0.1 # TODO should we also adjust this based on vertical velocity?
         down, forward = self.ik.transform_frame(tx, ty)
         relative_hip, knee = self.ik.inv_kine(down, forward)
         self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[2]
@@ -115,6 +133,7 @@ class Simbicon(PDController):
         state = self.state()
         q = np.zeros(9)
         q[self.swing_idx+1] = state.swing_knee_relative
+        # TODO maybe set swing ankle target in world space?
         q[self.swing_idx+2] = state.swing_ankle_relative
         q[self.stance_idx+1] = state.stance_knee_relative
         q[self.stance_idx+2] = state.stance_ankle_relative
@@ -147,9 +166,9 @@ if __name__ == '__main__':
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)
-    up = env.controller.FSM[UP]
-    down = env.controller.FSM[DOWN]
     for i in range(20):
-        t = 0.3 + 0.40*i + np.random.uniform(low=0.0, high=0.1)
+        # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
+        # the robot can get stuck in the UP state, balancing on one leg.
+        t = 0.3 + 0.4*i + np.random.uniform(low=-0.2, high=0.2)
         env.simulate(t, render=1.0)
 
