@@ -7,12 +7,12 @@ import os
 from sklearn.linear_model import Ridge, RANSACRegressor
 
 N_ACTIONS_PER_STATE = 4
-N_STATES_PER_ITER = 32
+N_STATES_PER_ITER = 128
 EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
 
-RIDGE_ALPHA = 10.0
+RIDGE_ALPHA = 0.1
 
 class LearnInverseDynamics:
     def __init__(self, env):
@@ -55,7 +55,6 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
-        print("starting a new state")
         target = [self.generate_targets(1)[0]]
         mean_action = self.act(start_state, target)
         for _ in range(N_ACTIONS_PER_STATE):
@@ -92,13 +91,11 @@ class LearnInverseDynamics:
             targets.append(dist)
         return targets
 
-    def show_target(self, target):
-        absolute_x = self.env.controller.stance_heel + target[0]
-        self.env.put_dot(absolute_x, 0.0)
-
     def collect_dataset(self):
-        for i in np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER):
-            self.collect_samples(self.start_states[i])
+        indices = np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER)
+        for i,j in enumerate(indices):
+            print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
+            self.collect_samples(self.start_states[j])
         print(len(self.start_states), len(self.train_set))
 
     def training_iter(self):
@@ -140,7 +137,6 @@ class LearnInverseDynamics:
         num_successful_steps = 0
         for i in range(n_steps):
             target = [sum(distance_targets[:i+1]) - self.env.controller.stance_heel]
-            self.show_target(target)
             state, error = self.run_step(state, render, target)
             if state is None:
                 # The robot crashed
@@ -163,7 +159,6 @@ class LearnInverseDynamics:
     def demo_train_example(self, i, render=3.0, show_orig_action=False):
         start, action, goal_target, achieved_target = self.train_set[i]
         self.env.reset(start)
-        self.show_target(goal_target)
         if not show_orig_action:
             action = self.act(start, goal_target)
         state, step_dist = self.sim(goal_target, action, render=render)

@@ -158,10 +158,10 @@ class TwoStepEnv:
         if action is not None:
             self.controller.set_gait_raw(action)
         self.controller.set_target(target_x)
-        self.put_dot(target_x, 0)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
+            self.put_dot(target_x, 0)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
