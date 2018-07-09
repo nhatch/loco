@@ -75,12 +75,6 @@ class TwoStepEnv:
     def find_contacts(self, bodynode):
         return [c for c in self.world.collision_result.contacts if c.bodynode1 == bodynode]
 
-    def crashed(self):
-        forbidden_contact = ['h_pelvi', 'h_thigh']
-        for c in self.world.collision_result.contacts:
-            if (c.bodynode1.name[:7] in forbidden_contact):
-                return True
-
     # Executes one world step.
     # Returns (status code, step distance, human-readable message) tuple.
     def simulation_step(self):
@@ -90,8 +84,6 @@ class TwoStepEnv:
         if not np.isfinite(obs).all():
             return StepResult.ERROR, None, "Numerical explosion"
         if obs[1] < -0.5:
-            return StepResult.ERROR, None, "Fell into the void"
-        if self.crashed():
             return StepResult.ERROR, None, "Crashed"
 
         l_contact = self.find_contacts(self.l_foot)
