@@ -2,11 +2,11 @@ import pydart2 as pydart
 from IPython import embed
 from enum import Enum
 import numpy as np
-import os
 import random_search
 
 from simbicon import SIMBICON_ACTION_SIZE
 from pd_control import PDController
+from sdf_loader import SDFLoader, RED, GREEN, BLUE
 from video_recorder import video_recorder
 
 # For rendering
@@ -17,14 +17,6 @@ SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 80.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
-FRICTION_COEFF = 1.0
-
-# SDF color format is space-separated RGBA
-# Here are some suggested settings
-RED = "0.8 0 0 1"
-GREEN = "0.2 0.7 0.2 1"
-BLUE = "0.4 0.4 1 1"
-
 class StepResult(Enum):
     ERROR = -1
     IN_PROGRESS = 0
@@ -34,16 +26,11 @@ class TwoStepEnv:
     def __init__(self, controller_class):
         world = load_world()
         self.world = world
-        self.num_dots = 0
+        self.sdf_loader = SDFLoader(world)
         walker = world.skeletons[1]
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
         self.l_foot = walker.bodynodes[8]
-        # TODO: somehow, despite this, the feet are still slipping.
-        # It also makes the walker trip unless I increase the PD gains.
-        walker.bodynodes[5].set_friction_coeff(FRICTION_COEFF)
-        walker.bodynodes[8].set_friction_coeff(FRICTION_COEFF)
-        world.skeletons[0].bodynodes[0].set_friction_coeff(FRICTION_COEFF)
         for j in walker.joints:
             j.set_position_limit_enforced()
 
@@ -73,7 +60,7 @@ class TwoStepEnv:
         np.random.seed(seed)
 
     def reset(self, state=None, record_video=False, random=1.0):
-        self.world.skeletons = self.world.skeletons[:2] # remove extra dot skeletons
+        self.world.skeletons = self.world.skeletons[:2] # Remove extra ground and dot skeletons
         self.world.reset()
         self.controller.reset()
         self.set_state(state, random)
@@ -86,17 +73,12 @@ class TwoStepEnv:
         return self.current_observation()
 
     def find_contacts(self, bodynode):
-        return [c for c in self.world.collision_result.contacts if c.bodynode2 == bodynode]
+        return [c for c in self.world.collision_result.contacts if c.bodynode1 == bodynode]
 
     def crashed(self):
-        allowed_contact = [
-                'ground',
-                'h_shin',
-                'h_foot',
-                'h_shin_left',
-                'h_foot_left']
-        for b in self.world.collision_result.contacted_bodies:
-            if not (b.name in allowed_contact):
+        forbidden_contact = ['h_pelvi', 'h_thigh']
+        for c in self.world.collision_result.contacts:
+            if (c.bodynode1.name[:7] in forbidden_contact):
                 return True
 
     # Executes one world step.
@@ -107,6 +89,8 @@ class TwoStepEnv:
         obs = self.current_observation()
         if not np.isfinite(obs).all():
             return StepResult.ERROR, None, "Numerical explosion"
+        if obs[1] < -0.5:
+            return StepResult.ERROR, None, "Fell into the void"
         if self.crashed():
             return StepResult.ERROR, None, "Crashed"
 
@@ -160,14 +144,15 @@ class TwoStepEnv:
             self.controller.stance_heel = state[19]
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, target_x, action=None, render=False):
+    def simulate(self, target_x, action=None, render=False, show_dots=False):
         if action is not None:
             self.controller.set_gait_raw(action)
         self.controller.set_target(target_x)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-            self.put_dot(target_x, 0, color=GREEN)
+            if show_dots:
+                self.put_dot(target_x, 0, color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
@@ -217,19 +202,14 @@ class TwoStepEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
-    # The `color` argument is space-separated RGBA.
     def put_dot(self, x, y, color=RED):
-        # Change the skeleton name so that the console output is not cluttered
-        # with warnings about duplicate names.
-        os.system("sed -e 's/__NAME__/dot_" + str(self.num_dots) + "/' dot.sdf > _dot.sdf")
-        os.system("sed -e 's/__COLOR__/" + color + "/' _dot.sdf > __dot.sdf")
-        self.num_dots += 1
+        self.sdf_loader.put_dot(x, y, color)
 
-        dot = self.world.add_skeleton('./__dot.sdf')
-        q = dot.q
-        q[3] = x
-        q[4] = y
-        dot.q = q
+    def put_grounds(self, targets, ground_offset=0.02, ground_length=0.05, runway_length=0.3):
+        for i in range(len(targets) + 1):
+            x = sum(targets[:i])
+            length = runway_length if i == 0 else ground_length
+            self.sdf_loader.put_ground(x - ground_offset, length)
 
 def load_world():
     skel = "walker2d.skel"

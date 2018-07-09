@@ -165,9 +165,10 @@ if __name__ == '__main__':
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)
+    env.put_grounds([], runway_length=20)
     for i in range(20):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
         t = 0.3 + 0.4*i + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate(t, render=1.0)
+        env.simulate(t, render=1, show_dots=True)
 

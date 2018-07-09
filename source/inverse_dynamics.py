@@ -89,6 +89,7 @@ class LearnInverseDynamics:
         for _ in range(num_steps):
             dist = mean + width * (np.random.uniform() - 0.5)
             targets.append(dist)
+        self.env.put_grounds(targets)
         return targets
 
     def collect_dataset(self):
