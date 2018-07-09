@@ -19,6 +19,12 @@ REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so
 
 FRICTION_COEFF = 1.0
 
+# SDF color format is space-separated RGBA
+# Here are some suggested settings
+RED = "0.8 0 0 1"
+GREEN = "0.2 0.7 0.2 1"
+BLUE = "0.4 0.4 1 1"
+
 class StepResult(Enum):
     ERROR = -1
     IN_PROGRESS = 0
@@ -161,7 +167,7 @@ class TwoStepEnv:
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-            self.put_dot(target_x, 0)
+            self.put_dot(target_x, 0, color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
@@ -211,13 +217,15 @@ class TwoStepEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
-    def put_dot(self, x, y):
+    # The `color` argument is space-separated RGBA.
+    def put_dot(self, x, y, color=RED):
         # Change the skeleton name so that the console output is not cluttered
         # with warnings about duplicate names.
-        os.system("sed -e 's/dot/dot_" + str(self.num_dots) + "/' dot.sdf > _dot.sdf")
+        os.system("sed -e 's/__NAME__/dot_" + str(self.num_dots) + "/' dot.sdf > _dot.sdf")
+        os.system("sed -e 's/__COLOR__/" + color + "/' _dot.sdf > __dot.sdf")
         self.num_dots += 1
 
-        dot = self.world.add_skeleton('./_dot.sdf')
+        dot = self.world.add_skeleton('./__dot.sdf')
         q = dot.q
         q[3] = x
         q[4] = y

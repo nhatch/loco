@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version="1.4">
-<model name="dot">
+<model name="__NAME__">
   <pose>0 0 0 0 0 0</pose>
   <link name="link">
     <gravity>0</gravity>
@@ -11,7 +11,7 @@
         </sphere>
       </geometry>
       <material>
-        <diffuse>0.8 0 0 1</diffuse>
+        <diffuse>__COLOR__</diffuse>
       </material>
     </visual>
   </link>
