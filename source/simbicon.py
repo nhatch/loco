@@ -79,7 +79,9 @@ class Simbicon(PDController):
                 print("Early strike!")
             target_diff = self.state().ik_gain * self.skel.dq[0]
             # Start DOWN once heel is close enough to target (or time expires)
-            if self.target_x < swing_heel[0] + target_diff or early_strike:
+            heel_close = self.target_x < swing_heel[0] + target_diff
+            com_close = self.target_x < self.skel.q[0] + target_diff
+            if (heel_close and com_close) or early_strike:
                 return True, None
         else:
             # Start UP once swing foot makes contact with the ground.
@@ -109,9 +111,10 @@ class Simbicon(PDController):
         # a linear model should do all this work automatically.
         self.target_x = target
         step_dist_diff = self.target_x - self.stance_heel - 0.4
-        self.FSM[UP].stance_knee_relative = -0.05 - step_dist_diff * 0.6
-        self.FSM[UP].stance_ankle_relative = 0.2 + step_dist_diff * 0.6
-        self.FSM[UP].swing_hip_world = 0.4 + step_dist_diff * 0.1
+        self.FSM[UP].stance_knee_relative = -0.05 - step_dist_diff * 0.2
+        self.FSM[UP].stance_ankle_relative = 0.2 + step_dist_diff * 0.4
+        self.FSM[UP].swing_hip_world = 0.4 + step_dist_diff * 0.4
+        self.FSM[UP].swing_knee_relative = -1.1 - step_dist_diff * 0.8
 
         self.FSM[UP].ik_gain = 0.14 # good for target length 0.2-0.4
         #self.FSM[UP].ik_gain = 0.09 # good for target length 0.5
@@ -131,9 +134,6 @@ class Simbicon(PDController):
     def compute(self):
         state = self.state()
         q = np.zeros(9)
-        q[self.swing_idx+1] = state.swing_knee_relative
-        # TODO maybe set swing ankle target in world space?
-        q[self.swing_idx+2] = state.swing_ankle_relative
         q[self.stance_idx+1] = state.stance_knee_relative
         q[self.stance_idx+2] = state.stance_ankle_relative
 
@@ -142,17 +142,26 @@ class Simbicon(PDController):
         v = self.skel.dq[0]
         d = self.skel.q[0] - self.contact_x
         balance_feedback = cd*d + cv*v
+
         target_swing_angle = state.swing_hip_world + balance_feedback
+        target_swing_knee = state.swing_knee_relative
+        q[self.swing_idx+1] = target_swing_knee
+
+        # The following line sets the swing ankle to be flat relative to the ground.
+        q[self.swing_idx+2] = - (target_swing_angle + target_swing_knee)
 
         torso_actual = self.skel.q[2]
         q[self.swing_idx] = target_swing_angle - torso_actual
 
         self.target_q = q
-        # We increase Kd (mechanical impedance?) for the stance knee
+        # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
-        self.Kd[self.stance_idx+1] *= 2
+        fix_Kd = self.direction == UP and self.time() - self.state_started < 0.1
+        if fix_Kd:
+            self.Kd[self.stance_idx+1] *= 8
         control = super().compute()
-        self.Kd[self.stance_idx+1] /= 2
+        if fix_Kd:
+            self.Kd[self.stance_idx+1] /= 8
 
         torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * self.skel.dq[2]
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
@@ -166,9 +175,9 @@ if __name__ == '__main__':
     #env.seed(42)
     env.reset(random=0.0)
     env.put_grounds([], runway_length=20)
-    for i in range(20):
+    for i in range(10):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
-        t = 0.3 + 0.4*i + np.random.uniform(low=-0.2, high=0.2)
+        t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)
         env.simulate(t, render=1, show_dots=True)
 
