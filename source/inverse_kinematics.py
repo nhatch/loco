@@ -105,7 +105,7 @@ class InverseKinematics:
         y = y - pelvis_com[1]
         # Transform to polar coordinates
         r = np.sqrt(x**2 + y**2)
-        phi = np.arctan(y/x)
+        phi = np.arcsin(y/r)
         if phi*y < 0:
             phi = phi - np.pi
         if verbose:
