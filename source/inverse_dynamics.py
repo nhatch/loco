@@ -12,7 +12,16 @@ EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
 
-RIDGE_ALPHA = 0.1
+RIDGE_ALPHA = 1.0
+
+
+settings = {
+    "dist_mean": 0.42,
+    "dist_spread": 0.3,
+    "runway_length": 0.4,
+    "ground_length": 0.1,
+    "n_steps": 16
+    }
 
 class LearnInverseDynamics:
     def __init__(self, env):
@@ -82,22 +91,26 @@ class LearnInverseDynamics:
             rescaled_action = np.zeros(self.n_action)
         return rescaled_action / self.y_scale_factor + self.y_mean
 
-    def generate_targets(self, num_steps, mean=0.42, width=0.3):
+    def generate_targets(self, num_steps, runway_length=3.0):
         targets = []
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
         for _ in range(num_steps):
-            dist = mean + width * (np.random.uniform() - 0.5)
+            dist = settings["dist_mean"] + settings["dist_spread"] * (np.random.uniform() - 0.5)
             targets.append(dist)
-        self.env.put_grounds(targets)
+        self.env.put_grounds(targets, ground_length=settings["ground_length"],
+                runway_length=runway_length)
         return targets
 
     def collect_dataset(self):
+        self.env.clear_skeletons()
         indices = np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER)
         for i,j in enumerate(indices):
             print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
             self.collect_samples(self.start_states[j])
         print(len(self.start_states), len(self.train_set))
+        self.dump_train_set()
+        self.env.clear_skeletons()
 
     def training_iter(self):
         self.collect_dataset()
@@ -125,15 +138,17 @@ class LearnInverseDynamics:
         error = np.abs(step_dist - target[0])
         return state, error
 
-    def evaluate(self, n_steps=16, render=None, record_video=False, seed=None, width=0.3, mean=0.42):
-        if seed:
-            self.env.seed(seed)
+    def evaluate(self, render, record_video=False, seed=None):
+        if seed is None:
+            seed = np.random.randint(100000)
+        self.env.seed(seed)
         state = self.env.reset(record_video=record_video)
         total_error = 0
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
-        distance_targets = self.generate_targets(n_steps, mean=mean, width=width)
+        n_steps = settings["n_steps"]
+        distance_targets = self.generate_targets(n_steps, settings["runway_length"])
         total_offset = 0
         num_successful_steps = 0
         for i in range(n_steps):

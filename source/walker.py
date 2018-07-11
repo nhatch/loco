@@ -24,18 +24,10 @@ class StepResult(Enum):
 
 class TwoStepEnv:
     def __init__(self, controller_class):
-        world = load_world()
-        self.world = world
-        self.sdf_loader = SDFLoader(world)
-        walker = world.skeletons[1]
-        self.robot_skeleton = walker
-        self.r_foot = walker.bodynodes[5]
-        self.l_foot = walker.bodynodes[8]
-        for j in walker.joints:
-            j.set_position_limit_enforced()
-
-        self.controller = controller_class(walker, self)
-        walker.set_controller(self.controller)
+        self.controller_class = controller_class
+        self.world = None
+        self.viewer = None
+        self.clear_skeletons()
 
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
@@ -48,19 +40,40 @@ class TwoStepEnv:
         #self.reward_range = range(10)
         #self.spec = None
 
-        title = None
-        win = StaticGLUTWindow(self.world, title)
-        # For some reason setting 'zoom' doesn't do anything
-        win.scene.add_camera(Trackball(theta=-45.0, phi = 0.0), 'gym_camera')
-        win.scene.set_camera(win.scene.num_cameras()-1)
-        win.run()
-        self.viewer = win
+    def clear_skeletons(self):
+        # pydart2 has not implemented any API to remove skeletons, so we need
+        # to recreate the entire world.
+        if self.world is not None:
+            self.world.destroy()
+        world = load_world()
+        self.world = world
+        self.sdf_loader = SDFLoader(world)
+        walker = world.skeletons[1]
+        self.robot_skeleton = walker
+        self.r_foot = walker.bodynodes[5]
+        self.l_foot = walker.bodynodes[8]
+        for j in walker.joints:
+            j.set_position_limit_enforced()
+
+        self.controller = self.controller_class(walker, self)
+        walker.set_controller(self.controller)
+
+        if self.viewer is not None:
+            self.viewer.sim = world
+        else:
+            title = None
+            win = StaticGLUTWindow(self.world, title)
+            # For some reason setting 'zoom' doesn't do anything
+            win.scene.add_camera(Trackball(theta=-45.0, phi = 0.0), 'gym_camera')
+            win.scene.set_camera(win.scene.num_cameras()-1)
+            win.run()
+            self.viewer = win
 
     def seed(self, seed):
+        print("Seed:", seed)
         np.random.seed(seed)
 
     def reset(self, state=None, record_video=False, random=1.0):
-        self.world.skeletons = self.world.skeletons[:2] # Remove extra ground and dot skeletons
         self.world.reset()
         self.controller.reset()
         self.set_state(state, random)
@@ -163,6 +176,7 @@ class TwoStepEnv:
         start_states = []
         self.controller.set_gait_raw(np.zeros(self.action_space.shape[0]))
         starter = 0.3
+        self.put_grounds([], runway_length=100)
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.log("Starting trajectory {}".format(i))
@@ -201,7 +215,7 @@ class TwoStepEnv:
         for i in range(len(targets) + 1):
             x = sum(targets[:i])
             length = runway_length if i == 0 else ground_length
-            self.sdf_loader.put_ground(x - ground_offset, length)
+            self.sdf_loader.put_ground(x - ground_offset, length, i)
 
 def load_world():
     skel = "walker2d.skel"

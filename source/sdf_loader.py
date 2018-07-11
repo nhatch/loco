@@ -10,7 +10,7 @@ class SDFLoader:
     def __init__(self, world):
         self.world = world
         self.num_dots = 0
-        self.num_grounds = 0
+        self.grounds = []
 
     def put_dot(self, x, y, color=RED):
         # Change the skeleton name so that the console output is not cluttered
@@ -26,15 +26,18 @@ class SDFLoader:
         dot.q = q
 
     # Length is in meters.
-    def put_ground(self, x, length):
-        # Change the skeleton name so that the console output is not cluttered
-        # with warnings about duplicate names.
-        os.system("sed -e 's/__NAME__/ground_" + str(self.num_grounds)
-                    + "/' ground.sdf > _ground.sdf")
-        os.system("sed -e 's/__LEN__/" + str(length) + "/' _ground.sdf > __ground.sdf")
-        self.num_grounds += 1
+    def put_ground(self, x, length, index):
+        num_grounds = len(self.grounds)
+        if num_grounds <= index:
+            # Change the skeleton name so that the console output is not cluttered
+            # with warnings about duplicate names.
+            os.system("sed -e 's/__NAME__/ground_" + str(num_grounds)
+                        + "/' ground.sdf > _ground.sdf")
+            os.system("sed -e 's/__LEN__/" + str(length) + "/' _ground.sdf > __ground.sdf")
 
-        ground = self.world.add_skeleton('./__ground.sdf')
+            self.grounds.append(self.world.add_skeleton('./__ground.sdf'))
+
+        ground = self.grounds[index]
         q = ground.q
         # The x coordinate q[3] gives the *center* of the block.
         q[3] = x + 0.5*length
