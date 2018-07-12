@@ -45,6 +45,7 @@ class Simbicon(PDController):
         self.swing_idx = 3
         self.stance_idx = 6
         self.contact_x = 0
+        self.target_x = 0
         self.stance_heel = 0
         self.direction = UP
 

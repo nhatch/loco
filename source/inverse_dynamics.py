@@ -12,7 +12,7 @@ EXPLORATION_STD = 0.1
 START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
 
-RIDGE_ALPHA = 1.0
+RIDGE_ALPHA = 10.0
 
 
 settings = {
@@ -64,12 +64,12 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
-        target = [self.generate_targets(1)[0]]
-        mean_action = self.act(start_state, target)
         for _ in range(N_ACTIONS_PER_STATE):
+            self.env.reset(start_state)
+            target = [self.generate_targets(1, runway_length=settings["ground_length"])[0]]
+            mean_action = self.act(start_state, target)
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             action = mean_action + perturbation
-            self.env.reset(start_state)
             end_state, step_dist = self.sim(target, action)
             if end_state is not None:
                 achieved_target = [step_dist] # Include ending velocity
@@ -184,6 +184,6 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
-    learn.load_train_set()
+    #learn.load_train_set()
     #learn.training_iter()
     embed()

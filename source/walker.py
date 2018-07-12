@@ -113,8 +113,9 @@ class TwoStepEnv:
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
         obs = self.standardize_stance(obs)
-        obs[0] = 0.0 # Exact x location doesn't affect dynamics; let's ignore this
-        base_x = self.robot_skeleton.x[0]
+        # Exact x location doesn't affect dynamics. Center so target_x is at 0.
+        base_x = self.controller.target_x
+        obs[0] -= base_x
         stance = np.array([self.controller.contact_x, self.controller.stance_heel]) - base_x
         return np.concatenate((obs, stance))
 

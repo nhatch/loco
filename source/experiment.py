@@ -78,5 +78,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
-    ex.run_iters(1)
+    ex.run_iters(6)
     embed()
