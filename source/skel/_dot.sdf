@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<sdf version="1.4">
+<model name="dot_9">
+  <pose>0 0 0 0 0 0</pose>
+  <link name="link">
+    <gravity>0</gravity>
+    <visual name="visual">
+      <geometry>
+        <sphere>
+          <radius>0.05</radius>
+        </sphere>
+      </geometry>
+      <material>
+        <diffuse>__COLOR__</diffuse>
+      </material>
+    </visual>
+  </link>
+</model>
+</sdf>

@@ -15,11 +15,11 @@ class SDFLoader:
     def put_dot(self, x, y, color=RED):
         # Change the skeleton name so that the console output is not cluttered
         # with warnings about duplicate names.
-        os.system("sed -e 's/__NAME__/dot_" + str(self.num_dots) + "/' dot.sdf > _dot.sdf")
-        os.system("sed -e 's/__COLOR__/" + color + "/' _dot.sdf > __dot.sdf")
+        os.system("sed -e 's/__NAME__/dot_" + str(self.num_dots) + "/' skel/dot.sdf > skel/_dot.sdf")
+        os.system("sed -e 's/__COLOR__/" + color + "/' skel/_dot.sdf > skel/__dot.sdf")
         self.num_dots += 1
 
-        dot = self.world.add_skeleton('./__dot.sdf')
+        dot = self.world.add_skeleton('./skel/__dot.sdf')
         q = dot.q
         q[3] = x
         q[4] = y
@@ -32,10 +32,10 @@ class SDFLoader:
             # Change the skeleton name so that the console output is not cluttered
             # with warnings about duplicate names.
             os.system("sed -e 's/__NAME__/ground_" + str(num_grounds)
-                        + "/' ground.sdf > _ground.sdf")
-            os.system("sed -e 's/__LEN__/" + str(length) + "/' _ground.sdf > __ground.sdf")
+                        + "/' skel/ground.sdf > skel/_ground.sdf")
+            os.system("sed -e 's/__LEN__/" + str(length) + "/' skel/_ground.sdf > skel/__ground.sdf")
 
-            self.grounds.append(self.world.add_skeleton('./__ground.sdf'))
+            self.grounds.append(self.world.add_skeleton('./skel/__ground.sdf'))
 
         ground = self.grounds[index]
         q = ground.q

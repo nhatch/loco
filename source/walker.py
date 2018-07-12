@@ -218,7 +218,7 @@ class TwoStepEnv:
             self.sdf_loader.put_ground(x - ground_offset, length, i)
 
 def load_world():
-    skel = "walker2d.skel"
+    skel = "skel/walker2d.skel"
     pydart.init(verbose=False)
     world = pydart.World(SIMULATION_RATE, skel)
     return world
