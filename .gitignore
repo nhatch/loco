@@ -14,4 +14,4 @@ monitoring/
 data/
 
 notes.txt
-source/_*
+source/skel/_*
