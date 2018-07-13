@@ -54,11 +54,34 @@ class LearnInverseDynamics:
 
     def initialize_start_states(self):
         if not os.path.exists(START_STATES_FILENAME):
-            states = self.env.collect_starting_states()
+            states = self.collect_starting_states()
             with open(START_STATES_FILENAME, 'wb') as f:
                 pickle.dump(states, f)
         with open(START_STATES_FILENAME, 'rb') as f:
             self.start_states = pickle.load(f)
+
+    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.6):
+        self.env.log("Collecting initial starting states")
+        start_states = []
+        self.env.controller.set_gait_raw(np.zeros(self.env.action_space.shape[0]))
+        starter = 0.3
+        self.env.put_grounds([], runway_length=100)
+        for i in range(n_resets):
+            length = min_length + (max_length - min_length) * (i / n_resets)
+            self.env.log("Starting trajectory {}".format(i))
+            self.env.reset()
+            # TODO should we include this first state? It will be very different from the rest.
+            #start_states.append(self.env.robot_skeleton.x)
+            target = 0
+            for j in range(size):
+                prev_target, target = target, starter + length * j
+                end_state, _ = self.env.simulate(target, render=0.1)
+                if end_state is not None:
+                    # We need to collect the location of the previous target in order to
+                    # place stepping stones properly when resetting to this state.
+                    prev_platform = prev_target - target
+                    start_states.append((end_state, prev_platform))
+        return start_states
 
     def dump_train_set(self):
         with open(TRAIN_FILENAME, 'wb') as f:
@@ -69,10 +92,11 @@ class LearnInverseDynamics:
             self.start_states, self.train_set = pickle.load(f)
         self.train_inverse_dynamics()
 
-    def collect_samples(self, start_state):
+    def collect_samples(self, start_state_bundle):
+        start_state, prev_platform = start_state_bundle
         for _ in range(N_ACTIONS_PER_STATE):
             self.env.reset(start_state)
-            target = [self.generate_targets(1, runway_length=settings["ground_length"])[0]]
+            target = [self.generate_targets(1, runway_length=settings["ground_length"], prev_platform=prev_platform)[0]]
             mean_action = self.act(start_state, target)
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             perturbation *= controllable_indices
@@ -81,7 +105,7 @@ class LearnInverseDynamics:
             if end_state is not None:
                 achieved_target = [step_dist] # Include ending velocity
                 self.train_set.append((start_state, action, target, achieved_target))
-                self.start_states.append(end_state)
+                self.start_states.append((end_state, [-target[0]]))
             else:
                 print("ERROR: Ignoring this training datapoint")
 
@@ -99,13 +123,19 @@ class LearnInverseDynamics:
         rescaled_action *= controllable_indices
         return rescaled_action / self.y_scale_factor + self.y_mean
 
-    def generate_targets(self, num_steps, runway_length=3.0):
+    def generate_targets(self, num_steps, runway_length=3.0, prev_platform=None):
         targets = []
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
         for _ in range(num_steps):
             dist = settings["dist_mean"] + settings["dist_spread"] * (np.random.uniform() - 0.5)
             targets.append(dist)
+        if prev_platform is not None:
+            # Place a ground for the swing foot. This is necessary because the swing foot
+            # probably has not yet left the ground, so the ground might affect its dynamics.
+            # TODO this is a hack because the X location needs to be negative and walker.py
+            # doesn't really support that yet.
+            targets.append(-sum(targets) + prev_platform)
         self.env.put_grounds(targets, ground_length=settings["ground_length"],
                 runway_length=runway_length)
         return targets
@@ -192,6 +222,6 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
-    learn.load_train_set()
+    #learn.load_train_set()
     #learn.training_iter()
     embed()

@@ -170,25 +170,6 @@ class TwoStepEnv:
                     self.log(status_string)
                 return end_state, step_dist
 
-    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.6):
-        self.log("Collecting initial starting states")
-        start_states = []
-        self.controller.set_gait_raw(np.zeros(self.action_space.shape[0]))
-        starter = 0.3
-        self.put_grounds([], runway_length=100)
-        for i in range(n_resets):
-            length = min_length + (max_length - min_length) * (i / n_resets)
-            self.log("Starting trajectory {}".format(i))
-            self.reset()
-            # TODO should we include this first state? It will be very different from the rest.
-            #start_states.append(self.robot_skeleton.x)
-            for j in range(size):
-                target = starter + length * j
-                end_state, _ = self.simulate(target, render=1.0)
-                if end_state is not None:
-                    start_states.append(end_state)
-        return start_states
-
     def _render(self):
         if self.video_recorder:
             self.video_recorder.capture_frame()
@@ -221,16 +202,4 @@ def load_world():
     pydart.init(verbose=False)
     world = pydart.World(SIMULATION_RATE, skel)
     return world
-
-if __name__ == '__main__':
-    # TODO this code doesn't work anymore since the action interface changed
-    # I should probably write two separate environments (one for raw torques, one for Simbicon parameters)
-    from inverse_kinematics import InverseKinematics
-    env = TwoStepEnv(PDController)
-    ik = InverseKinematics(env, 0.5)
-    w = random_search.Whitener(env, False)
-    for t in [0.5, 1.0, 0.2]:
-        ik.target = t
-        w.run_trajectory(ik.controller, 0, True, False)
-    w.close()
 
