@@ -16,10 +16,10 @@ RIDGE_ALPHA = 10.0
 
 
 settings = {
-    "dist_mean": 0.42,
-    "dist_spread": 0.3,
+    "dist_mean": 0.50,
+    "dist_spread": 0.6,
     "runway_length": 0.4,
-    "ground_length": 0.1,
+    "ground_length": 0.05,
     "n_steps": 16
     }
 
