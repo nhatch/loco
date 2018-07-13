@@ -19,6 +19,7 @@ class FSMState:
         self.swing_ankle_relative  = params[6]
         self.stance_knee_relative  = params[7]
         self.stance_ankle_relative = params[8]
+        # TODO avoid this redundancy. It already caused a bug that cost me two hours.
         self.raw_params = params
 
 UP = 'UP'
@@ -28,7 +29,7 @@ DOWN = 'DOWN'
 # Then modified for the new parameters format.
 walk = {
   UP: FSMState([0.14, 0.0, 0.2, 0.0, 0, 0, 0, 0, 0]),
-  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0, 0, 0])
+  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2])
   }
 
 SIMBICON_ACTION_SIZE = 18
@@ -52,12 +53,11 @@ class Simbicon(PDController):
     def set_gait_raw(self, target_x, raw_gait=None):
         up = walk[UP].raw_params.copy()
         down = walk[DOWN].raw_params.copy()
-        gait = {UP: FSMState(up), DOWN: FSMState(down)}
-        self.set_gait(gait)
-
         if raw_gait is not None:
             up += raw_gait[0:9]
             down += raw_gait[9:18]
+        gait = {UP: FSMState(up), DOWN: FSMState(down)}
+        self.set_gait(gait)
 
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.

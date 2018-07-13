@@ -14,7 +14,7 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 80.0 # seconds
+EPISODE_TIME_LIMIT = 30.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 class StepResult(Enum):
