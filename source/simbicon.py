@@ -27,11 +27,11 @@ DOWN = 'DOWN'
 # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
 # Then modified for the new parameters format.
 walk = {
-  UP: FSMState([0.14, 0.0, 0.2, 0.0, 0.4, -1.1, 0.2, -0.05, 0.2]),
-  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2])
+  UP: FSMState([0.14, 0.0, 0.2, 0.0, 0, 0, 0, 0, 0]),
+  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0, 0, 0])
   }
 
-SIMBICON_ACTION_SIZE = 14
+SIMBICON_ACTION_SIZE = 18
 
 class Simbicon(PDController):
 
@@ -49,17 +49,24 @@ class Simbicon(PDController):
         self.stance_heel = 0
         self.direction = UP
 
-    def set_gait_raw(self, raw_gait):
-        up = raw_gait[0:9]
+    def set_gait_raw(self, target_x, raw_gait=None):
         up = walk[UP].raw_params.copy()
-        # Skip the parameters that are not configurable
-        up += raw_gait[0:9]
         down = walk[DOWN].raw_params.copy()
-        down[0:1] += raw_gait[9:10]
-        down[3:4] += raw_gait[10:11]
-        down[6:9] += raw_gait[11:14]
         gait = {UP: FSMState(up), DOWN: FSMState(down)}
         self.set_gait(gait)
+
+        if raw_gait is not None:
+            up += raw_gait[0:9]
+            down += raw_gait[9:18]
+
+        # All of these adjustments are just rough linear estimates from
+        # fiddling around manually.
+        self.target_x = target_x
+        step_dist_diff = self.target_x - self.stance_heel - 0.4
+        gait[UP].stance_knee_relative  += -0.05 - step_dist_diff * 0.2
+        gait[UP].stance_ankle_relative += 0.2 + step_dist_diff * 0.4
+        gait[UP].swing_hip_world       += 0.4 + step_dist_diff * 0.4
+        gait[UP].swing_knee_relative   += -1.1 - step_dist_diff * 0.8
 
     def set_gait(self, gait):
         self.FSM = gait
@@ -106,22 +113,6 @@ class Simbicon(PDController):
             res = "{:.2f} ({:+.2f})".format(self.stance_heel, self.stance_heel - self.target_x)
             return "{:.3f}: Ended step at {}".format(self.time(), res)
 
-    def set_target(self, target):
-        # TODO: all of these gain adjustments are just rough linear estimates from
-        # fiddling around manually. In theory, learning the inverse dynamics with
-        # a linear model should do all this work automatically.
-        self.target_x = target
-        step_dist_diff = self.target_x - self.stance_heel - 0.4
-        self.FSM[UP].stance_knee_relative = -0.05 - step_dist_diff * 0.2
-        self.FSM[UP].stance_ankle_relative = 0.2 + step_dist_diff * 0.4
-        self.FSM[UP].swing_hip_world = 0.4 + step_dist_diff * 0.4
-        self.FSM[UP].swing_knee_relative = -1.1 - step_dist_diff * 0.8
-
-        self.FSM[UP].ik_gain = 0.14 # good for target length 0.2-0.4
-        #self.FSM[UP].ik_gain = 0.09 # good for target length 0.5
-        #self.FSM[UP].ik_gain = 0.04 # good for target length 0.6
-        #self.FSM[UP].swing_knee_relative = -1.1
-
     def calc_down_ik(self):
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target_x.
@@ -149,7 +140,8 @@ class Simbicon(PDController):
         q[self.swing_idx+1] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
-        q[self.swing_idx+2] = - (target_swing_angle + target_swing_knee)
+        q[self.swing_idx+2] = -(target_swing_angle + target_swing_knee)
+        q[self.swing_idx+2] += state.swing_ankle_relative
 
         torso_actual = self.skel.q[2]
         q[self.swing_idx] = target_swing_angle - torso_actual

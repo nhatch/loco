@@ -5,6 +5,8 @@ import pickle
 import os
 
 from sklearn.linear_model import Ridge, RANSACRegressor
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
 
 N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 128
@@ -16,12 +18,15 @@ RIDGE_ALPHA = 10.0
 
 
 settings = {
-    "dist_mean": 0.50,
-    "dist_spread": 0.6,
+    "dist_mean": 0.42,
+    "dist_spread": 0.3,
     "runway_length": 0.4,
-    "ground_length": 0.05,
+    "ground_length": 0.1,
     "n_steps": 16
     }
+
+controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
+                        1, 0, 0, 1, 0, 0, 0, 1, 1]
 
 class LearnInverseDynamics:
     def __init__(self, env):
@@ -33,8 +38,9 @@ class LearnInverseDynamics:
         # The actual target is sort of part of the state, hence the *2.
         self.n_dynamic = env.observation_space.shape[0] + target_space_shape*2
         # Use a linear policy for now
-        r = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
-        self.lm = RANSACRegressor(base_estimator=r, residual_threshold=2.0)
+        model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
+        #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
+        self.model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
         self.X_mean = np.zeros(self.n_dynamic)
         self.y_mean = np.zeros(self.n_action)
         # Maybe try varying these.
@@ -69,6 +75,7 @@ class LearnInverseDynamics:
             target = [self.generate_targets(1, runway_length=settings["ground_length"])[0]]
             mean_action = self.act(start_state, target)
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
+            perturbation *= controllable_indices
             action = mean_action + perturbation
             end_state, step_dist = self.sim(target, action)
             if end_state is not None:
@@ -85,10 +92,11 @@ class LearnInverseDynamics:
     def act(self, state, target):
         X = np.concatenate((state, target, target)).reshape(1,-1)
         X = (X - self.X_mean) / self.X_scale_factor
-        if hasattr(self.lm, 'estimator_'):
-            rescaled_action = self.lm.predict(X).reshape(-1)
+        if hasattr(self.model, 'estimator_'):
+            rescaled_action = self.model.predict(X).reshape(-1)
         else:
             rescaled_action = np.zeros(self.n_action)
+        rescaled_action *= controllable_indices
         return rescaled_action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, num_steps, runway_length=3.0):
@@ -127,7 +135,7 @@ class LearnInverseDynamics:
         self.y_mean = y.mean(0)
         X = (X - self.X_mean) / self.X_scale_factor
         y = (y - self.y_mean) * self.y_scale_factor
-        self.lm.fit(X, y)
+        self.model.fit(X, y)
 
     def run_step(self, start_state, render, target):
         action = self.act(start_state, target)
@@ -184,6 +192,6 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
-    #learn.load_train_set()
+    learn.load_train_set()
     #learn.training_iter()
     embed()
