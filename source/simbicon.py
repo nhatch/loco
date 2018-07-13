@@ -172,5 +172,5 @@ if __name__ == '__main__':
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
         t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate(t, render=1, show_dots=True)
+        env.simulate(t, render=1, put_dots=True)
 

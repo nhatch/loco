@@ -150,12 +150,12 @@ class TwoStepEnv:
             self.controller.stance_heel = state[19]
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, target_x, action=None, render=False, show_dots=False):
+    def simulate(self, target_x, action=None, render=False, put_dots=False):
         self.controller.set_gait_raw(raw_gait=action, target_x=target_x)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-            if show_dots:
+            if put_dots:
                 self.put_dot(target_x, 0, color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
