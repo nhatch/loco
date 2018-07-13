@@ -60,7 +60,7 @@ class LearnInverseDynamics:
         with open(START_STATES_FILENAME, 'rb') as f:
             self.start_states = pickle.load(f)
 
-    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.6):
+    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
         self.env.controller.set_gait_raw(np.zeros(self.env.action_space.shape[0]))
@@ -81,6 +81,7 @@ class LearnInverseDynamics:
                     # place stepping stones properly when resetting to this state.
                     prev_platform = prev_target - target
                     start_states.append((end_state, prev_platform))
+        self.env.clear_skeletons()
         return start_states
 
     def dump_train_set(self):
@@ -105,7 +106,7 @@ class LearnInverseDynamics:
             if end_state is not None:
                 achieved_target = [step_dist] # Include ending velocity
                 self.train_set.append((start_state, action, target, achieved_target))
-                self.start_states.append((end_state, [-target[0]]))
+                self.start_states.append((end_state, -target[0]))
             else:
                 print("ERROR: Ignoring this training datapoint")
 
