@@ -62,7 +62,7 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 
-\title{Curriculum and Transfer Learning of Hierarchical Locomotion Policies}
+\title{Curriculum and Imitation Learning for Biped Locomotion Over Rough Terrain}
 \author{TBD}
 
 \begin{document}
@@ -75,6 +75,52 @@ Definitions:
   \item LLC: low-level contoller
   \item HRL: hierarchical reinforcement learning
 \end{itemize}
+
+\section{Introduction}
+
+Locomotion is a difficult, underactuated control problem. \emph{Biped} locomotion is more difficult because the support polygon is small and the center of mass is relatively high. Biped locomotion across \emph{rough terrain} is more difficult still, because the variability in the surface normal makes the dynamics harder to model.
+
+One way to handle these challenges is with detailed models and extensive optimization. For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}. Such approaches tend to be reliable but slow. They are physically slow because accurate modeling requires relatively static walking, and also because the extensive optimization procedures are computationally slow. For the DRC, reliability was more important than speed, but eventually it would be good to have robots that can traverse rough terrain using faster, dynamic gaits. \footnote{\nhatch{It might also be worth mentioning that developing accurate models takes a lot of time and expertise, and even then, physics-based models don't account for many important physical phenomena.}}
+
+Recent advances in reinforcement learning (RL) suggest an alternative approach. Deep RL is a popular technique to learn highly dynamic motions for humanoids \citep{peng2018deepmimic, heess2017emergence}. The resulting policies are both computationally and physically fast.
+
+Building on this work, we approach dynamic biped locomotion over rough terrain using a combination of curriculum learning, imitation learning, and reinforcement learning. The controller learns new skills using RL, which are generalized to a fast policy using imitation learning. Use of a curriculum allows the controller to build up from flat ground to a challenging combination of stepping stones at various heights, distances, and orientations. In contrast to prior work in RL, our controller \emph{plans its footstep locations}, which allows it to handle larger and more frequent obstacles. In contrast to prior work in footstep planning, our controller learns a dynamic policy that requires no optimization at execution time.
+
+We demonstrate the real-world potential of this algorithm by running it on a simulated Darwin humanoid robot. \nhatch{Add a paragraph on sim-to-real.}
+
+\nhatch{Here's the order of steps that we would like to take to make sure we can actually achieve that:
+
+1. With the simple 2D walker, be able to navigate the challenging stepping stones environment (steps at various heights, distances, and orientations)
+2. Move to 3D, but still with a simplified robot model.
+3. Switch to the Darwin model.}
+
+\section{Related work}
+
+\subsection{Step planning}
+
+As discussed in the introduction, there are many papers about locomotion on physical robots that use detailed models and a lot of optimization. These approaches tend to use a hierarchy of planning steps to reduce the amount of computation. First, they generate a plan for footstep locations using search, like A*. Based on the footstep plan, they generate a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum (SLIP). Then, they use inverse kinematics to plan trajectories for end-effectors. Finally, these trajectories are optimized using the full dynamics model to account for details like obstacles. Examples of this include several of the DARPA Robotics Challenge teams, as well as the DARPA Learning Locomotion Challenge teams. \nhatch{Put some examples from other DRC teams as well.} Further examples of this are the zero-moment point (ZMP) approaches from Honda / ASIMO. A similar approach (though not used on a physical robot) is \cite{mordatch2010robust}. These approaches tend to be reliable but slow, because static walking is easier to model and optimization takes a lot of computation time. They also require a lot of domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
+
+\nhatch{Add some discussion of why reliability isn't as important for our current project.}
+
+There are a few prior works that have used reinforcement learning to do step planning. \cite{peng2017deeploco} uses a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller executes those plans. However, the path that the agent follows is perfectly flat, and the target step locations are rarely actually achieved. On rough terrain, such inaccurate step planning would probably fail. \cite{karpathy2012curriculum} uses curriculum learning to collect a set of states and actions together with the step distance that they achieve. However, the final policy is based on nearest-neighbor search among this set of collected experience. With a higher-dimensional, more complicated model, this approach would probably fail.
+
+\subsection{Rough terrain}
+
+Most of the prior work on DRL for biped locomotion over rough terrain does not explicitly plan individual footstep locations. Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly and are robust to small missteps, but would fail in situations with dense or large obstacles where small missteps can be catastrophic.
+
+\subsection{Policy representations and learning algorithms(?)}
+
+This is the prior work on which our learning algorithm is most directly based:
+
+- Recht, random search instead of fancy RL algorithms
+- SIMBICON, to inform our choice of action parametrization
+
+
+%Learning algorithm:
+%- use ~20 parameters for each *entire step* (based on SIMBICON)
+%- collect a training set of diverse actions/skills using random search
+%- generalize by learning ``inverse dynamics'' (really just a policy where the observation includes the next step target)
+%- perhaps repeat (curriculum learning)
 
 \section{Introduction}
 
