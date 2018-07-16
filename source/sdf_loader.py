@@ -1,4 +1,5 @@
 import os
+from IPython import embed
 
 # SDF color format is space-separated RGBA
 # Here are some suggested settings
@@ -12,7 +13,7 @@ class SDFLoader:
         self.num_dots = 0
         self.grounds = []
 
-    def put_dot(self, x, y, color=RED):
+    def put_dot(self, target, color=RED):
         # Change the skeleton name so that the console output is not cluttered
         # with warnings about duplicate names.
         os.system("sed -e 's/__NAME__/dot_" + str(self.num_dots) + "/' skel/dot.sdf > skel/_dot.sdf")
@@ -21,12 +22,11 @@ class SDFLoader:
 
         dot = self.world.add_skeleton('./skel/__dot.sdf')
         q = dot.q
-        q[3] = x
-        q[4] = y
+        q[3:5] = target
         dot.q = q
 
     # Length is in meters.
-    def put_ground(self, x, length, index):
+    def put_ground(self, x, y, length, index):
         num_grounds = len(self.grounds)
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
@@ -41,6 +41,7 @@ class SDFLoader:
         q = ground.q
         # The x coordinate q[3] gives the *center* of the block.
         q[3] = x + 0.5*length
+        q[4] = y
         ground.q = q
 
 if __name__ == "__main__":

@@ -75,7 +75,6 @@ class TwoStepEnv:
 
     def reset(self, state=None, record_video=False, random=1.0):
         self.world.reset()
-        self.controller.reset()
         self.set_state(state, random)
         if self.video_recorder:
             self.video_recorder.close()
@@ -92,32 +91,28 @@ class TwoStepEnv:
     # Returns (status code, step distance, human-readable message) tuple.
     def simulation_step(self):
         if self.world.time() > EPISODE_TIME_LIMIT:
-            return StepResult.ERROR, None, "Time limit reached"
+            return StepResult.ERROR, "Time limit reached"
         obs = self.current_observation()
         if not np.isfinite(obs).all():
-            return StepResult.ERROR, None, "Numerical explosion"
+            return StepResult.ERROR, "Numerical explosion"
         if obs[1] < -0.5:
-            return StepResult.ERROR, None, "Crashed"
+            return StepResult.ERROR, "Crashed"
 
         l_contact = self.find_contacts(self.l_foot)
         r_contact = self.find_contacts(self.r_foot)
-        state_complete, step_dist = self.controller.state_complete(l_contact, r_contact)
+        state_complete, step_complete = self.controller.state_complete(l_contact, r_contact)
         if state_complete:
             status_string = self.controller.change_state()
-            if step_dist:
-                return StepResult.COMPLETE, step_dist, status_string
+            if step_complete:
+                return StepResult.COMPLETE, status_string
 
         self.world.step()
-        return StepResult.IN_PROGRESS, None, None
+        return StepResult.IN_PROGRESS, None
 
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
         obs = self.standardize_stance(obs)
-        # Exact x location doesn't affect dynamics. Center so target_x is at 0.
-        base_x = self.controller.target_x
-        obs[0] -= base_x
-        stance = np.array([self.controller.contact_x, self.controller.stance_heel]) - base_x
-        return np.concatenate((obs, stance))
+        return np.concatenate((obs, self.controller.state()))
 
     def standardize_stance(self, state):
         # Ensure the stance state is contained in state[6:9] and state[15:18].
@@ -144,31 +139,29 @@ class TwoStepEnv:
             dq = self.robot_skeleton.dq
             dq[0] += 0.8 + random * np.random.uniform(low=0.0, high=0.4)
             self.robot_skeleton.dq = dq
+            self.controller.reset()
         else:
             self.robot_skeleton.x = state[:18]
-            self.controller.contact_x = state[18]
-            self.controller.stance_heel = state[19]
+            self.controller.reset(state[18:])
 
     # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, target_x, action=None, render=False, put_dots=False):
-        self.controller.set_gait_raw(raw_gait=action, target_x=target_x)
+    def simulate(self, target, action=None, render=False, put_dots=False):
+        self.controller.set_gait_raw(raw_gait=action, target=target)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
             if put_dots:
-                self.put_dot(target_x, 0, color=GREEN)
+                self.put_dot(target, color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
-            status_code, step_dist, status_string = self.simulation_step()
+            status_code, status_string = self.simulation_step()
             if status_code == StepResult.ERROR:
-                self.log("ERROR: " + status_string)
-                return None, None
+                return "ERROR: " + status_string
             if status_code == StepResult.COMPLETE:
-                end_state = self.current_observation()
                 if render:
                     self.log(status_string)
-                return end_state, step_dist
+                return self.current_observation()
 
     def _render(self):
         if self.video_recorder:
@@ -188,14 +181,14 @@ class TwoStepEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
-    def put_dot(self, x, y, color=RED):
-        self.sdf_loader.put_dot(x, y, color)
+    def put_dot(self, target, color=RED):
+        self.sdf_loader.put_dot(target, color)
 
     def put_grounds(self, targets, ground_offset=0.02, ground_length=0.05, runway_length=0.3):
-        for i in range(len(targets) + 1):
-            x = sum(targets[:i])
+        for i in range(len(targets)):
+            x, y = targets[i]
             length = runway_length if i == 0 else ground_length
-            self.sdf_loader.put_ground(x - ground_offset, length, i)
+            self.sdf_loader.put_ground(x - ground_offset, y, length, i)
 
 def load_world():
     skel = "skel/walker2d.skel"
