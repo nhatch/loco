@@ -63,6 +63,5 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     env.sdf_loader.ground_length = 0.3
-    print(env.sdf_loader.ground_length)
     learn_long_step(env)
     #learn_stair(env)

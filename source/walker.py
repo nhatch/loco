@@ -96,8 +96,6 @@ class TwoStepEnv:
         obs = self.current_observation()
         if not np.isfinite(obs).all():
             return StepResult.ERROR, "Numerical explosion"
-        if obs[1] < -0.5:
-            return StepResult.ERROR, "Crashed"
 
         l_contact = self.find_contacts(self.l_foot)
         r_contact = self.find_contacts(self.r_foot)
@@ -106,6 +104,8 @@ class TwoStepEnv:
             status_string = self.controller.change_state()
             if step_complete:
                 return StepResult.COMPLETE, status_string
+        elif step_complete:
+            return StepResult.ERROR, "Crashed"
 
         self.world.step()
         return StepResult.IN_PROGRESS, None

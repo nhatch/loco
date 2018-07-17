@@ -64,9 +64,20 @@ class Simbicon(PDController):
         gait = {UP: FSMState(up), DOWN: FSMState(down)}
         self.set_gait(gait)
 
+        self.target, self.prev_target = target, self.target
+
+        # Calculate a normal vector for the line between the starting location
+        # of the swing heel and the target.
+        # This is used when detecting crashes and evaluating progress of
+        # the learning algorithm.
+        swing_heel = self.ik.forward_kine(self.swing_idx)[:2]
+        self.starting_swing_heel = swing_heel
+        d = self.target - self.starting_swing_heel
+        d /= np.linalg.norm(d)
+        self.unit_normal = np.array([-d[1], d[0]])
+
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
-        self.target, self.prev_target = target, self.target
         step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
         gait[UP].stance_knee_relative  += -0.05 - step_dist_diff * 0.2
         gait[UP].stance_ankle_relative += 0.2 + step_dist_diff * 0.4
@@ -85,8 +96,23 @@ class Simbicon(PDController):
     def time(self):
         return self.env.world.time()
 
+    def crashed(self, swing_heel):
+        tol = -0.02
+        lower = min(self.starting_swing_heel[1], self.target[1])
+        upper = max(self.starting_swing_heel[1], self.target[1])
+        below_lower = swing_heel[1] - lower < tol
+        below_upper = swing_heel[1] - upper < tol
+        # Calculate the distance of the swing heel from the line between the
+        # start and end targets.
+        below_line = np.dot(swing_heel - self.starting_swing_heel, self.unit_normal) < tol
+        if below_lower or (below_line and below_upper):
+            return False, True
+
     def state_complete(self, left, right):
-        swing_heel = self.ik.forward_kine(self.swing_idx)
+        swing_heel = self.ik.forward_kine(self.swing_idx)[:2]
+        if self.crashed(swing_heel):
+            # We didn't complete the step, and at this point, we're not going to succeed.
+            return False, True
         contacts_to_check = right if self.swing_idx == 3 else left
         if self.direction == UP:
             duration = self.time() - self.state_started
@@ -105,7 +131,7 @@ class Simbicon(PDController):
             for contact in contacts_to_check:
                 # TODO ideally put this in change_state (currently a side effect)
                 self.contact = contact.p[0:2]
-                self.stance_heel = swing_heel[:2]
+                self.stance_heel = swing_heel
                 return True, True
         return False, False
 
@@ -172,11 +198,10 @@ class Simbicon(PDController):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    env.controller.set_gait(walk)
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)
-    env.put_grounds([[0,0]], runway_length=20)
+    env.sdf_loader.put_grounds([[0,0]], runway_length=20)
     for i in range(10):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
