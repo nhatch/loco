@@ -8,7 +8,11 @@ GREEN = "0.2 0.7 0.2 1"
 BLUE = "0.4 0.4 1 1"
 
 class SDFLoader:
-    def __init__(self, world):
+    def __init__(self):
+        self.ground_length = 0.1
+        self.ground_offset = 0.02
+
+    def reset(self, world):
         self.world = world
         self.num_dots = 0
         self.grounds = []
@@ -43,6 +47,14 @@ class SDFLoader:
         q[3] = x + 0.5*length
         q[4] = y
         ground.q = q
+
+    def put_grounds(self, targets, runway_length=None):
+        for i in range(len(targets)):
+            x, y = targets[i]
+            length = self.ground_length
+            if i == 0 and runway_length is not None:
+                length = runway_length
+            self.put_ground(x - self.ground_offset, y, length, i)
 
 if __name__ == "__main__":
     from walker import TwoStepEnv

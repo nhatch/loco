@@ -27,6 +27,7 @@ class TwoStepEnv:
         self.controller_class = controller_class
         self.world = None
         self.viewer = None
+        self.sdf_loader = SDFLoader()
         self.clear_skeletons()
 
         # We just want this to be something that has a "shape" method
@@ -47,7 +48,7 @@ class TwoStepEnv:
             self.world.destroy()
         world = load_world()
         self.world = world
-        self.sdf_loader = SDFLoader(world)
+        self.sdf_loader.reset(world)
         walker = world.skeletons[1]
         self.robot_skeleton = walker
         self.r_foot = walker.bodynodes[5]
@@ -151,7 +152,7 @@ class TwoStepEnv:
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
             if put_dots:
-                self.put_dot(target, color=GREEN)
+                self.sdf_loader.put_dot(target, color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
@@ -180,15 +181,6 @@ class TwoStepEnv:
 
     def gui(self):
         pydart.gui.viewer.launch(self.world)
-
-    def put_dot(self, target, color=RED):
-        self.sdf_loader.put_dot(target, color)
-
-    def put_grounds(self, targets, ground_offset=0.02, ground_length=0.05, runway_length=0.3):
-        for i in range(len(targets)):
-            x, y = targets[i]
-            length = runway_length if i == 0 else ground_length
-            self.sdf_loader.put_ground(x - ground_offset, y, length, i)
 
 def load_world():
     skel = "skel/walker2d.skel"

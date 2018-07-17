@@ -1,12 +1,14 @@
 from IPython import embed
 import numpy as np
-from simbicon import Simbicon
 import pickle
 import os
 
 from sklearn.linear_model import Ridge, RANSACRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
+
+from simbicon import Simbicon
+from state import State
 
 N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 128
@@ -20,9 +22,8 @@ RIDGE_ALPHA = 10.0
 settings = {
     "dist_mean": 0.42,
     "dist_spread": 0.3,
-    "runway_length": 0.4,
-    "ground_length": 0.1,
-    "n_steps": 16
+    "n_steps": 16,
+    "runway_length": 0.4
     }
 
 controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
@@ -65,7 +66,7 @@ class LearnInverseDynamics:
         start_states = []
         self.env.controller.set_gait_raw(np.zeros(self.env.action_space.shape[0]))
         starter = 0.3
-        self.env.put_grounds([[0,0]], runway_length=100)
+        self.env.sdf_loader.put_grounds([[0,0]], runway_length=100)
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
@@ -94,7 +95,7 @@ class LearnInverseDynamics:
     def collect_samples(self, start_state):
         for _ in range(N_ACTIONS_PER_STATE):
             self.env.reset(start_state)
-            target = self.generate_targets(start_state, 1, runway_length=settings["ground_length"])[0]
+            target = self.generate_targets(start_state, 1)[0]
             mean_action = self.act(start_state, target)
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             perturbation *= controllable_indices
@@ -153,18 +154,16 @@ class LearnInverseDynamics:
         rescaled_action *= controllable_indices
         return rescaled_action / self.y_scale_factor + self.y_mean
 
-    def generate_targets(self, start_state, num_steps, runway_length=3.0):
-        # Generate starting platforms for both feet
-        targets = [start_state[24:26], start_state[18:20]]
+    def generate_targets(self, start_state, num_steps, runway_length=None):
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        next_target = start_state[18:20]
+        targets = State(start_state).starting_platforms()
+        next_target = targets[-1]
         for _ in range(num_steps):
             dx = settings["dist_mean"] + settings["dist_spread"] * (np.random.uniform() - 0.5)
             next_target = next_target + [dx, 0]
             targets.append(next_target)
-        self.env.put_grounds(targets, ground_length=settings["ground_length"],
-                runway_length=runway_length)
+        self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
         return targets[2:] # Don't include the starting platforms
 
     def collect_dataset(self):
