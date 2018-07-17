@@ -32,13 +32,13 @@ class Experiment:
         results = defaultdict(lambda: [])
         for i in range(self.n_eval_trajectories):
             print("Starting evaluation", i)
-            result = self.learner.evaluate(None)
+            result = self.learner.evaluate(render=None)
             for k,v in result.items():
                 results[k].append(v)
         for k,v in results.items():
             self.results[k].append(v)
         self.plot_results()
-        self.learner.evaluate(1.0) # For human consumption
+        self.learner.evaluate() # For human consumption
 
     def run_iters(self, n_iters):
         for i in range(n_iters):

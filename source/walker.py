@@ -15,7 +15,7 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
-EPISODE_TIME_LIMIT = 30.0 # seconds
+EPISODE_TIME_LIMIT = 10.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 class StepResult(Enum):
@@ -101,9 +101,9 @@ class TwoStepEnv:
 
         obs = self.current_observation()
         if self.world.time() > EPISODE_TIME_LIMIT:
-            return obs, True, "Time limit reached"
+            return obs, True, "ERROR: Time limit reached"
         elif obs.crashed():
-            return obs, True, "Crashed"
+            return obs, True, "ERROR: Crashed"
         elif step_complete:
             return obs, False, status_string
         else:

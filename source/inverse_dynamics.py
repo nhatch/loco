@@ -176,7 +176,7 @@ class LearnInverseDynamics:
         self.collect_dataset()
         self.train_inverse_dynamics()
 
-    def evaluate(self, render, record_video=False, seed=None):
+    def evaluate(self, render=1.0, record_video=False, seed=None):
         if seed is None:
             seed = np.random.randint(100000)
         self.env.seed(seed)
@@ -202,7 +202,8 @@ class LearnInverseDynamics:
             total_error += error
             if error < 1:
                 total_score += (1-error) * (DISCOUNT**i)
-        self.env.reset() # This ensures the video recorder is closed properly.
+        if record_video:
+            self.env.reset() # This ensures the video recorder is closed properly.
         result = {
                 "total_score": total_score,
                 "n_steps": num_successful_steps,
@@ -215,6 +216,6 @@ if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
-    learn.load_train_set()
+    #learn.load_train_set()
     #learn.training_iter()
     embed()

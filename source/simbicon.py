@@ -97,7 +97,14 @@ class Simbicon(PDController):
         return self.env.world.time()
 
     def crashed(self, swing_heel):
-        tol = -0.02
+        # For some reason, setting the tolerance smaller than .05 or so causes the controller
+        # to learn very weird behaviors. TODO: why does this have such a large effect??
+        # However, setting the tolerance too large (larger than .04 or so) makes certain crashes
+        # go undetected. E.g.:
+        #
+        #   python inverse_dynamics.py     # Don't run any training iters or load the train set
+        #   learn.evaluate(seed=39738)
+        tol = -0.06
         lower = min(self.starting_swing_heel[1], self.target[1])
         upper = max(self.starting_swing_heel[1], self.target[1])
         below_lower = swing_heel[1] - lower < tol
