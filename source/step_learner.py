@@ -62,5 +62,5 @@ def learn_stair(env):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    learn_long_step(env)
-    #learn_stair(env)
+    #learn_long_step(env)
+    learn_stair(env)

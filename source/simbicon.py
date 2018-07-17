@@ -154,7 +154,7 @@ class Simbicon(PDController):
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target.
         tx = self.target[0] - self.FSMstate().ik_gain * self.skel.dq[0]
-        ty = -0.1 # TODO should we also adjust this based on vertical velocity?
+        ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
         down, forward = self.ik.transform_frame(tx, ty)
         relative_hip, knee = self.ik.inv_kine(down, forward)
         self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[2]
