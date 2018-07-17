@@ -18,14 +18,6 @@ TRAIN_FILENAME = 'data/train.pkl'
 
 RIDGE_ALPHA = 10.0
 
-
-settings = {
-    "dist_mean": 0.42,
-    "dist_spread": 0.3,
-    "n_steps": 16,
-    "runway_length": 0.4
-    }
-
 controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
                         1, 0, 0, 1, 0, 0, 0, 1, 1]
 
@@ -52,6 +44,12 @@ class LearnInverseDynamics:
         # importance in fitting a linear model of the dynamics for this environment.
         self.X_scale_factor = np.ones(self.n_dynamic)
         self.y_scale_factor = np.ones(self.n_action)
+
+        # Evaluation settings
+        self.dist_mean = 0.42
+        self.dist_spread = 0.3
+        self.n_steps = 16
+        self.runway_length = 0.4
 
     def initialize_start_states(self):
         if not os.path.exists(START_STATES_FILENAME):
@@ -160,7 +158,7 @@ class LearnInverseDynamics:
         targets = State(start_state).starting_platforms()
         next_target = targets[-1]
         for _ in range(num_steps):
-            dx = settings["dist_mean"] + settings["dist_spread"] * (np.random.uniform() - 0.5)
+            dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
             next_target = next_target + [dx, 0]
             targets.append(next_target)
         self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
@@ -189,11 +187,10 @@ class LearnInverseDynamics:
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
-        n_steps = settings["n_steps"]
-        targets = self.generate_targets(state, n_steps, settings["runway_length"])
+        targets = self.generate_targets(state, self.n_steps, self.runway_length)
         total_offset = 0
         num_successful_steps = 0
-        for i in range(n_steps):
+        for i in range(self.n_steps):
             target = targets[i]
             action = self.act(state, target)
             state = self.env.simulate(target, action, render=render)
