@@ -2,26 +2,25 @@
 import numpy as np
 from IPython import embed
 from simbicon import Simbicon, SIMBICON_ACTION_SIZE
-import pickle
 from random_search import RandomSearch
 
-START_FILENAME = 'data/step_learner_test.pkl'
-
 class Runner:
-    def __init__(self, env, start_state):
+    def __init__(self, env, start_state, grounds_setter, target):
         self.env = env
         self.start_state = start_state
+        self.grounds_setter = grounds_setter
+        self.target = target
 
     def run(self, action, seed, render=None):
         self.env.reset(self.start_state)
+        self.grounds_setter(self.env)
+        r = self.env.simulate(self.target, action=action[:,0], put_dots=True, render=render)
+        return -np.linalg.norm(r[20:22] - self.target)
 
-        target_x = 0.3
-        self.env.simulate(target_x, action=action[:,0], put_dots=True, render=render)
-        c = self.env.controller
-        score = -np.abs(c.stance_heel - target_x)
-        return score
+def put_runway(env):
+    env.put_grounds([[0,0]], runway_length=20)
 
-def collect_start_state(env):
+def collect_long_step_start_state(env):
     action = np.zeros(SIMBICON_ACTION_SIZE)
     # Two short steps, then a long step. This causes issues for the basic SIMBICON
     # controller, if the next step is another short step. This is because the
@@ -29,24 +28,42 @@ def collect_start_state(env):
     # steps far past the next target.
     targets = [0.3, 0.6, 1.4]
     env.reset(random=0.0)
+    put_runway(env)
     for t in targets:
-        # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
-        # the robot can get stuck in the UP state, balancing on one leg.
-        end_state, _ = env.simulate(t, action=action, render=1, show_dots=True)
-        if t == 1.4:
-            with open(START_FILENAME, 'wb') as f:
-                pickle.dump(end_state, f)
+        end_state = env.simulate([t,0], action=action, render=1, put_dots=True)
+    return end_state
 
-if __name__ == '__main__':
-    from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon)
-    env.put_grounds([], runway_length=20)
-    with open(START_FILENAME, 'rb') as f:
-        start_state = pickle.load(f)
-    runner = Runner(env, start_state)
+def learn_long_step(env):
+    start_state = collect_long_step_start_state(env)
+    runner = Runner(env, start_state, put_runway, [1.7, 0.0])
     env.observation_space = np.zeros(1)
     rs = RandomSearch(env, runner, 4, 0.1, 0.05)
     rs.random_search(10)
     embed()
 
+def put_stairs(env):
+    targets = np.array([[0, 0], [0.4, 0], [0.8, 0], [1.2, 0.1]])
+    env.put_grounds(targets, runway_length=0.3, ground_length=0.3)
 
+def collect_stair_start_state(env):
+    action = np.zeros(SIMBICON_ACTION_SIZE)
+    env.reset(random=0.0)
+    put_stairs(env)
+    for t in range(2):
+        target = [(1+t)*0.4, 0]
+        end_state = env.simulate(target, action=action, render=1, put_dots=True)
+    return end_state
+
+def learn_stair(env):
+    start_state = collect_stair_start_state(env)
+    runner = Runner(env, start_state, put_stairs, [1.2, 0.1])
+    env.observation_space = np.zeros(1)
+    rs = RandomSearch(env, runner, 4, 0.1, 0.05)
+    rs.random_search(10)
+    embed()
+
+if __name__ == '__main__':
+    from walker import TwoStepEnv
+    env = TwoStepEnv(Simbicon)
+    #learn_long_step(env)
+    learn_stair(env)

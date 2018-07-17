@@ -38,6 +38,7 @@ class RandomSearch:
         return grad / np.std(rets)
 
     def random_search(self, steps = 1000):
+        self.demo()
         for i in range(steps):
             print(i)
             grad = self.estimate_grad(self.w_policy)
@@ -66,13 +67,3 @@ class RandomSearch:
     def demo(self):
         ret = self.runner.run(self.w_policy, seed=None, render=1)
         print(self.episodes, ret)
-
-if __name__ == "__main__":
-    # TODO this is broken now that we must provide an explicit "runner"
-    print("Making env")
-    env = gym.make('DartHopper-v1')
-    rs = RandomSearch(env, 8, 0.01, 0.05)
-    print("Starting search")
-    rs.random_search(25)
-    #rs.random_search(250)
-    embed()
