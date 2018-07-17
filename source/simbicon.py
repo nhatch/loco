@@ -42,7 +42,7 @@ class Simbicon(PDController):
         self.ik = InverseKinematics(env)
 
     def reset(self, state=np.zeros(8)):
-        self.state_started = self.time()
+        self.step_started = self.time()
         self.swing_idx = 3
         self.stance_idx = 6
         self.contact = state[0:2]
@@ -108,45 +108,47 @@ class Simbicon(PDController):
         if below_lower or (below_line and below_upper):
             return False, True
 
-    def state_complete(self, left, right):
-        swing_heel = self.ik.forward_kine(self.swing_idx)[:2]
+    # Returns True if either the swing foot has made contact, or if it seems impossible
+    # that the swing foot will make contact in the future.
+    def step_complete(self, contacts, swing_heel):
         if self.crashed(swing_heel):
-            # We didn't complete the step, and at this point, we're not going to succeed.
-            return False, True
-        contacts_to_check = right if self.swing_idx == 3 else left
-        if self.direction == UP:
-            duration = self.time() - self.state_started
-            early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts_to_check) > 0)
-            if early_strike:
-                print("Early strike!")
-            target_diff = self.FSMstate().ik_gain * self.skel.dq[0]
-            # Start DOWN once heel is close enough to target (or time expires)
-            heel_close = self.target[0] < swing_heel[0] + target_diff
-            com_close = self.target[0] < self.skel.q[0] + target_diff
-            if (heel_close and com_close) or early_strike:
-                return True, False
+            return True
+        elif self.direction == UP:
+            self.maybe_start_down_phase(contacts, swing_heel)
+            return False
+        elif len(contacts) > 0:
+            return True
         else:
-            # Start UP once swing foot makes contact with the ground.
-            # TODO there may be multiple contacts; which should we use?
-            for contact in contacts_to_check:
-                # TODO ideally put this in change_state (currently a side effect)
-                self.contact = contact.p[0:2]
-                self.stance_heel = swing_heel
-                return True, True
-        return False, False
+            return False
 
-    def change_state(self):
-        self.state_started = self.time()
-        if self.direction == UP:
+    def maybe_start_down_phase(self, contacts, swing_heel):
+        duration = self.time() - self.step_started
+        early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
+        if early_strike:
+            print("Early strike!")
+        target_diff = self.FSMstate().ik_gain * self.skel.dq[0]
+        heel_close = self.target[0] < swing_heel[0] + target_diff
+        com_close = self.target[0] < self.skel.q[0] + target_diff
+        if (heel_close and com_close) or early_strike:
+            # Start the DOWN phase
             self.direction = DOWN
             self.calc_down_ik()
+
+    def change_stance(self, contacts, swing_heel):
+        self.step_started = self.time()
+        if len(contacts) > 0:
+            # TODO which contact should we use?
+            self.contact = contacts[0].p[0:2]
         else:
-            self.direction = UP
-            self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-            hx, hy = self.stance_heel
-            dx, dy = self.stance_heel - self.target
-            res = "{:.2f}, {:.2f} ({:+.2f}, {:+.2f})".format(hx, hy, dx, dy)
-            return "{:.3f}: Ended step at {}".format(self.time(), res)
+            # The swing foot missed the target
+            self.contact = -np.inf * np.ones(2)
+        self.stance_heel = swing_heel
+        self.direction = UP
+        self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
+        hx, hy = self.stance_heel
+        dx, dy = self.stance_heel - self.target
+        res = "{:.2f}, {:.2f} ({:+.2f}, {:+.2f})".format(hx, hy, dx, dy)
+        return "{:.3f}: Ended step at {}".format(self.time(), res)
 
     def calc_down_ik(self):
         # Upon starting the DOWN part of the step, choose target swing leg angles
@@ -184,7 +186,7 @@ class Simbicon(PDController):
         self.target_q = q
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
-        fix_Kd = self.direction == UP and self.time() - self.state_started < 0.1
+        fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
         if fix_Kd:
             self.Kd[self.stance_idx+1] *= 8
         control = super().compute()

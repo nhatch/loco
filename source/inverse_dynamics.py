@@ -62,7 +62,6 @@ class LearnInverseDynamics:
     def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
-        self.env.controller.set_gait_raw(np.zeros(self.env.action_space.shape[0]))
         starter = 0.3
         self.env.sdf_loader.put_grounds([[0,0]], runway_length=100)
         for i in range(n_resets):
@@ -74,7 +73,7 @@ class LearnInverseDynamics:
             target = np.array([0,0])
             for j in range(size):
                 prev_target, target = target, np.array([starter + length * j, 0])
-                end_state = self.env.simulate(target, render=0.1)
+                end_state, _ = self.env.simulate(target, render=0.1)
                 # We need to collect the location of the previous target in order to
                 # place stepping stones properly when resetting to this state.
                 start_states.append(end_state)
@@ -98,32 +97,31 @@ class LearnInverseDynamics:
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             perturbation *= controllable_indices
             action = mean_action + perturbation
-            end_state = self.env.simulate(target, action)
-            if type(end_state) == str:
-                print(end_state, "(Ignoring this training datapoint.)")
-            else:
+            end_state, terminated = self.env.simulate(target, action)
+            if not terminated:
                 self.append_to_train_set(start_state, action, end_state)
                 self.start_states.append(end_state)
 
     def append_to_train_set(self, start_state, action, end_state):
-        train_state = self.center_state(start_state, end_state[22:24], end_state[20:22])
+        train_state = self.center_state(start_state,
+                end_state.stance_platform(), end_state.stance_heel_location())
         self.train_states.append(train_state)
         self.train_targets.append(action)
 
     def center_state(self, state, target, achieved_target):
         centered_state = np.zeros(self.n_dynamic)
 
-        # We don't include 22:24 since that is where we will set the origin,
-        # and we don't include 24:26 because it seems less important and we
-        # are desperate to reduce problem dimension.
-        centered_state[:22] = state[:22]
-
+        centered_state[ 0:18] = state.pose()
+        centered_state[18:20] = state.stance_contact_location()
+        centered_state[20:22] = state.stance_heel_location()
+        # We don't include state.swing_platform because it seems less important
+        # (and we are desperate to reduce problem dimension).
         centered_state[22:24] = achieved_target
         centered_state[24:26] = target
 
         # Absolute location does not affect dynamics, so recenter all (x,y) coordinates
         # around the location of the starting platform.
-        base = state[22:24] # starting platform location
+        base = state.stance_platform()
         centered_state[ 0: 2] -= base # starting location of agent
         centered_state[18:20] -= base # starting stance contact location
         centered_state[20:22] -= base # starting stance heel location
@@ -155,7 +153,7 @@ class LearnInverseDynamics:
     def generate_targets(self, start_state, num_steps, runway_length=None):
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
-        targets = State(start_state).starting_platforms()
+        targets = start_state.starting_platforms()
         next_target = targets[-1]
         for _ in range(num_steps):
             dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
@@ -193,13 +191,11 @@ class LearnInverseDynamics:
         for i in range(self.n_steps):
             target = targets[i]
             action = self.act(state, target)
-            state = self.env.simulate(target, action, render=render)
-            if type(state) == str:
-                # The robot crashed
-                print(state)
+            state, terminated = self.env.simulate(target, action, render=render)
+            if terminated:
                 break
             num_successful_steps += 1
-            achieved_target = state[20:22]
+            achieved_target = state.stance_heel_location()
             error = np.linalg.norm(achieved_target - target)
             if error > max_error:
                 max_error = error

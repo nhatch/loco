@@ -8,6 +8,7 @@ from simbicon import SIMBICON_ACTION_SIZE
 from pd_control import PDController
 from sdf_loader import SDFLoader, RED, GREEN, BLUE
 from video_recorder import video_recorder
+from state import State
 
 # For rendering
 from gym.envs.dart.static_window import *
@@ -32,7 +33,7 @@ class TwoStepEnv:
 
         # We just want this to be something that has a "shape" method
         # TODO incorporate adding target step locations into the observations
-        self.observation_space = np.zeros_like(self.current_observation())
+        self.observation_space = np.zeros_like(self.current_observation().raw_state)
         self.action_space = np.zeros(SIMBICON_ACTION_SIZE)
 
         self.video_recorder = None
@@ -89,31 +90,47 @@ class TwoStepEnv:
         return [c for c in self.world.collision_result.contacts if c.bodynode1 == bodynode]
 
     # Executes one world step.
-    # Returns (status code, step distance, human-readable message) tuple.
+    # Returns (observation, episode_terminated, human-readable message) tuple.
     def simulation_step(self):
-        if self.world.time() > EPISODE_TIME_LIMIT:
-            return StepResult.ERROR, "Time limit reached"
+        swing_foot = self.robot_skeleton.bodynodes[self.controller.swing_idx+2]
+        contacts = self.find_contacts(swing_foot)
+        swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)[:2]
+        step_complete = self.controller.step_complete(contacts, swing_heel)
+        if step_complete:
+            status_string = self.controller.change_stance(contacts, swing_heel)
+
         obs = self.current_observation()
-        if not np.isfinite(obs).all():
-            return StepResult.ERROR, "Numerical explosion"
-
-        l_contact = self.find_contacts(self.l_foot)
-        r_contact = self.find_contacts(self.r_foot)
-        state_complete, step_complete = self.controller.state_complete(l_contact, r_contact)
-        if state_complete:
-            status_string = self.controller.change_state()
-            if step_complete:
-                return StepResult.COMPLETE, status_string
+        if self.world.time() > EPISODE_TIME_LIMIT:
+            return obs, True, "Time limit reached"
+        elif obs.crashed():
+            return obs, True, "Crashed"
         elif step_complete:
-            return StepResult.ERROR, "Crashed"
+            return obs, False, status_string
+        else:
+            self.world.step()
+            return None, False, None
 
-        self.world.step()
-        return StepResult.IN_PROGRESS, None
+    # Run one footstep of simulation, returning the final state and the achieved step distance
+    def simulate(self, target, action=None, render=False, put_dots=False):
+        self.controller.set_gait_raw(raw_gait=action, target=target)
+        steps_per_render = None
+        if render:
+            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
+            if put_dots:
+                self.sdf_loader.put_dot(target, color=GREEN)
+        while True:
+            if steps_per_render and self.world.frame % steps_per_render == 0:
+                self._render()
+            obs, terminated, status_string = self.simulation_step()
+            if obs is not None:
+                if render:
+                    self.log(status_string)
+                return obs, terminated
 
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
         obs = self.standardize_stance(obs)
-        return np.concatenate((obs, self.controller.state()))
+        return State(np.concatenate((obs, self.controller.state())))
 
     def standardize_stance(self, state):
         # Ensure the stance state is contained in state[6:9] and state[15:18].
@@ -142,27 +159,8 @@ class TwoStepEnv:
             self.robot_skeleton.dq = dq
             self.controller.reset()
         else:
-            self.robot_skeleton.x = state[:18]
-            self.controller.reset(state[18:])
-
-    # Run one footstep of simulation, returning the final state and the achieved step distance
-    def simulate(self, target, action=None, render=False, put_dots=False):
-        self.controller.set_gait_raw(raw_gait=action, target=target)
-        steps_per_render = None
-        if render:
-            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
-            if put_dots:
-                self.sdf_loader.put_dot(target, color=GREEN)
-        while True:
-            if steps_per_render and self.world.frame % steps_per_render == 0:
-                self._render()
-            status_code, status_string = self.simulation_step()
-            if status_code == StepResult.ERROR:
-                return "ERROR: " + status_string
-            if status_code == StepResult.COMPLETE:
-                if render:
-                    self.log(status_string)
-                return self.current_observation()
+            self.robot_skeleton.x = state.pose()
+            self.controller.reset(state.controller_state())
 
     def _render(self):
         if self.video_recorder:

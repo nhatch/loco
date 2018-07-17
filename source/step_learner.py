@@ -3,20 +3,20 @@ import numpy as np
 from IPython import embed
 from simbicon import Simbicon, SIMBICON_ACTION_SIZE
 from random_search import RandomSearch
-from state import State
 
 class Runner:
     def __init__(self, env, start_state, target):
         self.env = env
         self.start_state = start_state
-        self.grounds = State(start_state).starting_platforms() + [target]
+        self.grounds = start_state.starting_platforms() + [target]
         self.target = target
 
     def run(self, action, seed, render=None):
         self.env.reset(self.start_state)
         env.sdf_loader.put_grounds(self.grounds)
-        r = self.env.simulate(self.target, action=action[:,0], put_dots=True, render=render)
-        return -np.linalg.norm(r[20:22] - self.target)
+        r, _ = self.env.simulate(self.target, action=action[:,0], put_dots=True, render=render)
+        score = -np.linalg.norm(r.stance_heel_location() - self.target)
+        return score
 
 def collect_long_step_start_state(env):
     action = np.zeros(SIMBICON_ACTION_SIZE)
@@ -28,7 +28,7 @@ def collect_long_step_start_state(env):
     env.sdf_loader.put_grounds([[0,0]], runway_length=20)
     targets = [0.3, 0.6, 1.4]
     for t in targets:
-        end_state = env.simulate([t,0], action=action, render=1, put_dots=True)
+        end_state, _ = env.simulate([t,0], action=action, render=1, put_dots=True)
     env.clear_skeletons()
     return end_state
 
@@ -47,7 +47,7 @@ def collect_stair_start_state(env):
     env.sdf_loader.put_grounds(targets)
     for t in range(2):
         target = [(1+t)*0.4, 0]
-        end_state = env.simulate(target, action=action, render=1, put_dots=True)
+        end_state, _ = env.simulate(target, action=action, render=1, put_dots=True)
     env.clear_skeletons()
     return end_state
 
@@ -62,6 +62,5 @@ def learn_stair(env):
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    env.sdf_loader.ground_length = 0.3
     learn_long_step(env)
     #learn_stair(env)
