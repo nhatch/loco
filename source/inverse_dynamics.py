@@ -9,6 +9,8 @@ from sklearn.pipeline import make_pipeline
 
 from simbicon import Simbicon
 from state import State
+from step_learner import Runner
+from random_search import controllable_indices, RandomSearch
 
 N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 128
@@ -17,9 +19,6 @@ START_STATES_FILENAME = 'data/start_states.pkl'
 TRAIN_FILENAME = 'data/train.pkl'
 
 RIDGE_ALPHA = 10.0
-
-controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
-                        1, 0, 0, 1, 0, 0, 0, 1, 1]
 
 class LearnInverseDynamics:
     def __init__(self, env):
@@ -90,10 +89,10 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
+        target = self.generate_targets(start_state, 1)[0]
+        mean_action, runner = self.learn_action(start_state, target)
         for _ in range(N_ACTIONS_PER_STATE):
-            self.env.reset(start_state)
-            target = self.generate_targets(start_state, 1)[0]
-            mean_action = self.act(start_state, target)
+            runner.reset()
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
             perturbation *= controllable_indices
             action = mean_action + perturbation
@@ -101,6 +100,13 @@ class LearnInverseDynamics:
             if not terminated:
                 self.append_to_train_set(start_state, action, end_state)
                 self.start_states.append(end_state)
+
+    def learn_action(self, start_state, target):
+        runner = Runner(self.env, start_state, target)
+        rs = RandomSearch(env, runner, 4, 0.1, 0.05)
+        rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
+        rs.random_search(render=None)
+        return rs.w_policy, runner
 
     def append_to_train_set(self, start_state, action, end_state):
         train_state = self.center_state(start_state,
@@ -217,5 +223,5 @@ if __name__ == '__main__':
     env = TwoStepEnv(Simbicon)
     learn = LearnInverseDynamics(env)
     #learn.load_train_set()
-    #learn.training_iter()
+    learn.training_iter()
     embed()

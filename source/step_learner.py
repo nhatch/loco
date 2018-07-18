@@ -11,12 +11,15 @@ class Runner:
         self.grounds = start_state.starting_platforms() + [target]
         self.target = target
 
-    def run(self, action, seed, render=None):
-        self.env.reset(self.start_state)
-        env.sdf_loader.put_grounds(self.grounds)
-        r, _ = self.env.simulate(self.target, action=action[:,0], put_dots=True, render=render)
+    def run(self, action, render=None):
+        self.reset()
+        r, _ = self.env.simulate(self.target, action=action, put_dots=True, render=render)
         score = -np.linalg.norm(r.stance_heel_location() - self.target)
         return score
+
+    def reset(self):
+        self.env.reset(self.start_state)
+        self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_long_step_start_state(env):
     action = np.zeros(SIMBICON_ACTION_SIZE)
@@ -35,9 +38,8 @@ def collect_long_step_start_state(env):
 def learn_long_step(env):
     start_state = collect_long_step_start_state(env)
     runner = Runner(env, start_state, [1.7, 0.0])
-    env.observation_space = np.zeros(1)
     rs = RandomSearch(env, runner, 4, 0.1, 0.05)
-    rs.random_search(10)
+    rs.random_search()
     embed()
 
 def collect_stair_start_state(env):
@@ -54,13 +56,12 @@ def collect_stair_start_state(env):
 def learn_stair(env):
     start_state = collect_stair_start_state(env)
     runner = Runner(env, start_state, [1.2, 0.1])
-    env.observation_space = np.zeros(1)
     rs = RandomSearch(env, runner, 4, 0.1, 0.05)
-    rs.random_search(10)
+    rs.random_search()
     embed()
 
 if __name__ == '__main__':
     from walker import TwoStepEnv
     env = TwoStepEnv(Simbicon)
-    #learn_long_step(env)
-    learn_stair(env)
+    learn_long_step(env)
+    #learn_stair(env)

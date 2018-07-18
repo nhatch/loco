@@ -3,14 +3,16 @@ from IPython import embed
 import pickle
 import time
 import gym
-from inverse_dynamics import controllable_indices
+
+controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
+                        1, 0, 0, 1, 0, 0, 0, 1, 1]
 
 class RandomSearch:
     def __init__(self, env, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
         obs_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
-        self.w_policy = np.zeros((action_dim, obs_dim))
+        self.w_policy = np.zeros(action_dim)
 
         self.n_dirs = n_dirs
         self.eps = eps
@@ -27,43 +29,25 @@ class RandomSearch:
         grad = np.zeros_like(policy)
         rets = []
         for j in range(self.n_dirs):
-            seed = np.random.randint(1000)
             p = self.sample_perturbation()
-            p_ret = self.runner.run(policy + self.eps*p, seed)
-            n_ret = self.runner.run(policy - self.eps*p, seed)
+            p_ret = self.runner.run(policy + self.eps*p)
+            n_ret = self.runner.run(policy - self.eps*p)
             rets.append(p_ret)
             rets.append(n_ret)
             grad += (p_ret - n_ret) / self.n_dirs * p
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, steps = 1000):
-        self.demo()
-        for i in range(steps):
-            print(i)
+    def random_search(self, max_iters=10, tol=0.02, render=1.0):
+        for i in range(max_iters):
+            if self.eval(tol, render):
+                return
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
-            self.demo()
             self.step_size *= 0.8
+        print("Max iters exceeded")
 
-    def save(self, name):
-        self.runner.save(name)
-        params = (self.w_policy, self.episodes, self.n_dirs, self.eps, self.step_size)
-        f = open('saved_controllers/{}.pkl'.format(name), 'wb')
-        pickle.dump(params, f)
-        f.close()
-
-    def load(self, name):
-        self.runner.load(name)
-        f = open('saved_controllers/{}.pkl'.format(name), 'rb')
-        params = pickle.load(f)
-        self.w_policy = params[0]
-        self.episodes = params[1]
-        self.n_dirs = params[2]
-        self.eps = params[3]
-        self.step_size = params[4]
-        f.close()
-
-    def demo(self):
-        ret = self.runner.run(self.w_policy, seed=None, render=1)
-        print(self.episodes, ret)
+    def eval(self, tol, render):
+        ret = self.runner.run(self.w_policy, render=render)
+        # The best possible score is 0
+        return ret > -tol
