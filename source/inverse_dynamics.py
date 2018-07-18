@@ -103,7 +103,7 @@ class LearnInverseDynamics:
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
-        rs = RandomSearch(env, runner, 4, 0.1, 0.05)
+        rs = RandomSearch(self.env, runner, 4, 0.1, 0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         rs.random_search(render=None)
         return rs.w_policy, runner
@@ -163,7 +163,8 @@ class LearnInverseDynamics:
         next_target = targets[-1]
         for _ in range(num_steps):
             dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
-            next_target = next_target + [dx, 0]
+            dy = np.random.uniform() * 0.1
+            next_target = next_target + [dx, dy]
             targets.append(next_target)
         self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
         return targets[2:] # Don't include the starting platforms
