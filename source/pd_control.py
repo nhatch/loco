@@ -1,10 +1,11 @@
 from IPython import embed
 import numpy as np
 
-# TODO there is some foot slip happening. Is this because these gains are too high?
-BRICK_DOF = 3 # We're in 2D
 KP_GAIN = 200.0
 KD_GAIN = 15.0
+
+control_bounds_2D = 1.5 * np.array([100, 100, 20, 100, 100, 20])
+control_bounds_3D = 1.5 * np.array([100]*15)
 
 # TODO implement Stable PD controllers?
 class PDController:
@@ -13,27 +14,33 @@ class PDController:
         self.env = env
         self.inactive = False
         self.reset()
-        self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
-        self.Kd = np.array([0.0] * BRICK_DOF + [KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
-        self.control_bounds = 1.5 * np.array([100, 100, 20, 100, 100, 20])
 
-    def set_actuated_pose(self, pose):
-        self.target_q[BRICK_DOF:] = pose
+        brick_dof = self.env.brick_dof
+        self.Kp = np.array([0.0] * brick_dof + [KP_GAIN] * (self.skel.ndofs - brick_dof))
+        self.Kd = np.array([0.0] * brick_dof + [KD_GAIN] * (self.skel.ndofs - brick_dof))
+        self.control_bounds = control_bounds_2D if brick_dof == 3 else control_bounds_3D
 
     def compute(self):
+        brick_dof = self.env.brick_dof
         if self.inactive:
             return np.zeros_like(self.Kp)
         control = -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
-        for i in range(BRICK_DOF, self.skel.ndofs):
-            if control[i] > self.control_bounds[i-BRICK_DOF]:
-                control[i] = self.control_bounds[i-BRICK_DOF]
-            if control[i] < -self.control_bounds[i-BRICK_DOF]:
-                control[i] = -self.control_bounds[i-BRICK_DOF]
+        for i in range(brick_dof, self.skel.ndofs):
+            if control[i] > self.control_bounds[i-brick_dof]:
+                control[i] = self.control_bounds[i-brick_dof]
+            if control[i] < -self.control_bounds[i-brick_dof]:
+                control[i] = -self.control_bounds[i-brick_dof]
         return control
 
-    def state_complete(self, left, right):
+    def step_complete(self, contacts, swing_heel):
         # Stub to conform to Simbicon interface
-        pass
+        return False
 
     def reset(self):
         self.target_q = self.skel.q
+
+    def state(self):
+        return []
+
+    def standardize_stance(self, state):
+        return state

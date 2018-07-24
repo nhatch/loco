@@ -55,6 +55,20 @@ class Simbicon(PDController):
         self.prev_target = state[6:8]
         self.direction = UP
 
+    def standardize_stance(self, state):
+        # Ensure the stance state is contained in state[6:9] and state[15:18].
+        # Do this by flipping the left state with the right state if necessary.
+        stance_idx, swing_idx = self.stance_idx, self.swing_idx
+        stance_q = state[stance_idx:stance_idx+3].copy()
+        stance_dq = state[stance_idx+9:stance_idx+12].copy()
+        swing_q = state[swing_idx:swing_idx+3].copy()
+        swing_dq = state[swing_idx+9:swing_idx+12].copy()
+        state[3:6] = swing_q
+        state[6:9] = stance_q
+        state[12:15] = swing_dq
+        state[15:18] = stance_dq
+        return state
+
     def set_gait_raw(self, target, raw_gait=None):
         up = walk[UP].raw_params.copy()
         down = walk[DOWN].raw_params.copy()

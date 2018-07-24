@@ -136,22 +136,8 @@ class SteppingStonesEnv:
 
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
-        obs = self.standardize_stance(obs)
+        obs = self.controller.standardize_stance(obs)
         return State(np.concatenate((obs, self.controller.state())))
-
-    def standardize_stance(self, state):
-        # Ensure the stance state is contained in state[6:9] and state[15:18].
-        # Do this by flipping the left state with the right state if necessary.
-        stance_idx, swing_idx = self.controller.stance_idx, self.controller.swing_idx
-        stance_q = state[stance_idx:stance_idx+3].copy()
-        stance_dq = state[stance_idx+9:stance_idx+12].copy()
-        swing_q = state[swing_idx:swing_idx+3].copy()
-        swing_dq = state[swing_idx+9:swing_idx+12].copy()
-        state[3:6] = swing_q
-        state[6:9] = stance_q
-        state[12:15] = swing_dq
-        state[15:18] = stance_dq
-        return state
 
     def log(self, string):
         print(string)
@@ -189,5 +175,6 @@ class SteppingStonesEnv:
     def load_world(self):
         skel = "skel/walker2d.skel"
         world = pydart.World(SIMULATION_RATE, skel)
+        self.brick_dof = 3
         return world
 
