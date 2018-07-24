@@ -220,8 +220,9 @@ class LearnInverseDynamics:
         return result
 
 if __name__ == '__main__':
-    from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon)
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    env.set_controller(Simbicon)
     learn = LearnInverseDynamics(env)
     #learn.load_train_set()
     learn.training_iter()

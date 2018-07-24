@@ -1,5 +1,7 @@
 import numpy as np
 
+OBSERVATION_DIM = 26
+
 class State:
     def __init__(self, raw_state):
         self.raw_state = raw_state.copy()

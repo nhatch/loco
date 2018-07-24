@@ -23,18 +23,14 @@ class StepResult(Enum):
     IN_PROGRESS = 0
     COMPLETE = 1
 
-class TwoStepEnv:
-    def __init__(self, controller_class):
-        self.controller_class = controller_class
+class SteppingStonesEnv:
+    def __init__(self):
+        self.controller_class = None
         self.world = None
         self.viewer = None
         self.sdf_loader = SDFLoader()
+        pydart.init(verbose=False)
         self.clear_skeletons()
-
-        # We just want this to be something that has a "shape" method
-        # TODO incorporate adding target step locations into the observations
-        self.observation_space = np.zeros_like(self.current_observation().raw_state)
-        self.action_space = np.zeros(SIMBICON_ACTION_SIZE)
 
         self.video_recorder = None
         # Hacks to make this work with the gym.wrappers Monitor API
@@ -47,7 +43,7 @@ class TwoStepEnv:
         # to recreate the entire world.
         if self.world is not None:
             self.world.destroy()
-        world = load_world()
+        world = self.load_world()
         self.world = world
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
@@ -57,8 +53,8 @@ class TwoStepEnv:
         for j in walker.joints:
             j.set_position_limit_enforced()
 
-        self.controller = self.controller_class(walker, self)
-        walker.set_controller(self.controller)
+        if self.controller_class is not None:
+            self.set_controller()
 
         if self.viewer is not None:
             self.viewer.sim = world
@@ -66,10 +62,21 @@ class TwoStepEnv:
             title = None
             win = StaticGLUTWindow(self.world, title)
             # For some reason setting 'zoom' doesn't do anything
-            win.scene.add_camera(Trackball(theta=-45.0, phi = 0.0), 'gym_camera')
+            win.scene.add_camera(self.init_camera(), 'gym_camera')
             win.scene.set_camera(win.scene.num_cameras()-1)
             win.run()
             self.viewer = win
+
+    def set_controller(self, controller_class=None):
+        if controller_class is not None:
+            self.controller_class = controller_class
+        self.controller = self.controller_class(self.robot_skeleton, self)
+        self.robot_skeleton.set_controller(self.controller)
+
+    def init_camera(self):
+        tb = Trackball(theta=-45.0, phi = 0.0)
+        tb.trans[2] = -5
+        return tb
 
     def seed(self, seed):
         print("Seed:", seed)
@@ -170,7 +177,6 @@ class TwoStepEnv:
 
     def render(self, mode='human', close=False):
         self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
-        self.viewer.scene.tb.trans[2] = -5 # adjust zoom
         if mode == 'rgb_array':
             data = self.viewer.getFrame()
             return data
@@ -180,9 +186,8 @@ class TwoStepEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
-def load_world():
-    skel = "skel/walker2d.skel"
-    pydart.init(verbose=False)
-    world = pydart.World(SIMULATION_RATE, skel)
-    return world
+    def load_world(self):
+        skel = "skel/walker2d.skel"
+        world = pydart.World(SIMULATION_RATE, skel)
+        return world
 

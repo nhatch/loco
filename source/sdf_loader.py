@@ -57,8 +57,9 @@ class SDFLoader:
             self.put_ground(x - self.ground_offset, y, length, i)
 
 if __name__ == "__main__":
-    from walker import TwoStepEnv
+    from stepping_stones_env import SteppingStonesEnv
     from simbicon import Simbicon
-    env = TwoStepEnv(Simbicon)
+    env = SteppingStonesEnv()
+    env.set_controller(Simbicon)
     env.reset()
     env.gui()

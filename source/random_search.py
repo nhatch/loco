@@ -10,7 +10,6 @@ controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
 class RandomSearch:
     def __init__(self, env, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
-        obs_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
         self.w_policy = np.zeros(action_dim)
 

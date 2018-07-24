@@ -205,8 +205,9 @@ class Simbicon(PDController):
         return control
 
 if __name__ == '__main__':
-    from walker import TwoStepEnv
-    env = TwoStepEnv(Simbicon)
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    env.set_controller(Simbicon)
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)
