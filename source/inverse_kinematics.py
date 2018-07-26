@@ -9,9 +9,9 @@ class InverseKinematics:
 
     def controller(self, obs):
         # TODO: Maybe use obs rather than directly pulling agent state from environment (to avoid accusations of cheating)
-        td, tf = self.transform_frame(self.target, 0.0)
+        hip, knee = self.inv_kine([self.target, 0.0])
         # Right foot step
-        q = self.inv_kine_pose(td, tf, True)
+        q = self.inv_kine_pose(hip, knee, True)
         q[5] = 0
         q[6] = 0
         q[7] = 0
@@ -41,7 +41,8 @@ class InverseKinematics:
         self.env.sdf_loader.put_dot(r_heel[0:2], color=BLUE)
         self.env.render()
 
-    def inv_kine(self, r, theta):
+    def inv_kine(self, target, verbose=False):
+        r, theta = self.transform_frame(target, verbose)
         c = self.env.consts()
 
         # Handle out-of-reach targets by moving them within reach
@@ -58,9 +59,8 @@ class InverseKinematics:
         hip = hip + theta
         return hip, knee
 
-    def inv_kine_pose(self, r, theta, is_right_foot=True):
+    def inv_kine_pose(self, hip, knee, is_right_foot=True):
         agent = self.env.robot_skeleton
-        hip, knee = self.inv_kine(r, theta)
         q = agent.q.copy()
         c = self.env.consts()
         base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
@@ -80,8 +80,8 @@ class InverseKinematics:
         agent.q = q
         self.env.sdf_loader.put_dot(target[0:2], color=GREEN)
         print("TARGET:", target)
-        r, theta = self.transform_frame(target[0], target[1], verbose=True)
-        q = self.inv_kine_pose(r, theta)
+        hip, knee = self.inv_kine(target, verbose=True)
+        q = self.inv_kine_pose(hip, knee)
         agent.q = q
         self.env.render()
 
@@ -98,7 +98,7 @@ class InverseKinematics:
         target[1] += 0.5
         return brick_pose, target
 
-    def transform_frame(self, x, y, verbose=False):
+    def transform_frame(self, target, verbose=False):
         c = self.env.consts()
         agent = self.env.robot_skeleton
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
@@ -110,8 +110,8 @@ class InverseKinematics:
             self.env.sdf_loader.put_dot(pelvis_bottom[:2], color=RED)
             print("CENTER JOINT:", pelvis_bottom)
         # Put pelvis bottom at origin
-        x = x - pelvis_bottom[0]
-        y = y - pelvis_bottom[1]
+        x = target[0] - pelvis_bottom[0]
+        y = target[1] - pelvis_bottom[1]
         # Transform to polar coordinates
         r = np.sqrt(x**2 + y**2)
         phi = np.arcsin(x/r)
