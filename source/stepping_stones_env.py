@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 import random_search
 
-from simbicon import SIMBICON_ACTION_SIZE
+from simbicon import Simbicon, SIMBICON_ACTION_SIZE
 from pd_control import PDController
 from sdf_loader import SDFLoader, RED, GREEN, BLUE
 from video_recorder import video_recorder
@@ -26,7 +26,7 @@ class StepResult(Enum):
 
 class SteppingStonesEnv:
     def __init__(self):
-        self.controller_class = None
+        self.controller_class = Simbicon # default
         self.world = None
         self.viewer = None
         self.sdf_loader = SDFLoader()
@@ -55,8 +55,7 @@ class SteppingStonesEnv:
         for j in walker.joints:
             j.set_position_limit_enforced()
 
-        if self.controller_class is not None:
-            self.set_controller()
+        self.set_controller()
 
         if self.viewer is not None:
             self.viewer.sim = world

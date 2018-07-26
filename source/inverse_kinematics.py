@@ -1,10 +1,10 @@
 from IPython import embed
 import numpy as np
+from sdf_loader import RED, GREEN, BLUE
 
 class InverseKinematics:
     def __init__(self, env, target=None):
         self.env = env
-        self.agent = self.env.robot_skeleton
         self.target = target
 
     def controller(self, obs):
@@ -19,8 +19,9 @@ class InverseKinematics:
         return q[3:]
 
     def forward_kine(self, swing_idx=3):
+        agent = self.env.robot_skeleton
         c = self.env.consts()
-        q = self.agent.q
+        q = agent.q
         # Adding torso, hip, knee, and ankle angles gives the angle of the foot
         # relative to flat ground.
         foot_angle = q[c.TORSO_IDX]+q[swing_idx]+q[swing_idx+c.KNEE_OFFSET]+q[swing_idx+c.ANKLE_OFFSET]
@@ -28,7 +29,7 @@ class InverseKinematics:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
-        foot_com = self.agent.bodynodes[swing_foot_idx].com()
+        foot_com = agent.bodynodes[swing_foot_idx].com()
         offset = -0.5 * c.L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
         offset[1] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
@@ -36,8 +37,7 @@ class InverseKinematics:
     def test_forward_kine(self):
         self.test_inv_kine()
         r_heel = self.forward_kine()
-        # If something's broken, this will move the dot away from the ankle
-        self.env.put_dot(r_heel[0], r_heel[1])
+        self.env.sdf_loader.put_dot(r_heel[0:2], color=BLUE)
         self.env.render()
 
     def inv_kine(self, targ_down, targ_forward):
@@ -63,73 +63,74 @@ class InverseKinematics:
         return hip, knee
 
     def inv_kine_pose(self, targ_down, targ_forward, is_right_foot=True):
+        agent = self.env.robot_skeleton
         hip, knee = self.inv_kine(targ_down, targ_forward)
-        q = self.agent.q.copy()
-        if is_right_foot:
-            q[3] = hip
-            q[4] = knee
-        else: # left foot
-            q[6] = hip
-            q[7] = knee
+        q = agent.q.copy()
+        c = self.env.consts()
+        base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
+        q[base+c.HIP_OFFSET] = hip
+        q[base+c.KNEE_OFFSET] = knee
         return q
 
     def test_inv_kine(self):
+        self.env.clear_skeletons()
+        agent = self.env.robot_skeleton
         # Generate a random starting pose and target (marked with a dot),
         # then edit the right hip and knee joints to hit the target.
         #
-        # TODO: this test actually fails for:
+        # TODO: this test actually fails for targets above waist level.
         #   pose = [-0.12118236,  0.13867071,  0.00750066]
         #   target = [-0.416734251601, 1.24994977515, 0] (after adding 0.5)
         center = np.array([0, 0.3, 0])
         pose = center + np.random.uniform(low=-0.2, high = 0.2, size = 3)
-        q = self.agent.q
+        q = agent.q
         q[:3] = pose
-        self.agent.q = q
+        agent.q = q
         target = center + np.random.uniform(low=-0.5, high=0.5, size=3)
         target[1] += 0.5
+        self.env.sdf_loader.put_dot(target[0:2], color=GREEN)
         print("TARGET:", target[0], target[1])
         down, forward = self.transform_frame(target[0], target[1], verbose=True)
         q = self.inv_kine_pose(down, forward)
-        self.agent.q = q
+        agent.q = q
         self.env.render()
 
     def transform_frame(self, x, y, verbose=False):
         c = self.env.consts()
+        agent = self.env.robot_skeleton
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
         # relative to the pelvis joint's absolute location and rotation.
-        pelvis_com = self.agent.bodynodes[2].com()
-        theta = self.agent.q[2]
+        pelvis_com = agent.bodynodes[c.PELVIS_BODYNODE_IDX].com()
+        theta = agent.q[c.TORSO_IDX]
+        pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
+            self.env.sdf_loader.put_dot(pelvis_bottom[:2], color=RED)
             print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
-        # Put pelvis COM at origin
-        x = x - pelvis_com[0]
-        y = y - pelvis_com[1]
+        # Put pelvis bottom at origin
+        x = x - pelvis_bottom[0]
+        y = y - pelvis_bottom[1]
         # Transform to polar coordinates
         r = np.sqrt(x**2 + y**2)
-        phi = np.arcsin(y/r)
-        if phi*y < 0:
-            phi = phi - np.pi
-        if verbose:
-            print("ANGLES:", phi, theta)
+        phi = np.arcsin(x/r)
         # Rotate
         phi = phi - theta
+        if y > 0:
+            phi = np.pi - phi
+        if verbose:
+            print("ANGLES:", phi, theta)
         # Transform back to Euclidean coordinates
-        down = -r * np.sin(phi)
-        forward = r * np.cos(phi)
-        # Use bottom of pelvis instead of COM
-        down = down - c.L_PELVIS / 2
+        down = r * np.cos(phi)
+        forward = r * np.sin(phi)
         if verbose:
             print("RELATIVE TO JOINT:", down, forward)
         return down, forward
 
 
 if __name__ == "__main__":
-    from random_search import Whitener
-    import stepper
-    import gym
-
-    env = gym.make('Stepper-v0')
-    ik = InverseKinematics(env.env, 0.5)
-    #ik.test_inv_kine()
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    #from simple_3D_env import Simple3DEnv
+    #env = Simple3DEnv()
+    ik = InverseKinematics(env, 0.5)
     ik.test_forward_kine()
     embed()
