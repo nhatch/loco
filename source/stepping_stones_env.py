@@ -181,6 +181,5 @@ class SteppingStonesEnv:
     def load_world(self):
         skel = "skel/walker2d.skel"
         world = pydart.World(SIMULATION_RATE, skel)
-        self.brick_dof = 3
         return world
 

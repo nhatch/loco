@@ -1,18 +1,20 @@
+BRICK_DOF = 6
+
 LEG_DOF = 6
 RIGHT_IDX = 9
 LEFT_IDX = 15
 Q_DIM = 21
-HIP_OFFSET = 2
+THETA_IDX = 3
+HIP_OFFSET = 0
 KNEE_OFFSET = 3
 ANKLE_OFFSET = 4
-TORSO_IDX = 8
 
 PELVIS_BODYNODE_IDX = 2
 RIGHT_BODYNODE_IDX = 5
 LEFT_BODYNODE_IDX = 8
 
-# I hope these are the same for the 3D model...
-L_PELVIS = 0.40
+# Same as 2D model, except L_PELVIS
+L_PELVIS = 0.15
 L_LEG =    0.45
 L_SHIN =   0.50
 L_FOOT =   0.20

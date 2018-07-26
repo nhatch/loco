@@ -27,7 +27,6 @@ class Simple3DEnv(SteppingStonesEnv):
         world = pydart.World(SIMULATION_RATE, skel_file)
         skel = world.skeletons[-1]
         skel.set_self_collision_check(True)
-        self.brick_dof = 6
         return world
 
     def consts(self):

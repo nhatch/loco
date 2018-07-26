@@ -205,7 +205,7 @@ class Simbicon(PDController):
         q[self.swing_idx+c.ANKLE_OFFSET] = -(target_swing_angle + target_swing_knee)
         q[self.swing_idx+c.ANKLE_OFFSET] += state.swing_ankle_relative
 
-        torso_actual = self.skel.q[c.TORSO_IDX]
+        torso_actual = self.skel.q[c.THETA_IDX]
         q[self.swing_idx] = target_swing_angle - torso_actual
 
         self.target_q = q
@@ -218,7 +218,7 @@ class Simbicon(PDController):
         if fix_Kd:
             self.Kd[self.stance_idx+c.KNEE_OFFSET] /= 8
 
-        torso_speed = self.skel.dq[c.TORSO_IDX]
+        torso_speed = self.skel.dq[c.THETA_IDX]
         torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
