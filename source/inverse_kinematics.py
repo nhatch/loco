@@ -1,12 +1,6 @@
 from IPython import embed
 import numpy as np
 
-L_PELVIS = 0.40
-L_LEG =    0.45
-L_SHIN =   0.50
-L_FOOT =   0.20
-FOOT_RADIUS = 0.06
-
 class InverseKinematics:
     def __init__(self, env, target=None):
         self.env = env
@@ -25,13 +19,18 @@ class InverseKinematics:
         return q[3:]
 
     def forward_kine(self, swing_idx=3):
+        c = self.env.consts()
         q = self.agent.q
         # Adding torso, hip, knee, and ankle angles gives the angle of the foot
         # relative to flat ground.
-        foot_angle = q[2]+q[swing_idx]+q[swing_idx+1]+q[swing_idx+2]
-        foot_com = self.agent.bodynodes[swing_idx+2].com()
-        offset = -0.5 * L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
-        offset[1] -= FOOT_RADIUS # So we get the *bottom* of the heel
+        foot_angle = q[c.TORSO_IDX]+q[swing_idx]+q[swing_idx+c.KNEE_OFFSET]+q[swing_idx+c.ANKLE_OFFSET]
+        if swing_idx == c.RIGHT_IDX:
+            swing_foot_idx = c.RIGHT_BODYNODE_IDX
+        else:
+            swing_foot_idx = c.LEFT_BODYNODE_IDX
+        foot_com = self.agent.bodynodes[swing_foot_idx].com()
+        offset = -0.5 * c.L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
+        offset[1] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
 
     def test_forward_kine(self):
@@ -42,11 +41,12 @@ class InverseKinematics:
         self.env.render()
 
     def inv_kine(self, targ_down, targ_forward):
+        c = self.env.consts()
 
         r = np.sqrt(targ_down**2 + targ_forward**2)
-        cos_knee = (r**2 - L_LEG**2 - L_SHIN**2) / (2 * L_LEG * L_SHIN)
+        cos_knee = (r**2 - c.L_LEG**2 - c.L_SHIN**2) / (2 * c.L_LEG * c.L_SHIN)
         tan_theta3 = targ_forward / targ_down
-        cos_theta4 = (r**2 + L_LEG**2 - L_SHIN**2) / (2 * L_LEG * r)
+        cos_theta4 = (r**2 + c.L_LEG**2 - c.L_SHIN**2) / (2 * c.L_LEG * r)
 
         # Handle out-of-reach targets by clamping cosines to 1
         if cos_knee > 1:
@@ -94,6 +94,7 @@ class InverseKinematics:
         self.env.render()
 
     def transform_frame(self, x, y, verbose=False):
+        c = self.env.consts()
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
         # relative to the pelvis joint's absolute location and rotation.
         pelvis_com = self.agent.bodynodes[2].com()
@@ -116,7 +117,7 @@ class InverseKinematics:
         down = -r * np.sin(phi)
         forward = r * np.cos(phi)
         # Use bottom of pelvis instead of COM
-        down = down - L_PELVIS / 2
+        down = down - c.L_PELVIS / 2
         if verbose:
             print("RELATIVE TO JOINT:", down, forward)
         return down, forward

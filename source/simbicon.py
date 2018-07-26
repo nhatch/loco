@@ -37,14 +37,15 @@ SIMBICON_ACTION_SIZE = 18
 class Simbicon(PDController):
 
     def __init__(self, skel, env):
-        super().__init__(skel, env)
-        self.reset()
         self.ik = InverseKinematics(env)
+        super().__init__(skel, env)
 
     def reset(self, state=np.zeros(8)):
+        c = self.env.consts()
         self.step_started = self.time()
-        self.swing_idx = 3
-        self.stance_idx = 6
+        self.swing_idx = c.RIGHT_IDX
+        self.stance_idx = c.LEFT_IDX
+
         self.contact = state[0:2]
         self.stance_heel = state[2:4]
         self.target = state[4:6]
@@ -56,17 +57,19 @@ class Simbicon(PDController):
         self.direction = UP
 
     def standardize_stance(self, state):
-        # Ensure the stance state is contained in state[6:9] and state[15:18].
-        # Do this by flipping the left state with the right state if necessary.
-        stance_idx, swing_idx = self.stance_idx, self.swing_idx
-        stance_q = state[stance_idx:stance_idx+3].copy()
-        stance_dq = state[stance_idx+9:stance_idx+12].copy()
-        swing_q = state[swing_idx:swing_idx+3].copy()
-        swing_dq = state[swing_idx+9:swing_idx+12].copy()
-        state[3:6] = swing_q
-        state[6:9] = stance_q
-        state[12:15] = swing_dq
-        state[15:18] = stance_dq
+        c = self.env.consts()
+        # Ensure the stance leg is the right leg.
+        if self.swing_idx == c.RIGHT_IDX:
+            return state
+        # We need to flip the left and right leg.
+        D = c.LEG_DOF
+        R = c.RIGHT_IDX
+        L = c.LEFT_IDX
+        for base in [0, c.Q_DIM]:
+            right = state[base+R : base+R+D].copy()
+            left  = state[base+L : base+L+D].copy()
+            state[base+R : base+R+D] = left
+            state[base+L : base+L+D] = right
         return state
 
     def set_gait_raw(self, target, raw_gait=None):
@@ -182,10 +185,11 @@ class Simbicon(PDController):
         self.FSM[DOWN].swing_knee_relative = knee
 
     def compute(self):
+        c = self.env.consts()
         state = self.FSMstate()
-        q = np.zeros(9)
-        q[self.stance_idx+1] = state.stance_knee_relative
-        q[self.stance_idx+2] = state.stance_ankle_relative
+        q = np.zeros(c.Q_DIM)
+        q[self.stance_idx+c.KNEE_OFFSET] = state.stance_knee_relative
+        q[self.stance_idx+c.ANKLE_OFFSET] = state.stance_ankle_relative
 
         cd = state.position_balance_gain
         cv = state.velocity_balance_gain
@@ -195,13 +199,13 @@ class Simbicon(PDController):
 
         target_swing_angle = state.swing_hip_world + balance_feedback
         target_swing_knee = state.swing_knee_relative
-        q[self.swing_idx+1] = target_swing_knee
+        q[self.swing_idx+c.KNEE_OFFSET] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
-        q[self.swing_idx+2] = -(target_swing_angle + target_swing_knee)
-        q[self.swing_idx+2] += state.swing_ankle_relative
+        q[self.swing_idx+c.ANKLE_OFFSET] = -(target_swing_angle + target_swing_knee)
+        q[self.swing_idx+c.ANKLE_OFFSET] += state.swing_ankle_relative
 
-        torso_actual = self.skel.q[2]
+        torso_actual = self.skel.q[c.TORSO_IDX]
         q[self.swing_idx] = target_swing_angle - torso_actual
 
         self.target_q = q
@@ -209,14 +213,16 @@ class Simbicon(PDController):
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
         if fix_Kd:
-            self.Kd[self.stance_idx+1] *= 8
+            self.Kd[self.stance_idx+c.KNEE_OFFSET] *= 8
         control = super().compute()
         if fix_Kd:
-            self.Kd[self.stance_idx+1] /= 8
+            self.Kd[self.stance_idx+c.KNEE_OFFSET] /= 8
 
-        torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * self.skel.dq[2]
+        torso_speed = self.skel.dq[c.TORSO_IDX]
+        torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
+
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
@@ -226,7 +232,7 @@ if __name__ == '__main__':
     #env.seed(42)
     env.reset(random=0.0)
     env.sdf_loader.put_grounds([[0,0]], runway_length=20)
-    for i in range(10):
+    for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
         t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)

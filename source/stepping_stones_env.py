@@ -9,6 +9,7 @@ from pd_control import PDController
 from sdf_loader import SDFLoader, RED, GREEN, BLUE
 from video_recorder import video_recorder
 from state import State
+import consts_2D
 
 # For rendering
 from gym.envs.dart.static_window import *
@@ -38,6 +39,9 @@ class SteppingStonesEnv:
         #self.reward_range = range(10)
         #self.spec = None
 
+    def consts(self):
+        return consts_2D
+
     def clear_skeletons(self):
         # pydart2 has not implemented any API to remove skeletons, so we need
         # to recreate the entire world.
@@ -48,8 +52,6 @@ class SteppingStonesEnv:
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
         self.robot_skeleton = walker
-        self.r_foot = walker.bodynodes[5]
-        self.l_foot = walker.bodynodes[8]
         for j in walker.joints:
             j.set_position_limit_enforced()
 
@@ -99,7 +101,12 @@ class SteppingStonesEnv:
     # Executes one world step.
     # Returns (observation, episode_terminated, human-readable message) tuple.
     def simulation_step(self):
-        swing_foot = self.robot_skeleton.bodynodes[self.controller.swing_idx+2]
+        c = self.consts()
+        if self.controller.swing_idx == c.RIGHT_IDX:
+            swing_foot_idx = c.RIGHT_BODYNODE_IDX
+        else:
+            swing_foot_idx = c.LEFT_BODYNODE_IDX
+        swing_foot = self.robot_skeleton.bodynodes[swing_foot_idx]
         contacts = self.find_contacts(swing_foot)
         swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)[:2]
         step_complete = self.controller.step_complete(contacts, swing_heel)
