@@ -41,32 +41,26 @@ class InverseKinematics:
         self.env.sdf_loader.put_dot(r_heel[0:2], color=BLUE)
         self.env.render()
 
-    def inv_kine(self, targ_down, targ_forward):
+    def inv_kine(self, r, theta):
         c = self.env.consts()
 
-        r = np.sqrt(targ_down**2 + targ_forward**2)
-        cos_knee = (r**2 - c.L_LEG**2 - c.L_SHIN**2) / (2 * c.L_LEG * c.L_SHIN)
-        tan_theta3 = targ_forward / targ_down
-        cos_theta4 = (r**2 + c.L_LEG**2 - c.L_SHIN**2) / (2 * c.L_LEG * r)
+        # Handle out-of-reach targets by moving them within reach
+        if (r > c.L_THIGH + c.L_SHIN):
+            r = c.L_THIGH + c.L_SHIN
+        if (r < np.abs(c.L_THIGH - c.L_SHIN)):
+            r = np.abs(c.L_THIGH - c.L_SHIN)
 
-        # Handle out-of-reach targets by clamping cosines to 1
-        if cos_knee > 1:
-            cos_knee = 1
-        if cos_theta4 > 1:
-            cos_theta4 = 1
-
-        # We want knee angle to be < 0
-        #print("COS_KNEE:", cos_knee)
-        knee = - np.arccos(cos_knee)
-        # The geometry makes more sense if theta4 is > 0
-        theta4 = np.arccos(cos_theta4)
-        # Since knee < 0, we add theta3 and theta4 to get hip angle
-        hip = np.arctan(tan_theta3) + theta4
+        cos_knee_inner = (r**2 - c.L_THIGH**2 - c.L_SHIN**2) / (-2 * c.L_THIGH * c.L_SHIN)
+        cos_hip = (c.L_SHIN**2 - r**2 - c.L_THIGH**2) / (-2 * r * c.L_THIGH)
+        knee_inner = np.arccos(cos_knee_inner)
+        knee = knee_inner - np.pi
+        hip = np.arccos(cos_hip)
+        hip = hip + theta
         return hip, knee
 
-    def inv_kine_pose(self, targ_down, targ_forward, is_right_foot=True):
+    def inv_kine_pose(self, r, theta, is_right_foot=True):
         agent = self.env.robot_skeleton
-        hip, knee = self.inv_kine(targ_down, targ_forward)
+        hip, knee = self.inv_kine(r, theta)
         q = agent.q.copy()
         c = self.env.consts()
         base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
@@ -79,18 +73,15 @@ class InverseKinematics:
         self.env.reset(random=0.0)
         c = self.env.consts()
         agent = self.env.robot_skeleton
-        # TODO: this test actually fails for targets above waist level.
-        #   brick_pose = [-0.12118236,  0.13867071,  0.00750066]
-        #   target = [-0.416734251601, 1.24994977515, 0] (after adding 0.5)
         brick_pose, target = self.gen_brick_pose()
         q = agent.q
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
         agent.q = q
         self.env.sdf_loader.put_dot(target[0:2], color=GREEN)
-        print("TARGET:", target[0], target[1])
-        down, forward = self.transform_frame(target[0], target[1], verbose=True)
-        q = self.inv_kine_pose(down, forward)
+        print("TARGET:", target)
+        r, theta = self.transform_frame(target[0], target[1], verbose=True)
+        q = self.inv_kine_pose(r, theta)
         agent.q = q
         self.env.render()
 
@@ -117,7 +108,7 @@ class InverseKinematics:
         pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
             self.env.sdf_loader.put_dot(pelvis_bottom[:2], color=RED)
-            print("PELVIS COM:", pelvis_com[0], pelvis_com[1])
+            print("CENTER JOINT:", pelvis_bottom)
         # Put pelvis bottom at origin
         x = x - pelvis_bottom[0]
         y = y - pelvis_bottom[1]
@@ -129,14 +120,8 @@ class InverseKinematics:
         if y > 0:
             phi = np.pi - phi
         if verbose:
-            print("ANGLES:", phi, theta)
-        # Transform back to Euclidean coordinates
-        down = r * np.cos(phi)
-        forward = r * np.sin(phi)
-        if verbose:
-            print("RELATIVE TO JOINT:", down, forward)
-        return down, forward
-
+            print("POLAR COORDINATES:", r, phi)
+        return r, phi
 
 if __name__ == "__main__":
     #from stepping_stones_env import SteppingStonesEnv

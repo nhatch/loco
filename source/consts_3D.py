@@ -15,7 +15,7 @@ LEFT_BODYNODE_IDX = 8
 
 # Same as 2D model, except L_PELVIS
 L_PELVIS = 0.15
-L_LEG =    0.45
+L_THIGH =    0.45
 L_SHIN =   0.50
 L_FOOT =   0.20
 FOOT_RADIUS = 0.06

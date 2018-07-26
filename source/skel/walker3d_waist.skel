@@ -287,7 +287,7 @@
 
 
             <!-- JOINT: Pelvis -->
-            <joint type="translational" name="j_torso">
+            <joint type="translational" name="j_torso_translational">
                 <parent>world</parent>
                 <child>h_torso_aux</child>
             </joint>
