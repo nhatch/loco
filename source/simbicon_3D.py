@@ -18,10 +18,22 @@ class Simbicon3D(Simbicon):
         state[D:2*D] *= m
         return state
 
-    def maybe_start_down_phase(self, contacts, swing_heel):
-        duration = self.time() - self.step_started
-        if duration > 0.3:
-            self.direction = DOWN
+
+    def compute_target_q(self):
+        q = super().compute_target_q()
+
+        c = self.env.consts()
+        state = self.FSMstate()
+
+        cd = state.position_balance_gain_lat
+        cv = state.velocity_balance_gain_lat
+        v = self.skel.dq[2]
+        d = self.skel.q[2] - self.contact[2]
+        balance_feedback = cd*d + cv*v
+
+        q[self.swing_idx+c.HIP_OFFSET_LAT] = balance_feedback
+
+        return q
 
 def test_standardize_stance(env):
     from time import sleep

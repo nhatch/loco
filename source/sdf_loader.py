@@ -26,7 +26,7 @@ class SDFLoader:
 
         dot = self.world.add_skeleton('./skel/__dot.sdf')
         q = dot.q
-        q[3:5] = target
+        q[3:6] = target
         dot.q = q
 
     # Length is in meters.

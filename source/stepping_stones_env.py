@@ -109,7 +109,7 @@ class SteppingStonesEnv:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
         swing_foot = self.robot_skeleton.bodynodes[swing_foot_idx]
         contacts = self.find_contacts(swing_foot)
-        swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)[:2]
+        swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)
         step_complete = self.controller.step_complete(contacts, swing_heel)
         if step_complete:
             status_string = self.controller.change_stance(contacts, swing_heel)

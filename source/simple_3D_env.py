@@ -77,7 +77,7 @@ def test_simbicon():
     #env.sdf_loader.put_grounds([[0,0]], runway_length=20)
     for i in range(8):
         t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0], render=1, put_dots=True)
+        env.simulate([t,0,0], render=1, put_dots=True)
 
 if __name__ == '__main__':
     test_simbicon()

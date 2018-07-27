@@ -19,6 +19,8 @@ class FSMState:
         self.swing_ankle_relative  = params[6]
         self.stance_knee_relative  = params[7]
         self.stance_ankle_relative = params[8]
+        self.position_balance_gain_lat = params[1]
+        self.velocity_balance_gain_lat = params[2]
         # TODO avoid this redundancy. It already caused a bug that cost me two hours.
         self.raw_params = params
 
@@ -28,8 +30,8 @@ DOWN = 'DOWN'
 # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
 # Then modified for the new parameters format.
 walk = {
-  UP: FSMState([0.14, 0.0, 0.2, 0.0, 0, 0, 0, 0, 0]),
-  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2])
+  UP: FSMState([0.14, 0, 0.2, 0.0, 0, 0, 0, 0, 0, 0.5, 0.2]),
+  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2, 0.5, 0.2])
   }
 
 SIMBICON_ACTION_SIZE = 18
@@ -46,14 +48,14 @@ class Simbicon(PDController):
         self.swing_idx = c.RIGHT_IDX
         self.stance_idx = c.LEFT_IDX
 
-        self.contact = state[0:2]
-        self.stance_heel = state[2:4]
-        self.target = state[4:6]
+        self.contact = state[0:3]
+        self.stance_heel = state[3:6]
+        self.target = state[6:9]
         # We track prev_target so that, in principle, we know all of the possible
         # places where the agent is in contact with the environment. However, the
         # algorithm does not use this (yet) except when resetting the environment
         # to a previously visited state.
-        self.prev_target = state[6:8]
+        self.prev_target = state[9:12]
         self.direction = UP
 
     def standardize_stance(self, state):
@@ -87,11 +89,11 @@ class Simbicon(PDController):
         # of the swing heel and the target.
         # This is used when detecting crashes and evaluating progress of
         # the learning algorithm.
-        swing_heel = self.ik.forward_kine(self.swing_idx)[:2]
+        swing_heel = self.ik.forward_kine(self.swing_idx)
         self.starting_swing_heel = swing_heel
         d = self.target - self.starting_swing_heel
-        d /= np.linalg.norm(d)
-        self.unit_normal = np.array([-d[1], d[0]])
+        d = np.array([-d[1], d[0], 0])
+        self.unit_normal = d / np.linalg.norm(d)
 
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
@@ -162,15 +164,15 @@ class Simbicon(PDController):
         self.step_started = self.time()
         if len(contacts) > 0:
             # TODO which contact should we use?
-            self.contact = contacts[0].p[0:2]
+            self.contact = contacts[0].p
         else:
             # The swing foot missed the target
-            self.contact = -np.inf * np.ones(2)
+            self.contact = -np.inf * np.ones(3)
         self.stance_heel = swing_heel
         self.direction = UP
         self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
-        hx, hy = self.stance_heel
-        dx, dy = self.stance_heel - self.target
+        hx, hy, hz = self.stance_heel
+        dx, dy, dz = self.stance_heel - self.target
         res = "{:.2f}, {:.2f} ({:+.2f}, {:+.2f})".format(hx, hy, dx, dy)
         return "{:.3f}: Ended step at {}".format(self.time(), res)
 
@@ -183,7 +185,7 @@ class Simbicon(PDController):
         self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[2]
         self.FSM[DOWN].swing_knee_relative = knee
 
-    def compute(self):
+    def compute_target_q(self):
         c = self.env.consts()
         state = self.FSMstate()
         q = np.zeros(c.Q_DIM)
@@ -206,8 +208,12 @@ class Simbicon(PDController):
 
         torso_actual = self.skel.q[c.THETA_IDX]
         q[self.swing_idx] = target_swing_angle - torso_actual
+        return q
 
-        self.target_q = q
+    def compute(self):
+        c = self.env.consts()
+        state = self.FSMstate()
+        self.target_q = self.compute_target_q()
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
@@ -217,6 +223,8 @@ class Simbicon(PDController):
         if fix_Kd:
             self.Kd[self.stance_idx+c.KNEE_OFFSET] /= 8
 
+        # Make modifications to control torso pitch
+        torso_actual = self.skel.q[c.THETA_IDX]
         torso_speed = self.skel.dq[c.THETA_IDX]
         torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
@@ -234,5 +242,5 @@ if __name__ == '__main__':
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
         t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0], render=1, put_dots=True)
+        env.simulate([t,0,0], render=1, put_dots=True)
 
