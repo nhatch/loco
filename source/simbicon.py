@@ -19,20 +19,13 @@ class FSMState:
         self.swing_ankle_relative  = params[6]
         self.stance_knee_relative  = params[7]
         self.stance_ankle_relative = params[8]
-        self.position_balance_gain_lat = params[1]
-        self.velocity_balance_gain_lat = params[2]
+        self.position_balance_gain_lat = params[9]
+        self.velocity_balance_gain_lat = params[10]
         # TODO avoid this redundancy. It already caused a bug that cost me two hours.
         self.raw_params = params
 
 UP = 'UP'
 DOWN = 'DOWN'
-
-# Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
-# Then modified for the new parameters format.
-walk = {
-  UP: FSMState([0.14, 0, 0.2, 0.0, 0, 0, 0, 0, 0, 0.5, 0.2]),
-  DOWN: FSMState([0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2, 0.5, 0.2])
-  }
 
 SIMBICON_ACTION_SIZE = 18
 
@@ -73,9 +66,14 @@ class Simbicon(PDController):
             state[base+L : base+L+D] = right
         return state
 
+    def base_gait(self):
+        # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
+        # Then modified for the new parameters format.
+        return ([0.14, 0, 0.2, 0.0, 0, 0, 0, 0, 0, 0.5, 0.2],
+                [0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2, 0.5, 0.2])
+
     def set_gait_raw(self, target, raw_gait=None):
-        up = walk[UP].raw_params.copy()
-        down = walk[DOWN].raw_params.copy()
+        up, down = self.base_gait()
         if raw_gait is not None:
             up += raw_gait[0:9]
             down += raw_gait[9:18]
@@ -94,9 +92,13 @@ class Simbicon(PDController):
         d = np.array([-d[1], d[0], 0])
         self.unit_normal = d / np.linalg.norm(d)
 
+        self.adjust_up_targets()
+
+    def adjust_up_targets(self):
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
+        gait = self.FSM
         gait[UP].stance_knee_relative  += -0.05 - step_dist_diff * 0.2
         gait[UP].stance_ankle_relative += 0.2 + step_dist_diff * 0.4
         gait[UP].swing_hip_world       += 0.4 + step_dist_diff * 0.4

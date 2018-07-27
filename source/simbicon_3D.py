@@ -18,6 +18,17 @@ class Simbicon3D(Simbicon):
         state[D:2*D] *= m
         return state
 
+    def base_gait(self):
+        return ([0.14, 0.5, 0.2, -0.2, 0.6, -1.2, 0.6, -0.05, 0,   0.5, 0.2],
+                [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0, 0.5, 0.2])
+
+    def adjust_up_targets(self):
+        pass
+
+    def maybe_start_down_phase(self, contacts, swing_heel):
+        duration = self.time() - self.step_started
+        if duration > 0.3:
+            self.direction = DOWN
 
     def compute_target_q(self):
         q = super().compute_target_q()
