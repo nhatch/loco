@@ -70,15 +70,3 @@ def test_pd_control():
     for i in range(int(2 / SIMULATION_RATE)):
         env.step(60)
 
-def test_simbicon():
-    from simbicon_3D import Simbicon3D
-    env = Simple3DEnv(Simbicon3D)
-    env.reset(random=0.0)
-    #env.sdf_loader.put_grounds([[0,0]], runway_length=20)
-    for i in range(8):
-        t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=1, put_dots=True)
-
-if __name__ == '__main__':
-    test_simbicon()
-

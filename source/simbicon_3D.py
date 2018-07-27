@@ -46,8 +46,15 @@ def test_standardize_stance(env):
     env.reset(obs, random=0.0)
     env.render()
 
+def test(env):
+    env.reset(random=0.0)
+    env.sdf_loader.put_dot([0,0,0])
+    for i in range(30):
+        t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
+        env.simulate([t,0,0], render=1, put_dots=False)
+
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    test_standardize_stance(env)
+    test(env)
     embed()
