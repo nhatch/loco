@@ -48,14 +48,13 @@ class Simbicon(PDController):
         self.swing_idx = c.RIGHT_IDX
         self.stance_idx = c.LEFT_IDX
 
-        self.contact = state[0:3]
-        self.stance_heel = state[3:6]
-        self.target = state[6:9]
+        self.stance_heel = state[0:3]
+        self.target = state[3:6]
         # We track prev_target so that, in principle, we know all of the possible
         # places where the agent is in contact with the environment. However, the
         # algorithm does not use this (yet) except when resetting the environment
         # to a previously visited state.
-        self.prev_target = state[9:12]
+        self.prev_target = state[6:9]
         self.direction = UP
 
     def standardize_stance(self, state):
@@ -107,7 +106,7 @@ class Simbicon(PDController):
         self.FSM = gait
 
     def state(self):
-        return np.concatenate((self.contact, self.stance_heel, self.target, self.prev_target))
+        return np.concatenate((self.stance_heel, self.target, self.prev_target))
 
     def FSMstate(self):
         return self.FSM[self.direction]
@@ -162,12 +161,6 @@ class Simbicon(PDController):
 
     def change_stance(self, contacts, swing_heel):
         self.step_started = self.time()
-        if len(contacts) > 0:
-            # TODO which contact should we use?
-            self.contact = contacts[0].p
-        else:
-            # The swing foot missed the target
-            self.contact = -np.inf * np.ones(3)
         self.stance_heel = swing_heel
         self.direction = UP
         self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
@@ -195,7 +188,7 @@ class Simbicon(PDController):
         cd = state.position_balance_gain
         cv = state.velocity_balance_gain
         v = self.skel.dq[0]
-        d = self.skel.q[0] - self.contact[0]
+        d = self.skel.q[0] - self.stance_heel[0]
         balance_feedback = cd*d + cv*v
 
         target_swing_angle = state.swing_hip_world + balance_feedback

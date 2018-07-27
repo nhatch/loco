@@ -28,10 +28,16 @@ class Simbicon3D(Simbicon):
         cd = state.position_balance_gain_lat
         cv = state.velocity_balance_gain_lat
         v = self.skel.dq[2]
-        d = self.skel.q[2] - self.contact[2]
-        balance_feedback = cd*d + cv*v
+        d = self.skel.q[2] - self.stance_heel[2]
+        balance_feedback = -(cd*d + cv*v)
 
-        q[self.swing_idx+c.HIP_OFFSET_LAT] = balance_feedback
+        base = -1 if self.swing_idx == c.RIGHT_IDX else 1
+        # TODO can I get rid of this base separation by better initializing
+        # the stance_heel location? Now that we're in 3D, the lateral location
+        # is important, so just setting it to (0,0,0) doesn't work well.
+        base *= 0.3
+        angle = base + balance_feedback
+        q[self.swing_idx+c.HIP_OFFSET_LAT] = angle
 
         return q
 
