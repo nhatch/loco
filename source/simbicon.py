@@ -1,5 +1,5 @@
 
-from pd_control import PDController, KP_GAIN, KD_GAIN
+from pd_control import PDController
 import numpy as np
 from IPython import embed
 from inverse_kinematics import InverseKinematics
@@ -226,7 +226,7 @@ class Simbicon(PDController):
         # Make modifications to control torso pitch
         torso_actual = self.skel.q[c.THETA_IDX]
         torso_speed = self.skel.dq[c.THETA_IDX]
-        torso_torque = - KP_GAIN * (torso_actual - state.torso_world) - KD_GAIN * torso_speed
+        torso_torque = - c.KP_GAIN * (torso_actual - state.torso_world) - c.KD_GAIN * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
 

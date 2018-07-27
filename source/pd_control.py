@@ -1,9 +1,6 @@
 from IPython import embed
 import numpy as np
 
-KP_GAIN = 200.0
-KD_GAIN = 15.0
-
 control_bounds_2D = 1.5 * np.array([100, 100, 20, 100, 100, 20])
 control_bounds_3D = 1.5 * np.array([100]*15)
 
@@ -15,9 +12,10 @@ class PDController:
         self.inactive = False
         self.reset()
 
-        BRICK_DOF = self.env.consts().BRICK_DOF
-        self.Kp = np.array([0.0] * BRICK_DOF + [KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
-        self.Kd = np.array([0.0] * BRICK_DOF + [KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
+        c = self.env.consts()
+        BRICK_DOF = c.BRICK_DOF
+        self.Kp = np.array([0.0] * BRICK_DOF + [c.KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
+        self.Kd = np.array([0.0] * BRICK_DOF + [c.KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
         self.control_bounds = control_bounds_2D if BRICK_DOF == 3 else control_bounds_3D
 
     def compute(self):
