@@ -19,7 +19,7 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        return ([0.14, 0.5, 0.2, -0.2, 0.6, -1.2, 0.6, -0.05, 0,   0.5, 0.2],
+        return ([0.14, 0.5, 0.2, -0.2, 0.5, -1.1, 0.6, -0.05, 0,   0.5, 0.2],
                 [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0, 0.5, 0.2])
 
     def adjust_up_targets(self):
@@ -39,6 +39,8 @@ class Simbicon3D(Simbicon):
         cd = state.position_balance_gain_lat
         cv = state.velocity_balance_gain_lat
         v = self.skel.dq[2]
+        self.env.sdf_loader.put_dot(self.skel.q[:3], index=1)
+        self.env.sdf_loader.put_dot(self.stance_heel, index=2)
         d = self.skel.q[2] - self.stance_heel[2]
         balance_feedback = -(cd*d + cv*v)
 
@@ -46,7 +48,7 @@ class Simbicon3D(Simbicon):
         # TODO can I get rid of this base separation by better initializing
         # the stance_heel location? Now that we're in 3D, the lateral location
         # is important, so just setting it to (0,0,0) doesn't work well.
-        base *= 0.3
+        base *= 0.1
         angle = base + balance_feedback
         q[self.swing_idx+c.HIP_OFFSET_LAT] = angle
 

@@ -35,11 +35,16 @@ class Simbicon(PDController):
         self.ik = InverseKinematics(env)
         super().__init__(skel, env)
 
-    def reset(self, state=np.zeros(8)):
+    def reset(self, state=None):
         c = self.env.consts()
         self.step_started = self.time()
         self.swing_idx = c.RIGHT_IDX
         self.stance_idx = c.LEFT_IDX
+
+        if state is None:
+            state = np.zeros(9)
+            stance_heel = self.ik.forward_kine(self.stance_idx)
+            state[0:3] = stance_heel
 
         self.stance_heel = state[0:3]
         self.target = state[3:6]
