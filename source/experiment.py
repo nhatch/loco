@@ -76,7 +76,6 @@ if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simbicon import Simbicon
     env = SteppingStonesEnv()
-    env.set_controller(Simbicon)
     learn = LearnInverseDynamics(env)
     ex = Experiment("my_experiment", learn)
     ex.run_iters(6)

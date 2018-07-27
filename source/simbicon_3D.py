@@ -12,7 +12,7 @@ class Simbicon3D(Simbicon):
         # by -1 to obtain a mirrored pose.
         D = c.Q_DIM
         m = np.ones(D)
-        absolute_rotation_indices = [6,7,10,11,14,16,17,20]
+        absolute_rotation_indices = [2,4,5,6,7,10,11,14,16,17,20]
         m[absolute_rotation_indices] = -1
         state[0:D] *= m
         state[D:2*D] *= m
@@ -23,4 +23,19 @@ class Simbicon3D(Simbicon):
         if duration > 0.3:
             self.direction = DOWN
 
+def test_standardize_stance(env):
+    from time import sleep
+    env.reset(random=0.5)
+    c = env.controller
+    c.change_stance([], [0,0])
+    obs = env.current_observation()
+    env.render()
+    sleep(0.5)
+    env.reset(obs, random=0.0)
+    env.render()
 
+if __name__ == "__main__":
+    from simple_3D_env import Simple3DEnv
+    env = Simple3DEnv(Simbicon3D)
+    test_standardize_stance(env)
+    embed()

@@ -34,7 +34,7 @@ class InverseKinematics:
         offset[1] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
 
-    def test_forward_kine(self):
+    def test(self):
         c = self.env.consts()
         self.test_inv_kine()
         r_heel = self.forward_kine(c.RIGHT_IDX)
@@ -68,12 +68,11 @@ class InverseKinematics:
         q[base+c.KNEE_OFFSET] = knee
         return q
 
-    def test_inv_kine(self):
+    def test_inv_kine(self, planar=True):
         self.env.clear_skeletons()
-        self.env.reset(random=0.0)
         c = self.env.consts()
         agent = self.env.robot_skeleton
-        brick_pose, target = self.gen_brick_pose()
+        brick_pose, target = self.gen_brick_pose(planar)
         q = agent.q
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
@@ -129,5 +128,5 @@ if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv()
     ik = InverseKinematics(env, 0.5)
-    ik.test_forward_kine()
+    ik.test()
     embed()

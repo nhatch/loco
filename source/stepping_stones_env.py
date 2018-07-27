@@ -25,8 +25,9 @@ class StepResult(Enum):
     COMPLETE = 1
 
 class SteppingStonesEnv:
-    def __init__(self):
-        self.controller_class = Simbicon # default
+    def __init__(self, controller_class=Simbicon):
+        self.controller_class = controller_class
+        self.controller = None
         self.world = None
         self.viewer = None
         self.sdf_loader = SDFLoader()
@@ -42,6 +43,9 @@ class SteppingStonesEnv:
     def consts(self):
         return consts_2D
 
+    def wrap_state(self, raw_state):
+        return State(raw_state)
+
     def clear_skeletons(self):
         # pydart2 has not implemented any API to remove skeletons, so we need
         # to recreate the entire world.
@@ -51,11 +55,15 @@ class SteppingStonesEnv:
         self.world = world
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
-        self.robot_skeleton = walker
         for j in walker.joints:
             j.set_position_limit_enforced()
+        self.robot_skeleton = walker
 
-        self.set_controller()
+        if self.controller is None:
+            self.controller = self.controller_class(walker, self)
+        self.controller.skel = walker
+        walker.set_controller(self.controller)
+        self.controller.reset()
 
         if self.viewer is not None:
             self.viewer.sim = world
@@ -68,12 +76,6 @@ class SteppingStonesEnv:
             win.run()
             self.viewer = win
 
-    def set_controller(self, controller_class=None):
-        if controller_class is not None:
-            self.controller_class = controller_class
-        self.controller = self.controller_class(self.robot_skeleton, self)
-        self.robot_skeleton.set_controller(self.controller)
-
     def init_camera(self):
         tb = Trackball(theta=-45.0, phi = 0.0)
         tb.trans[2] = -5
@@ -83,7 +85,7 @@ class SteppingStonesEnv:
         print("Seed:", seed)
         np.random.seed(seed)
 
-    def reset(self, state=None, record_video=False, random=1.0):
+    def reset(self, state=None, record_video=False, random=0.005):
         self.world.reset()
         self.set_state(state, random)
         if self.video_recorder:
@@ -143,22 +145,23 @@ class SteppingStonesEnv:
     def current_observation(self):
         obs = self.robot_skeleton.x.copy()
         obs = self.controller.standardize_stance(obs)
-        return State(np.concatenate((obs, self.controller.state())))
+        return self.wrap_state(np.concatenate((obs, self.controller.state())))
 
     def log(self, string):
         print(string)
 
     def set_state(self, state, random):
         # If random = 0.0, no randomness will be added
+        perturbation = np.random.uniform(low=-random, high=random, size=2*self.robot_skeleton.ndofs)
         if state is None:
-            self.robot_skeleton.q += random * np.random.uniform(low=-.005, high=.005, size=self.robot_skeleton.ndofs)
+            self.robot_skeleton.x += perturbation
             # Start with some forward momentum (Simbicon has some trouble otherwise)
             dq = self.robot_skeleton.dq
             dq[0] += 0.8 + random * np.random.uniform(low=0.0, high=0.4)
             self.robot_skeleton.dq = dq
             self.controller.reset()
         else:
-            self.robot_skeleton.x = state.pose()
+            self.robot_skeleton.x = state.pose() + perturbation
             self.controller.reset(state.controller_state())
 
     def _render(self):
@@ -168,12 +171,15 @@ class SteppingStonesEnv:
             self.render()
 
     def render(self, mode='human', close=False):
-        self.viewer.scene.tb.trans[0] = -self.robot_skeleton.com()[0]*1
+        self.update_viewer(self.robot_skeleton.com())
         if mode == 'rgb_array':
             data = self.viewer.getFrame()
             return data
         elif mode == 'human':
             self.viewer.runSingleStep()
+
+    def update_viewer(self, com):
+        self.viewer.scene.tb.trans[0] = -com[0]
 
     def gui(self):
         pydart.gui.viewer.launch(self.world)

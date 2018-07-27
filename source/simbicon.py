@@ -226,7 +226,6 @@ class Simbicon(PDController):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    env.set_controller(Simbicon)
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)

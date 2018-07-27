@@ -18,7 +18,7 @@ class Runner:
         return score
 
     def reset(self):
-        self.env.reset(self.start_state)
+        self.env.reset(self.start_state, random=0.0)
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_long_step_start_state(env):
@@ -63,6 +63,5 @@ def learn_stair(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    env.set_controller(Simbicon)
     learn_long_step(env)
     #learn_stair(env)
