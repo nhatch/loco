@@ -2,6 +2,7 @@ import numpy as np
 from IPython import embed
 
 from simbicon import Simbicon, UP, DOWN
+from sdf_loader import RED, GREEN, BLUE
 
 class Simbicon3D(Simbicon):
     # TODO test this
@@ -39,8 +40,8 @@ class Simbicon3D(Simbicon):
         cd = state.position_balance_gain_lat
         cv = state.velocity_balance_gain_lat
         v = self.skel.dq[2]
-        self.env.sdf_loader.put_dot(self.skel.q[:3], index=1)
-        self.env.sdf_loader.put_dot(self.stance_heel, index=2)
+        self.env.sdf_loader.put_dot(self.skel.q[:3], color=BLUE, index=1)
+        self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
         d = self.skel.q[2] - self.stance_heel[2]
         balance_feedback = -(cd*d + cv*v)
 
@@ -70,7 +71,7 @@ def test(env):
     env.sdf_loader.put_dot([0,0,0])
     for i in range(30):
         t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=1, put_dots=False)
+        env.simulate([t,0,0], render=2, put_dots=False)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
