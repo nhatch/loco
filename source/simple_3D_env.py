@@ -9,24 +9,30 @@ import consts_3D
 from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
+THETA = -np.pi/6
+PHI = np.pi / 4
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
-        angle = np.pi/6
-        dist = com[0]
-        t1 = np.sin(angle)*dist
-        t2 = np.cos(angle)*dist + 5
-        self.viewer.scene.tb.trans[2] = -t2
-        self.viewer.scene.tb.trans[1] = t1
+        x0 = com[0]
+        # Transform the offset -[x0, 0, 0] into the camera coordinate frame.
+        # First, rotate by PHI around the Y axis.
+        x1 = x0 * np.cos(PHI)
+        z1 = x0 * np.sin(PHI)
+        # Then, rotate by THETA around the new X axis.
+        x2 = x1
+        y2 = z1 * np.sin(THETA)
+        z2 = z1 * np.cos(THETA)
+        # Move z_2 back by 5 so the camera has some distance from the agent.
+        trans = [-x2, -y2, -(z2 + 5)]
+        self.viewer.scene.tb.trans[0:3] = trans
 
     def init_camera(self):
         # The default Trackball parameters rotate phi around the z axis
         # rather than the y axis. I modified this code from the
         # Trackball.get_orientation method.
-        theta = -np.pi/6
-        phi = np.pi / 2
-        xrot = np.array([np.sin(theta/2), 0, 0, np.cos(theta/2)])
-        yrot = np.array([0, np.sin(phi/2), 0, np.cos(phi/2)])
+        xrot = np.array([np.sin(THETA/2), 0, 0, np.cos(THETA/2)])
+        yrot = np.array([0, np.sin(PHI/2), 0, np.cos(PHI/2)])
         rot = _q_add(xrot, yrot)
 
         tb = Trackball(rot=rot, trans=[0,0,-5])
