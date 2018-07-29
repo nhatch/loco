@@ -11,7 +11,7 @@ from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/6
-PHI = 1.5* np.pi / 4
+PHI = np.pi / 2
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
@@ -46,7 +46,7 @@ class Simple3DEnv(SteppingStonesEnv):
         self.set_rot(tb)
         # Overwrite the drag_to method so we only change phi, not theta.
         def drag_to(x,y,dx,dy):
-            self.phi += dx/80
+            self.phi += -dx/80
             self.set_rot(self.viewer.scene.tb)
         tb.drag_to = drag_to
         return tb

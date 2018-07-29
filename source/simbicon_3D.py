@@ -59,7 +59,7 @@ def test_standardize_stance(env):
     from time import sleep
     env.reset(random=0.5)
     c = env.controller
-    c.change_stance([], [0,0])
+    c.change_stance([], [0,0,0])
     obs = env.current_observation()
     env.render()
     sleep(0.5)
