@@ -53,7 +53,16 @@ class Simbicon3D(Simbicon):
         angle = base + balance_feedback
         q[self.swing_idx+c.HIP_OFFSET_LAT] = angle
 
+        self.update_doppelganger(q)
         return q
+
+    def update_doppelganger(self, q):
+        c = self.env.consts()
+        q = q.copy()
+        q[:c.BRICK_DOF] = self.env.robot_skeleton.q[:c.BRICK_DOF]
+        q[2] -= 0.5
+        self.env.doppelganger.q = q
+        self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
 def test_standardize_stance(env):
     from time import sleep
@@ -67,11 +76,13 @@ def test_standardize_stance(env):
     env.render()
 
 def test(env):
+    seed = np.random.randint(100000)
+    env.seed(seed)
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
-    for i in range(30):
+    for i in range(8):
         t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=2, put_dots=False)
+        env.simulate([t,0,0], render=1, put_dots=False)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv

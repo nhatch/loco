@@ -11,7 +11,7 @@ from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/6
-PHI = np.pi / 2
+PHI = np.pi / 3
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
@@ -62,9 +62,10 @@ class Simple3DEnv(SteppingStonesEnv):
         return State3D(raw_state)
 
     def load_world(self):
-        skel_file = "skel/walker3d_waist.skel"
+        skel_file = "skel/double_walker3d_waist.skel"
         world = pydart.World(SIMULATION_RATE, skel_file)
-        skel = world.skeletons[-1]
+        skel = world.skeletons[1]
+        self.doppelganger = world.skeletons[2]
         skel.set_self_collision_check(True)
         return world
 
