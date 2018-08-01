@@ -23,3 +23,5 @@ FOOT_RADIUS = 0.06
 
 KP_GAIN = 200.0
 KD_GAIN = 15.0
+
+ALLOWED_COLLISION_IDS = [5,8] # The two feet

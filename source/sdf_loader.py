@@ -52,7 +52,7 @@ class SDFLoader:
 
     def put_grounds(self, targets, runway_length=None):
         for i in range(len(targets)):
-            x, y = targets[i]
+            x, y, z = targets[i]
             length = self.ground_length
             if i == 0 and runway_length is not None:
                 length = runway_length

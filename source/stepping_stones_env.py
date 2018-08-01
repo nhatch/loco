@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 import random_search
 
-from simbicon import Simbicon, SIMBICON_ACTION_SIZE
+from simbicon import Simbicon
 from pd_control import PDController
 from sdf_loader import SDFLoader, RED, GREEN, BLUE
 from video_recorder import video_recorder

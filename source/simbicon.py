@@ -27,7 +27,7 @@ class FSMState:
 UP = 'UP'
 DOWN = 'DOWN'
 
-SIMBICON_ACTION_SIZE = 18
+SIMBICON_ACTION_SIZE = 22
 
 class Simbicon(PDController):
 
@@ -80,8 +80,8 @@ class Simbicon(PDController):
     def set_gait_raw(self, target, raw_gait=None):
         up, down = self.base_gait()
         if raw_gait is not None:
-            up += raw_gait[0:9]
-            down += raw_gait[9:18]
+            up += raw_gait[:len(up)]
+            down += raw_gait[len(up):]
         gait = {UP: FSMState(up), DOWN: FSMState(down)}
         self.set_gait(gait)
 
@@ -122,6 +122,13 @@ class Simbicon(PDController):
         return self.env.world.time()
 
     def crashed(self, swing_heel):
+        c = self.env.consts()
+        for contact in self.env.world.collision_result.contacts:
+            if not contact.bodynode1.id in c.ALLOWED_COLLISION_IDS:
+                return True
+            if contact.skel_id1 == contact.skel_id2:
+                # The robot crashed into itself
+                return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
         # However, setting the tolerance too large (larger than .04 or so) makes certain crashes
@@ -138,7 +145,7 @@ class Simbicon(PDController):
         # start and end targets.
         below_line = np.dot(swing_heel - self.starting_swing_heel, self.unit_normal) < tol
         if below_lower or (below_line and below_upper):
-            return False, True
+            return True
 
     # Returns True if either the swing foot has made contact, or if it seems impossible
     # that the swing foot will make contact in the future.
@@ -229,7 +236,6 @@ class Simbicon(PDController):
         torso_torque = - c.KP_GAIN * (torso_actual - state.torso_world) - c.KD_GAIN * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
         return control
-
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv

@@ -4,14 +4,13 @@ import pickle
 import time
 import gym
 
-controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0,
-                        1, 0, 0, 1, 0, 0, 0, 1, 1]
+controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+                        1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0]
 
 class RandomSearch:
     def __init__(self, env, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
-        action_dim = env.action_space.shape[0]
-        self.w_policy = np.zeros(action_dim)
+        self.w_policy = np.zeros(len(controllable_indices))
 
         self.n_dirs = n_dirs
         self.eps = eps
