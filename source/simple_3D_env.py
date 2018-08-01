@@ -66,6 +66,7 @@ class Simple3DEnv(SteppingStonesEnv):
         world = pydart.World(SIMULATION_RATE, skel_file)
         skel = world.skeletons[1]
         self.doppelganger = world.skeletons[2]
+        assert(self.doppelganger.name == "doppelganger")
         skel.set_self_collision_check(True)
         return world
 

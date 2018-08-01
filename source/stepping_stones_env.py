@@ -55,6 +55,7 @@ class SteppingStonesEnv:
         self.world = world
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
+        assert(walker.name == "walker")
         for j in walker.joints:
             j.set_position_limit_enforced()
         self.robot_skeleton = walker
