@@ -74,7 +74,7 @@ class Simbicon(PDController):
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
-        return ([0.14, 0, 0.2, 0.0, 0, 0, 0, 0, 0, 0.5, 0.2],
+        return ([0.14, 0, 0.2, 0.0, 0.4, -1.1, 0, -0.05, 0.2, 0.5, 0.2],
                 [0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2, 0.5, 0.2])
 
     def set_gait_raw(self, target, raw_gait=None):
@@ -104,10 +104,10 @@ class Simbicon(PDController):
         # fiddling around manually.
         step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
         gait = self.FSM
-        gait[UP].stance_knee_relative  += -0.05 - step_dist_diff * 0.2
-        gait[UP].stance_ankle_relative += 0.2 + step_dist_diff * 0.4
-        gait[UP].swing_hip_world       += 0.4 + step_dist_diff * 0.4
-        gait[UP].swing_knee_relative   += -1.1 - step_dist_diff * 0.8
+        gait[UP].stance_knee_relative  += - step_dist_diff * 0.2
+        gait[UP].stance_ankle_relative += + step_dist_diff * 0.4
+        gait[UP].swing_hip_world       += + step_dist_diff * 0.4
+        gait[UP].swing_knee_relative   += - step_dist_diff * 0.8
 
     def set_gait(self, gait):
         self.FSM = gait
@@ -243,7 +243,7 @@ if __name__ == '__main__':
     #env.seed(133712)
     #env.seed(42)
     env.reset(random=0.0)
-    env.sdf_loader.put_grounds([[0,0]], runway_length=20)
+    env.sdf_loader.put_grounds([[0,0,0]], runway_length=20)
     for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.

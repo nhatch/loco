@@ -62,7 +62,7 @@ class LearnInverseDynamics:
         self.env.log("Collecting initial starting states")
         start_states = []
         starter = 0.3
-        self.env.sdf_loader.put_grounds([[0,0]], runway_length=100)
+        self.env.sdf_loader.put_grounds([[0,0,0]], runway_length=100)
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
