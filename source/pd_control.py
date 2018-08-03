@@ -16,6 +16,10 @@ class PDController:
         BRICK_DOF = c.BRICK_DOF
         self.Kp = np.array([0.0] * BRICK_DOF + [c.KP_GAIN] * (self.skel.ndofs - BRICK_DOF))
         self.Kd = np.array([0.0] * BRICK_DOF + [c.KD_GAIN] * (self.skel.ndofs - BRICK_DOF))
+        #if c.BRICK_DOF == 6:
+        #    # I think these "muscles" need to be stronger.
+        #    self.Kp[c.RIGHT_IDX + c.HIP_OFFSET_LAT] *= 4
+        #    self.Kp[c.LEFT_IDX + c.HIP_OFFSET_LAT] *= 4
         self.control_bounds = control_bounds_2D if BRICK_DOF == 3 else control_bounds_3D
 
     def compute(self):

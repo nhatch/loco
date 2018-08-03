@@ -29,7 +29,7 @@ class LearnInverseDynamics:
         self.n_action = env.action_space.shape[0]
         # The actual target is sort of part of the state, hence the *2.
         self.n_dynamic = 26
-        # Use a linear policy for now
+        # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
         self.model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
@@ -115,6 +115,7 @@ class LearnInverseDynamics:
         self.train_targets.append(action)
 
     def center_state(self, state, target, achieved_target):
+        # TODO this needs to be updated for 2D -> 3D
         centered_state = np.zeros(self.n_dynamic)
 
         centered_state[ 0:18] = state.pose()
@@ -137,7 +138,6 @@ class LearnInverseDynamics:
         return centered_state
 
     def train_inverse_dynamics(self):
-        # TODO try some model more complicated than linear?
         X = np.array(self.train_states)
         y = np.array(self.train_targets)
         self.X_mean = X.mean(0)

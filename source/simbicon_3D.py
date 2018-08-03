@@ -20,8 +20,8 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        return ([0.14, 0.5, 0.2, -0.2, 0.5, -1.1, 0.6, -0.05, 0,   0.5, 0.2],
-                [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0, 0.5, 0.2])
+        return ([0.14, 0.5, 0.2, -0.2,  0.5, -1.1,   0.6, -0.05,   0, 0.5, 0.2],
+                [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
 
     def adjust_up_targets(self):
         pass
@@ -53,14 +53,22 @@ class Simbicon3D(Simbicon):
         angle = base + balance_feedback
         q[self.swing_idx+c.HIP_OFFSET_LAT] = angle
 
+        #actual_twist = self.skel.q[4] + self.skel.q[7]
+        # TODO why does the robot rotate so much on the third step of test()?
+        # Try putting dots on all the contact points -- does the robot lose contact
+        # with the stance foot (so it's a conservation of angular momentum thing)?
+        #q[self.stance_idx+c.HIP_OFFSET_TWIST] = actual_twist/2
+        #q[self.swing_idx+c.HIP_OFFSET_TWIST] = -actual_twist/2
+
         self.update_doppelganger(q)
         return q
 
     def update_doppelganger(self, q):
         c = self.env.consts()
         q = q.copy()
-        q[:c.BRICK_DOF] = self.env.robot_skeleton.q[:c.BRICK_DOF]
+        #q[:c.BRICK_DOF] = self.env.robot_skeleton.q[:c.BRICK_DOF]
         q[2] -= 0.5
+        q[0] = self.env.robot_skeleton.q[0]
         self.env.doppelganger.q = q
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
@@ -80,8 +88,8 @@ def test(env):
     env.seed(seed)
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
-    for i in range(8):
-        t = 0.3 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
+    for i in range(16):
+        t = 0.1 + 0.2*i# + np.random.uniform(low=-0.2, high=0.2)
         env.simulate([t,0,0], render=1, put_dots=False)
 
 if __name__ == "__main__":
