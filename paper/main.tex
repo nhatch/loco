@@ -69,346 +69,264 @@
 
 \maketitle
 
-Definitions:
-\begin{itemize}
-  \item HLC: high-level controller
-  \item LLC: low-level contoller
-  \item HRL: hierarchical reinforcement learning
-\end{itemize}
-
 \section{Introduction}
 
-Locomotion is a difficult, underactuated control problem. \emph{Biped} locomotion is more difficult because the support polygon is small and the center of mass is relatively high. Biped locomotion across \emph{rough terrain} is more difficult still, because the variability in the surface normal makes the dynamics harder to model.
+Locomotion is a difficult, underactuated control problem.
+\emph{Biped} locomotion is more difficult because the support polygon is small and the center of mass is relatively high.
+Biped locomotion across \emph{rough terrain} is more difficult still, because the variability in the surface normal makes the dynamics harder to model.
 
-One way to handle these challenges is with detailed models and extensive optimization. For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}. Such approaches tend to be reliable but slow. They are physically slow because accurate modeling requires relatively static walking, and also because the extensive optimization procedures are computationally slow. For the DRC, reliability was more important than speed, but eventually it would be good to have robots that can traverse rough terrain using faster, dynamic gaits. \footnote{\nhatch{It might also be worth mentioning that developing accurate models takes a lot of time and expertise, and even then, physics-based models don't account for many important physical phenomena.}}
+One way to handle these challenges is with detailed models and extensive optimization.
+For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}.
+Such approaches tend to be reliable but slow.
+They are physically slow because accurate modeling requires relatively static walking, and also because the optimization procedures are computationally slow.
+For the DRC, reliability was more important than speed, but eventually we want to have robots that can traverse rough terrain using faster, dynamic gaits.
 
-Recent advances in reinforcement learning (RL) suggest an alternative approach. Deep RL is a popular technique to learn highly dynamic motions for humanoids \citep{peng2018deepmimic, heess2017emergence}. The resulting policies are both computationally and physically fast.
+Recent advances in reinforcement learning (RL) suggest an alternative approach.
+Deep RL is a popular technique to learn highly dynamic motions for humanoids \citep{peng2018deepmimic, heess2017emergence}.
+The resulting policies are both computationally and physically fast.
+However, their effectiveness on rough terrain is uncertain.
 
-Building on this work, we approach dynamic biped locomotion over rough terrain using a combination of curriculum learning, imitation learning, and reinforcement learning. The controller learns new skills using RL, which are generalized to a fast policy using imitation learning. Use of a curriculum allows the controller to build up from flat ground to a challenging combination of stepping stones at various heights, distances, and orientations. In contrast to prior work in RL, our controller \emph{plans its footstep locations}, which allows it to handle larger and more frequent obstacles. In contrast to prior work in footstep planning, our controller learns a dynamic policy that requires no optimization at execution time.
+Building on this work, we approach dynamic biped locomotion on rough terrain using a combination of curriculum learning, imitation learning, and reinforcement learning, which we call CIRL. \nhatch{Just a working title.}
+The controller learns new skills using RL, which are generalized to a fast policy using imitation learning.
+Use of a curriculum allows the controller to build up from flat ground to a challenging combination of stepping stones at various heights, distances, and orientations.
+In contrast to prior work in RL, our controller \emph{plans its footstep locations}, which allows it to handle larger and more frequent obstacles.
+In contrast to prior work in footstep planning, our controller learns a dynamic policy that requires no optimization at execution time.
 
-We demonstrate the real-world potential of this algorithm by running it on a simulated Darwin humanoid robot. \nhatch{Add a paragraph on sim-to-real.}
-
-\nhatch{Here's the order of steps that we would like to take to make sure we can actually achieve that:
-
-1. With the simple 2D walker, be able to navigate the challenging stepping stones environment (steps at various heights, distances, and orientations)
-2. Move to 3D, but still with a simplified robot model.
-3. Switch to the Darwin model.}
+We evaluate this algorithm on a simulated Darwin humanoid robot.
+Of course, applying the resulting policy to a real-world system requires overcoming the ``reality gap''.
+Nonetheless, recent advances in sim-to-real techniques \citep{tan2016simulation, tan2018sim} make us optimistic that CIRL will be a valuable technique in robotic biped locomotion.
 
 \section{Related work}
 
 \subsection{Step planning}
 
-As discussed in the introduction, there are many papers about locomotion on physical robots that use detailed models and a lot of optimization. These approaches tend to use a hierarchy of planning steps to reduce the amount of computation. First, they generate a plan for footstep locations using search, like A*. Based on the footstep plan, they generate a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum (SLIP). Then, they use inverse kinematics to plan trajectories for end-effectors. Finally, these trajectories are optimized using the full dynamics model to account for details like obstacles. Examples of this include several of the DARPA Robotics Challenge teams, as well as the DARPA Learning Locomotion Challenge teams. \nhatch{Put some examples from other DRC teams as well.} Further examples of this are the zero-moment point (ZMP) approaches from Honda / ASIMO. A similar approach (though not used on a physical robot) is \cite{mordatch2010robust}. These approaches tend to be reliable but slow, because static walking is easier to model and optimization takes a lot of computation time. They also require a lot of domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
+Many approaches to locomotion on physical robots use optimization-based planning with detailed models.
+These approaches tend to generate \emph{hierarchical} plans in order to reduce computational requirements.
+First, they choose footstep locations using search, like A*.
+Based on the footstep plan, they generate a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum \citep{mordatch2010robust} or contact wrench cone \citep{dai2016planning}.
+Then they use inverse kinematics to plan trajectories for end-effectors \citep{zucker2010optimization}.
+Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details \citep{ratliff2009chomp}.
 
-\nhatch{Add some discussion of why reliability isn't as important for our current project.}
+These approaches tend to be reliable but slow \nhatch{how slow? find an example / citation}, because static walking is easier to model and optimization takes a lot of computation time.
+They also require a lot of domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
+For now, they are the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
+However, we are interested in exploring alternative possibilities that can exploit the dynamics of the system to achieve faster and more energy-efficient gaits.
 
-There are a few prior works that have used reinforcement learning to do step planning. \cite{peng2017deeploco} uses a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller executes those plans. However, the path that the agent follows is perfectly flat, and the target step locations are rarely actually achieved. On rough terrain, such inaccurate step planning would probably fail. \cite{karpathy2012curriculum} uses curriculum learning to collect a set of states and actions together with the step distance that they achieve. However, the final policy is based on nearest-neighbor search among this set of collected experience. With a higher-dimensional, more complicated model, this approach would probably fail.
+\nhatch{I think Honda does a lot with dynamic gaits, but I don't really understand how it works. I need to find and read some papers. To what extent can they plan step locations and handle rough terrain?}
 
-\subsection{Rough terrain}
+There are a few prior works that use reinforcement learning to do step planning for simulated systems.
+\cite{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
+However, the target step locations are unrealistic and rarely actually achieved.
+The path that the agent follows is perfectly flat; on rough terrain, such inaccurate step planning would probably fail.
+\cite{karpathy2012curriculum} use curriculum learning for a simple planar biped to collect a set of (state, action, resulting step distance) tuples.
+However, the final policy is based on nearest-neighbor search among this set of collected experience.
+It would be challenging to apply this approach to a higher-dimensional, more complicated model.
 
-Most of the prior work on DRL for biped locomotion over rough terrain does not explicitly plan individual footstep locations. Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly and are robust to small missteps, but would fail in situations with dense or large obstacles where small missteps can be catastrophic.
+\subsection{Deep reinforcement learning}
 
-\subsection{Policy representations and learning algorithms(?)}
+Most of the prior work on deep RL for biped locomotion over rough terrain does not explicitly plan individual footstep locations.
+Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
+However, they have not been proven to work in situations with dense or large obstacles where small missteps can be catastrophic.
+Such environments require accurate predictive planning at the level of individual contacts.
 
-This is the prior work on which our learning algorithm is most directly based:
+\section{Our approach}
 
-- Recht, random search instead of fancy RL algorithms
-- SIMBICON, to inform our choice of action parametrization
+In contrast to previous work, our approach requires no optimization during policy execution, but it is still able to land the swing heel at a prespecified target location.
+For now, we assume that perception is solved\footnote{In the experiments, we evaluate the robustness of our algorithm with respect to errors in the perception system.} and that the step plan (in the form of a list of target step locations) is given by an oracle.
+The problem is to choose motor torques to accomplish the given step plan.
 
 
-%Learning algorithm:
-%- use ~20 parameters for each *entire step* (based on SIMBICON)
-%- collect a training set of diverse actions/skills using random search
-%- generalize by learning ``inverse dynamics'' (really just a policy where the observation includes the next step target)
-%- perhaps repeat (curriculum learning)
+Our algorithm is called CIRL, which stands for ``curriculum, imitation, and reinforcement learning''.
+It consists of four components: a basic parametrized walking controller, a higher-level controller that outputs parameters for the basic controller, a data collection scheme for single-step targets according to a gradually more difficult curriculum, and an optimization algorithm to solve those single-step targets.
+\nhatch{This system is rather complicated, and probably some of these components are unnecessary or unwise to include in the current paper. A major focus of work in August will be ablation studies to determine which of these ideas are most important.}
 
-\section{Introduction}
+\subsection{Basic walking controller}
 
-Locomotion is hard because the changing contacts make the dynamics difficult to model.
-Recent deep reinforcement learning approaches try to learn this model implicitly via the policy network, which has trouble learning such complicated models, possibly due to the limitations of current optimization methods (like policy gradient).
-Such approaches fail in environments that require predictive planning at the level of individual contacts, such as running across irregular terrain, where small miscalculations have disproportionally large effects.
+In order to simplify the learning problem as much as possible, we engineer and manually tune a walking controller that, with no learning, can walk forward and to some extent control the length of its steps.
+While this controller could in principle be learned using RL techniques, our approach has several advantages.
+First, the basic walking gait looks fairly natural, in contrast to most results from deep RL.
+Second, it has an interpretable set of parameters which provide a convenient interface for another, higher-level controller.
+Third, because the basic controller already produces reasonable results, the higher-level controller can learn a residual rather than an entire policy.
+This allows us to use simpler, more sample-efficient function approximators, and it reduces the computational complexity of the learning algorithm.
 
-We aim to simplify the learning problem by imposing prior structure on the policy: we split it into a two-level hierarchy.
-The higher level breaks the plan into smaller chunks, which are easier to achieve.
-The lower level must then execute these smaller chunks.
-Each chunk is a single footstep.
-This choice simplifies the dynamics that the lower level needs to model, because each step involves no (or very few) changes of contact.
-It also simplifies the upper level learning problem, since the controller does not need to handle details of torque, other than knowing which step plans can actually be achieved.
+Our basic controller is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
+SIMBICON uses a finite state machine (FSM) with two target poses: an UP state that ends after 0.3 seconds, and a DOWN state that ends on swing foot contact.
+During each state, proportional derivative (PD) controllers attempt to reach the corresponding target pose.
+Balance feedback is achieved by adjusting the swing hip angles at each time step based on the distance and velocity of the agent's CoM relative to its stance foot contact location.
+After hand-tuning the balance feedback gains and the joint angles for each state, this simple control scheme can walk forward and maintain its balance.
+
+We make several novel modifications to SIMBICON in order to control its step length:
+\nhatch{Might want to put some of this in the appendix instead. Also, using some equations might make the writing more precise.}
+\begin{enumerate}
+  \item At the beginning of each step, set the swing hip, swing knee, stance knee, and stance ankle angles of the UP state as a linear function of the distance to the next step target.
+    The coefficients of this function were manually tuned such that the resulting step distance approximately matches the target distance.
+
+  \item End the UP state only when both the swing heel and the CoM are within a certain distance of the target step location.
+    This distance is proportional to the CoM speed, where the proportionality constant (gain) is an additional parameter.
+    (If the swing heel hits the ground early, the step immediately ends.)
+    Getting the swing heel close enough to the target is important to ensure that the DOWN state accurately hits the target.
+    Getting the CoM close enough is important to ensure that the heel strike will propel the robot forward rather than backward.
+    (This is especially important for long steps.)
+
+  \item Automatically set the swing leg pose in the DOWN state using inverse kinematics (IK).
+    Again, adjust the target swing heel location for the purposes of IK from the true target location based on the CoM speed and an additional gain parameter.
+
+  \item Control the swing ankle angle in world space, rather than relative to the shin.
+    This does not have much effect on the step distance, but it helps make the dynamics of each impact more predictable, which is important for accurate function approximation.
+    \nhatch{Again, all of this will have to be validated with ablations\dots.}
+\end{enumerate}
+
+%This choice simplifies the dynamics that the lower level needs to model, because each step involves no (or very few) changes of contact.
+
+\subsection{Higher-level controller}
+
+The basic controller can walk and balance on flat ground, and to some extent control its step length.
+However, it cannot handle steps and inclines, and when the step distance is irregular, it cannot hit the targets with high accuracy.
+\nhatch{Get some numbers about how big the steps/inclines have to be before problems happen, how bad the accuracy is, etc.}
+Hence, we train a higher-level controller (HLC) on top of the basic controller.
+It is queried once at the beginning of each step.
+It has the same input (``state'') as the basic controller: joint angles and velocities, stance heel location, and target step location (46 dimensions in 3D, 22 dimensions in 2D).
+\nhatch{The basic controller also observes the robot's center of mass. Not sure where to mention this, or whether it will actually be necessary in the final version.}
+Its output (``action'') is a vector of parameters that modify the behavior of the basic controller during the subsequent step (22 dimensions in 3D, 18 dimensions in 2D; see Table \ref{table:params}).
+These parameters are the same parameters that were hand-tuned during the initial design of the basic controller; the HLC output corresponds to a residual on top of the hand-tuned values.
+We exploit bilateral symmetry by mirroring the joint states if necessary so that the swing foot is always the right foot.
+\nhatch{For 3D we'll have to mirror the targets as well; I don't think I've implemented this yet.}
+
+\begin{table}
+  \caption{Parameters of the basic walking controller for the UP phase.
+  The DOWN phase has the same set of eleven parameters (for 22 parameters total) except that \texttt{ik\_gain} now refers to the adjustment of the swing heel target used for IK.
+  \nhatch{For many of these parameters, it is reasonable to set the same values for both the UP and DOWN phases. We might be able to reduce problem dimensionality by removing the mostly-redundant parameters.}}
+  \label{table:params}
+  \hrule
+  \begin{tabular}{ll}
+    \texttt{torso\_world} & Torso angle in world reference frame. \\
+    \texttt{swing\_hip\_world} & Swing hip angle (sagittal plane) in world frame. \\
+    \texttt{swing\_knee\_relative} & Swing knee angle relative to thigh.\\
+    \texttt{swing\_ankle\_relative} & Swing ankle angle relative to thigh. \nhatch{Actually this is in world frame too?}\\
+    \texttt{stance\_knee\_relative} & Stance knee angle relative to thigh.\\
+    \texttt{stance\_ankle\_relative} & Stance ankle angle relative to shin.\\
+    \texttt{position\_balance\_gain} & Gain for sagittal swing hip angle based on position.\\
+    \texttt{position\_balance\_gain\_lat} & Same as above for the coronal angle.\\
+    \texttt{velocity\_balance\_gain} & Gain for sagittal swing hip angle based on velocity.\\
+    \texttt{velocity\_balance\_gain\_lat} & Same as above for the coronal angle.\\
+    \texttt{ik\_gain} & Gain for distance threshold that triggers the end of the UP phase.
+  \end{tabular}
+  \hrule
+\end{table}
+
+
+We implement the HLC by training a parametrized function approximator on a set of collected experience.
+This dataset is a set of (state, action, actual achieved footstep location) tuples, collected as detailed in Sec. \ref{sec:curriculum} and \ref{sec:optimization}.
+Note however that we want the HLC to output an action.
+Hence, for the regression task, the input is the pair (state, actual achieved footstep location) and the output is the action.
+Note that the input includes two ``target inputs'': the target swing heelstrike location, which was originally used when collecting the sample, and the actual swing heelstrike location, which was where the heel actually hit the ground.
+When using the HLC to prescribe actions given a new state and target, we use the same target for both of the HLC's ``target inputs''.
+\nhatch{Now that I write this out, that seems pretty unclean. I should probably make the ``target used when collecting the sample'' part of the \emph{action} instead. Unfortunately, that puts us in a situation where the HLC is setting ``targets'' for the basic controller that are not actually the targets that it wants the basic controller to hit. But I guess it means we could maybe remove the \texttt{ik\_gain} parameters.}
+
+For this project, we chose a linear hypothesis class for the HLC.
+\nhatch{Soon, I want to experiment with more complicated hypothesis classes.}
+Because our dataset is relatively small, we use ridge regression to avoid overfitting.
+Our dataset also tends to contain outliers, because the basic controller can behave unpredictably in some situations (such as when the agent stubs its toe).
+We handle this by using RANSAC \citep{fischler1981random} to discard outliers at training time.
+
+\subsection{Curriculum} \label{sec:curriculum}
+
+We collect the dataset in an iterative, aggregate way, similar to DAgger \citep{ross2011reduction}.
+First, we collect an initial dataset by running the basic controller for several steps on flat ground with a variety of different target step lengths.
+On subsequent rounds of data collection, we proceed as follows:
+\nhatch{Format this as an algorithm.}
+\begin{enumerate}
+  \item Choose $N$ starting states from the existing dataset.
+  \item For each starting state, choose $M$ target locations for the next step.
+  \item For each target location, find an action to achieve that target using random optimization (see Sec. \ref{sec:optimization}).
+  \item For each of $P$ Gaussian perturbations of the optimal action from step 3, run the simulation and add the sample to the dataset.
+\end{enumerate}
+For our experiments, we used $N=128$, $M=1$, $P=4$.
+The optimization in step 3 is rather expensive, hence the relatively small number of samples $NMP$ collected at each round.
+\nhatch{I'm not sure that the Gaussian perturbations are actually helpful. If they are, it might make sense to perturb the starting state as well, not just the action.}
+
+Note that the starting states for each round are chosen from the set of ending states collected during all previous rounds.
+Hence, the input distribution of the dataset is indeed representative of the distribution of states likely to be seen by the HLC at test time.
+
+Finally, we incorporate an element of curriculum learning into the data collection process.
+At certain manually specified points in the process, we change the distribution of targets used in step 2 and/or change some details of the simulation.
+For instance, at first, the targets are all chosen to lie in the ground plane, and the variance in their distance from one another is relatively small.
+Once the HLC reaches a desired level of accuracy, the variance is increased.
+After that, we change the environment such that the ground is no longer a single flat sheet, but rather a series of stepping stones with gaps in between them.
+Later still, we introduce some vertical variation into the target step locations.\footnote{The stepping stones are shifted up or down to match the target location.}.
+\nhatch{And so forth. I haven't systematically studied this yet to see how difficult we can get.}
+
+We believe \nhatch{and test experimentally} that this curriculum of gradually increasing difficulty is key to good performance.
+In our algorithm, the initial point of the optimization problem in step 3 is the action suggested by the current HLC.
+The problem is nonconvex, so this initialization point matters a lot.
+With better initialization, the saddle point is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
+Hence, it makes sense to scale the difficulty of the optimization problem roughly proportionally to the current capabilities of the HLC.
+
+\subsection{Single-step optimization} \label{sec:optimization}
+
+We now give more details about the optimization problem in step 3 of Sec. \ref{sec:curriculum}.
+\nhatch{Spoiler: It is not actually solved with reinforcement learning, so I should probably remove ``reinforcement learning'' from the title of the algorithm.}
+The objective of the problem is the Euclidean distance between the target and achieved step locations.
+We define the achieved step location as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
+The optimization variables are the parameters of the basic controller (see Table \ref{table:params}).
+There are no constraints.
+\nhatch{Actually, we constrain most of the parameters to be zero. In my experiments so far, only seven of the 22 parameters are allowed to vary. It might be possible to gradually allow more parameters to be controlled according to the requirements of the curriculum.}
+
+Because it would be difficult to calculate gradients for this objective, we use the zero-order optimization algorithm described in \cite{mania2018simple}.
+At each iteration, we estimate gradients as a weighted average of $Q = 4$ random directions, with the weight for each direction chosen as the central difference of the objective value along that direction.
+Hence, we perform $2Q$ single-step rollouts for each update of the optimization variables.
+We end the optimization once the accuracy reaches two centimeters, or once a certain maximum number of iterations (in our case, ten) is reached.
 
 \section{Experiments}
 
-Our experiments are designed to test two hypotheses.
+We perform experiments with a series of three robot models of increasing realism: (1) a simple planar biped, (2) a simple 3D biped, and (3) a model of the Darwin robot.
+All experiments are performed using the DART simulator at a simulation rate of 2000 Hz.
 
-Our primary hypothesis is that this hierarchical architecture can navigate a variety of complicated locomotion environments, learning faster and achieving better results than other reinforcement learning methods.
-These locomotion environments include flat ground, inclines, stairs, random inclines, stepping stones, hurdles, and combinations of the above.
+\nhatch{This section is still pretty rough; sorry.}
+Our experiments are designed to test two hypotheses.
+Our primary hypothesis is that this combination of imitation and curriculum learning can learn to navigate a variety of complicated locomotion environments, learning faster and achieving better results than other reinforcement learning methods.
+
+We collect both quantitative and qualitative metrics to measure ``achieving better results''.
+Quantitatively, we evaluate the robot by presenting it with a series of small stepping stones placed at a random $(x,y,z)$ offsets from each other.
+\nhatch{It would be nice to be able to place them at different rotations/orientations as well.}
+We score the robot based on a combination of the number of successful steps before crashing and the accuracy of foot placement at each step.
+We collect this score for a number of different distributions of the $(x,y,z)$ offsets (of increasing difficulty), and find \nhatch{hopefully} that our model achieves better performance than deep RL methods on most of these environments.
+\nhatch{We will have to think carefully about how to make this a fair comparison, since most deep RL methods don't actually care about foot placement. For one thing, the action space for the deep RL methods will also have to be ``parameter settings for the basic walking controller''.}
+We also consider the robustness of the model to inaccurate perception by perturbing the target step locations with respect to the actual location of the stepping stones.
+\nhatch{We should probably also evaluate robustness to external force perturbations etc., but I'm nervous that that won't end well for us. We don't really have good feedback mechanisms \emph{during} each footstep.}
+Qualitatively, we document motion quality by means of supplementary videos, which we encourage the reader to consult.
 
 Our two metrics for ``learning faster'' are (1) number of simulation frames of experience collected, and (2) total computation time.
 We consider both necessary, because the relative expense of more experience versus more computation may vary across application domains.
 
-We collect both quantitative and qualitative metrics to measure ``achieving better results''.
-Quantitatively, we compare the average rate of forward progress.
-We also consider the robustness of the model to force perturbations and various measures of the ``difficulty'' of the terrain (such as stair height).
-\footnote{Another interesting question would be robustness with respect to accuracy of perception.
-If the potential step target locations / surface normals are perturbed, what happens?}
-Qualitatively, we document motion quality by means of supplementary videos, which we encourage the reader to consult.
-
 Our secondary hypothesis is that the learned policy can be run in real-time while still achieving results comparable to more expensive, model-based optimization methods.
-
 This hypothesis is difficult to test, because model-based optimization methods are difficult to implement for direct comparison.
 Thus, our metric is simply the percent real time necessary to compute the control for the next time step, which we compare to numbers reported in optimization-based papers.
 
-Additionally, we conduct ablative analysis of the importance of various components of our approach.
-\nhatch{In particular, we want to consider various different HLC / LLC interfaces that we could have used.
-For example: should we include a target foot height that the LLC should reach?
-(I think this would help when going over hurdles.)
-For another example (assuming we use some kind of PD control at the lowest level): how much does performance degrade if we don't use PD control?
-(That is, if the LLC outputs raw torques.)}
+Finally, we conduct ablative analysis of the importance of various components of our approach.
+\nhatch{This is super important given the current complexity of the system. We need to remove some of these elements to make a more focused paper, so we need to identify what matters and what doesn't.
+For reference, a list of the various components that we want to pare down: the many modifications to Simbicon, the complexity of the curriculum (and whether a curriculum is necessary at all), the hypothesis class for the HLC, the data collection algorithm from Sec. \ref{sec:curriculum} (e.g. do Gaussian perturbations help), the set of parameters that are controllable by the HLC, whether RANSAC is necessary, whether the basic controller observes the CoM or not.}
 
-\section{Policy architecture}
+\section{Discussion}
 
-\nhatch{Ideally, maybe we should design this so that walking and running can both be achieved in the same episode.}
-
-\nhatch{Should there be some ensemble of low-level policy networks that the HLC can choose between?
-For example, we could take the policy with the highest estimated value given the target step location.
-Having some discrete choices like this might be easier than using solely continuous parameters.}
-
-\textbf{High-level observations.}
-We assume that perception is solved.
-The high-level controller receives proprioceptive information and environmental information.
-The environmental information consists of a list of potential surfaces to step on, specified in terms of relative displacement from the agent and surface normal.
-\nhatch{Maybe, for polygonal surfaces, we could also report the surface ``size'' (e.g. largest-radius circle that fits inside the polygon).}
-
-\textbf{High-level actions.}
-High-level actions are chosen on each heel-down event (once per footstep).
-At these events, the HLC outputs a target for the next footstep that it expects the LLC can achieve.
-This target consists of several parameters: \nhatch{TODO think about this some more}
-\nhatch{It might be possible to incorporate some optimization / search / planning into the HLC, because its actions happen infrequently.
-But this would require some objective to be optimized, which might involve implementing a model like a spring-loaded inverted pendulum (SLIP), or inventing some heuristic objective that might characterize good plans.
-We might want to implement a model like SLIP anyway, in order to use it as an expert to train a neural network for the HLC (similar to AlphaGo Zero and ExIt).
-In any case, only the first step of the plan would be revealed to the LLC.}
-
-\textbf{Low-level observations.}
-The low-level controller receives proprioceptive information and the target location for the next footstep.
-Unlike the HLC, it does not observe the external environment.
-
-\textbf{Low-level actions.}
-On the one hand, we could have low-level actions being the raw torques.
-On the other hand, this might make the learning problem harder.
-Instead, we could specify ``abstract actions'' and use PD controllers or other analytical formulas to derive the actual torques.
-For instance, the output could be a target pose or end-effector position which is chosen more infrequently than the simulation framerate.
-Then we could solve an inverse kinematics or inverse dynamics problem to calculate a target pose, which is then achieved using PD controllers.
-\nhatch{We probably don't need all of this machinery.
-For the initial proof of concept, it might make sense to see how we can do using just raw torques.}
-\nhatch{TODO think about this some more.}
-
-\textbf{PD control.}
-\nhatch{We might have to rethink this abstraction layer once the ground includes inclines.
-For instance, the PD controller might now have to handle different target ankle angles.}
-
-\textbf{Miscellaneous ideas.}
-\begin{itemize}
-  \item Could the HLC-LLC interface be in terms of a \emph{force} that the LLC should try to generate on the next foot contact?
-  \item How can we design the LLC to generate good motion quality (e.g. low energy, low angular momentum)?
-\end{itemize}
-
-\section{Timeline of work}
-
-The goal is to submit this to ICRA on September 15.
-
-\begin{itemize}
-  \item Early June (2 weeks): Proof-of-concept: train a 2D walker low-level controller to follow an irregular step plan on flat ground, including some low-level PD control if necessary.
-  \item Late June (2 weeks): Train low-level controller on stepping stones.
-    Train high-level controller on flat ground, then on stepping stones.
-    Compare performance on stepping stones to baseline deep RL approach (TRPO).
-    If we can't get this to work (better than TRPO), we should consider abandoning the project.
-  \item July (4 weeks): Implement and train on inclines, stairs, and hurdles.
-    Perform ablative analyses.
-  \item Early August (2 weeks): I (Nathan) will be on vacation.
-  \item Late August and early September (4 weeks): Last-minute experiments.
-    Write and revise the paper.
-  \item September 15: ICRA deadline.
-\end{itemize}
-
-\section{Literature review}
-
-\subsection*{Locomotion on varied terrain}
-
-\begin{itemize}
-  \item \cite{peng2016terrain}: Perhaps the most closely related prior work, this paper trains planar characters to run across varied terrain.
-    In the discussion section of this paper, they mention three specific directions for extension that essentially exactly define our current project: move to three dimensions, consider more difficult terrains (smaller, more frequent obstacles) that require footstep planning, and use curriculum learning.
-
-  \item \cite{zucker2010optimization} is a project from the DARPA Learning Locomotion challenge that uses optimization to generate hierarchical motion plans and recover from errors in real time.
-    It has been tested on a physical robot with \href{https://www.youtube.com/watch?v=KpqFebvRLeQ}{impressive results}.
-    We will need to compare our work carefully with this project in the final paper, and we will need to improve upon their results one way or another.
-    The biggest difference might be in robot morphology / stability: executing step plans on bipeds is perhaps more difficult than executing step plans on quadrupeds given the small base of support during each step.
-    Other avenues for improvement might be eliminating the need for 45 seconds of initial planning, traveling faster (running?), or using some kind of interesting new technique (e.g. reinforcement learning or deep learning).
-    It is also worth considering whether our algorithm could work on a physical robot, though for the initial work we will unfortunately be working purely in simulation.
-
-  \item \cite{heess2017emergence} trains policies that can, to some extent, handle bumpy ground (see \href{https://www.youtube.com/watch?v=hx_bgoTF7bs&feature=youtu.be&t=1m28s}{this video}).
-    However, the agents here do not actually observe the bumps.
-    They assume flat ground and depend on policy robustness to handle unexpected terrain variation.
-    They do not report quantitative results.
-    This approach is likely limited in the kinds of terrain that it can handle.
-    In the video, the humanoid trips.
-
-  \item \cite{peng2017deeploco}
-    learns locomotion in an environment that includes bumpy ground, but the path they follow is perfectly flat.
-    They also use motion capture to train the LLC, and the steps are all of uniform length (0.5 seconds), which we hope to avoid.
-
-  \item \cite{peng2018deepmimic} includes some tasks that involve running across varied terrain.
-    They also use a form of curriculum learning, where the policies are first trained on flat ground (and without a vision component), before training then continues on the full problem.
-    Their policies are somewhat hierarchical, in the sense that they output a target pose, which is then used as input for a PD controller to generate torques.
-    Qualitatively, the policies on these tasks seem to mostly ignore the obstacles, relying on being able to recover from the perturbations generated by collisions.
-    In contrast, we would like to avoid the kind of stumbling seen in these videos by introducing another level of hierarchy that generates an explicit footstep plan.
-
-  \item \cite{peng2017learning} uses bumpy ground to test robustness of learned policies, but again the bumps are not actually perceived and cannot be planned around.
-    The bump height thus must remain small relative to the agent.
-    \nhatch{We should compare this quantitatively, later.} Also, this is 2D.
-
-  \item \cite{manchester2011stable} This paper stands out in that they derive a provably stable controller that they test on a physical robot.
-    \nhatch{I haven't read it in detail yet, though.}
-
-\end{itemize}
-
-\subsection*{Hierarchical reinforcement learning}
-
-\begin{itemize}
-  \item \cite{heess2016learning} discusses using hierarchical transfer learning to improve exploration in new environments, but this is useful mostly for sparse reward environments.
-    In contrast, we are not interested in addressing sparse rewards, but rather in (qualitative) performance on the difficult locomotion task.
-    That is, we should feel free to make the rewards as dense and as shaped as we want.
-    The reward signal is a tool, not something given to us a priori.
-
-  \item \cite{hausman2018learning} is an interesting theoretical paper showing how to get diverse meta-controls without imposing much structure on the interface between the HLC and the LLC.
-    However, in our case, we have a prior idea about a good hierarchical breakdown of the tasks (namely, a footstep plan).
-    \nhatch{I had some trouble with this paper; I should probably reread it and update this summary.}
-
-  \item \cite{daume18ilrl} consider using hierarchical policies to improve the query efficiency of interactive imitation learning.
-    In contrast, our project does not make use of an expert.
-    Even if we do end up using motion capture, such an expert is not hierarchical, and it does not specify actual actions, just target poses.
-    However, perhaps for some of the tasks in our curriculum, we will use a hand-coded expert for the HLC in order to pretrain the LLC.
-
-  \item \cite{vezhnevets2017feudal} \emph{learns} diverse low-level policies using a latent state space and directional goals.
-    However, we would like a more explicit hierarchical interface in the form of a footstep plan, and our low-level action space is continuous rather than discrete.
-
-  \item \cite{frans2018meta} uses HRL for transfer learning, but they do not apply their results to curriculum learning.
-    Hence, the tasks they accomplish remain fairly simple (simple maze traversal, etc.).
-
-  \item \cite{kulkarni2016hierarchical} uses hierarchical RL to encourage exploration in sparse-reward environments.
-    They also only consider discrete action spaces; perhaps we don't need to cite this paper at all.
-  \item \cite{nachum2018data}: This paper tries to do off-policy hierarchical RL by changing the actions from the transitions stored in the high-level replay buffer.
-    This seems like a hacky way to do things, and their experiments are clearly gaming the system to make their method look good.
-    I don't think we should cite this.
-\end{itemize}
-
-\subsection*{Curriculum and transfer learning for locomotion}
-
-\begin{itemize}
-  \item \cite{2018-ICLR-distill} This paper uses a similar curriculum-learning approach to 2D-biped locomotion on varied terrains, starting with flat ground and working up to a mixture of slopes, steps, and gaps. We may want to use their distillation approach when integrating multiple skills. (Alternatively, we could use what they call ``pure transfer learning'', but have each new task incorporate the relevant challenges of previous tasks.) They use motion capture, and the actions are target joint angles.
-
-  \item \cite{karpathy2012curriculum} use a two-level hand-designed curriculum to achieve impressive acrobatic results for a low-dimenisonal hopper.
-    However, their method involves random search and nonparametric nearest-neighbor policies, which are unlikely to generalize to higher-dimensional morphologies.
-
-  \item The aforementioned paper \cite{heess2017emergence} trains their policies using curriculum learning: the environment gets progressively more difficult as time goes on.
-    This achieves great results, but they do not quite succeed on bumpy ground.
-    In this project, we hope to explore hierarchical policies as a potential solution to this difficult task.
-
-  \item As mentioned before, \cite{peng2018deepmimic} uses some curriculum learning to accomplish the ``varied terrain'' tasks.
-
-  \item As mentioned before, \cite{frans2018meta} has the explicit goal of using HRL for transfer learning.
-
-  \item Relay Nets \citep{kumar2017relay} are a form of policy switching using the value function to choose between an ensemble of policies trained on different starting distributions, which uses a form of curriculum learning to train policies sequentially.
-    In contrast, we wish to train a single policy while varying the environment itself.
-
-\end{itemize}
-
-\subsection*{Locomotion policy architectures}
-
-\begin{itemize}
-  \item At the lowest level, we will probably be using some kind of stable PD controller, in order to make the reinforcement learning problem as easy as possible.
-    \nhatch{I need to read these papers:} \cite{tan2011stable}, \cite{shrivastava2013stable}
-  \item \cite{peng2015terrain} introduces a very interesting way of parametrizing the action space in terms of reference points for PD controllers, as well as ``virtual forces''.
-    We will want to do something similar.
-  \item We might want to use something simple, like a linear controller as proposed by \cite{mania2018simple} to see if that works well.
-    It seems to do a good job on OpenAI benchmarks, at least.
-  \item Otherwise, we'll probably end up using TRPO or PPO or something (get citation later\dots)
-  \item Other things to consider: prioritized experience replay, hindsight experience replay, universal value function approximators.
-\end{itemize}
-
-
-\subsection*{Model-based locomotion}
-
-\begin{itemize}
-  \item \cite{de2010feature} introduce a method for specifying locomotion behaviors with high-level features.
-    From these features, low-level torques can be derived automatically by solving a series of quadratic programs based on physical models.
-    This method is somewhat slow (50\% real time), and we might be able to avoid using hand-engineered models by employing deep networks.
-
-  \item \cite{mordatch2010robust} use \cite{de2010feature} to execute a footstep plan which is generated using a lower-dimensional simplified physics model (a spring-loaded inverted pendulum).
-    We might be able to use such an optimization- / model-based method as an expert, if we want to employ some kind of imitation learning.
-    This could be similar to the approach of AlphaGo Zero.
-
-  \item \cite{mordatch2012discovery} handles contacts in a clever way, using piecewise-constant, smooth contact variables and a continuation scheme.
-    This allows complex motions to emerge from a quadratic optimization procedure.
-    However, this method is very slow (2\% real time) and it generates only static motion (no jumping or slipping).
-    Again, maybe we could use it as an expert.
-
-\end{itemize}
-
-\section{Project summary}
-
+We see at least two important directions for future work.
 \begin{enumerate}
-
-\item \textbf{One-sentence summary:}
-Learn a difficult locomotion task with curriculum learning, hierarchical policies, and possibly model-based planning.
-
-\item \textbf{Task:}
-Train a simulated robotic agent to accomplish locomotion in a difficult environment, such as walking (or preferably running) across bumpy ground.
-
-\item \textbf{Introduction:} Robotic locomotion on uneven terrain is an important problem.
-  \nhatch{Visak, I would be interested in your high-level reasons for being interested in this problem.
-  I'm not sure I can motivate the problem as well as you can.} Previous approaches have not solved this problem.
-  For instance, in \href{https://www.youtube.com/watch?v=hx_bgoTF7bs&feature=youtu.be&t=1m28s}{this video} the agent stumbles on rubble, and DeepLoco only walks on flat terrain.
-  \nhatch{More examples would help, to make sure that this problem is interesting.} We hope to achieve efficient locomotion across bumpy ground using a combination of three techniques.
-  \begin{enumerate}
-    \item Curriculum learning: Train the agent first on simpler environments, like flat ground and gradual slopes, and gradually increase the difficulty.
-    \item Hierarchical controllers: We use a hierarchical architecture where the HLC plans foot placement and the LLC executes the individual steps.
-      We hypothesize that this architecture will more easily handle the discontinuities caused by contact dynamics.
-      We also hypothesize that, with this architecture, it will be easier to transfer knowledge between tasks in the curriculum.
-    \item Model-based planning: To help with sample efficiency, the HLC has access to a physics model for the environment.
-      \nhatch{I'm not sure how to accomplish this.
-      Physics models for legged robots are probably hard, especially when the ground is not flat.
-      Maybe some kind of \emph{learned} model would work.}
-  \end{enumerate}
-
-\item \textbf{Controller architecture:}
-  Like DeepLoco, the HLC receives detailed environmental observations, and outputs the target locations for the next couple of foot placements.
-  The LLC takes this input to choose the low-level actions that will achieve those foot placements.
-  Unlike DeepLoco, the terrain is much more complicated, so it is important that the HLC foot placements are actually feasible.
-  Furthermore, we will train the LLC without using motion captures, and we will permit the time per step to vary, rather than requiring each step to take exactly 0.5 seconds.
-
-  The parametrization of the HLC and LLC will probably end up being some kind of neural network, although it might be worth trying simpler policies first (e.g. linear).
-
-  To train these controllers, we could first train the LLC on simpler terrain, where we can specify target foot placement using a simple calculation.
-  When training the HLC, to ensure that it chooses feasible foot placements, we could include some additional loss term in the training objective based on whether the LLC actually achieved the foot placement that the HLC suggested.
-
-\nhatch{This section could probably use more detail; suggestions are welcome.
-For example, do we need to modify this architecture to better handle contact dynamics?
-Is there some way we can incorporate a model to help the HLC make better plans?}
-
-\item \textbf{Why this might be a good idea:}
-I have not seen previous papers succeed at this task, so if we could show some nice videos of a quadruped or biped running along bumpy ground, it would catch people's attention.
-Intuitively, when running along bumpy hiking trails, I am consciously thinking about where to place my feet, then relying on unconsciously being able to place my foot there while I think about the next step.
-This suggests a kind of hierarchical policy.
-
-\item \textbf{Why this might not be a good idea:}
-  \nhatch{Why would *hierarchical* RL be a particularly good way to do transfer learning for this series of tasks?}
-  We will need to implement several other baselines to compare against.
-  \nhatch{What should those baselines be? (What other approaches have people used for locomotion on bumpy ground?)
-Is the ``bumpy ground'' task too difficult? (Byron thinks so.)
-Will the simulated robot need toes?}
-I haven't worked with locomotion before, so I don't have a good sense for this.
-
+  \item \emph{Sim-to-real:}
+    We have successfully applied CIRL to a realistic simulated model, but it is likely that more work is required to transfer the resulting policy to the real world.
+  \item \emph{Motion capture:}
+    A significant portion of the effort for this project went into developing a reasonable baseline walking policy.
+    It might be possible to avoid this by bootstrapping the imitation learning process with motion capture data.
+    This would also make it easier to to extend CIRL to other robotic motion problems, such as manipulation.
 \end{enumerate}
 
+\nhatch{Miscellaneous TODO notes for me:
+\begin{enumerate}
+  \item Set damping coefficients for the DART simulation. Visak says this will help prevent numerical explosions during collisions.
+  \item Get Simbicon3D to be able to roughly control step distances, similar to 2D Simbicon. Or maybe this isn't necessary? Maybe we could jump straight to the learning algorithm?
+  \item Conduct ablation analysis to try to reduce the number of ``new ideas'' presented in this paper.
+  \item Think about how best to compare this algorithm to existing work (both RL work and traditional optimization-based step planning).
+\end{enumerate}
+}
 
 \bibliographystyle{plainnat}
 \bibliography{bib}
