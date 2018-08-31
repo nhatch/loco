@@ -124,7 +124,8 @@ class Simbicon(PDController):
     def crashed(self, swing_heel):
         c = self.env.consts()
         for contact in self.env.world.collision_result.contacts:
-            if not contact.bodynode1.id in c.ALLOWED_COLLISION_IDS:
+            bodynode = contact.bodynode2 if contact.skel_id1 == 0 else contact.bodynode1
+            if not bodynode.id in c.ALLOWED_COLLISION_IDS:
                 return True
             if contact.skel_id1 == contact.skel_id2:
                 # The robot crashed into itself
@@ -249,4 +250,5 @@ if __name__ == '__main__':
         # the robot can get stuck in the UP state, balancing on one leg.
         t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)
         env.simulate([t,0,0], render=1, put_dots=True)
+    embed()
 
