@@ -74,8 +74,15 @@ class Simbicon(PDController):
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
-        return ([0.14, 0, 0.2, 0.0, 0.4, -1.1, 0, -0.05, 0.2, 0.5, 0.2],
-                [0.14, 0, 0, 0.0, 0, 0, 0.2, -0.1, 0.2, 0.5, 0.2])
+        gait = ([0.14, 0, 0.2, 0.0, 0.4, -1.1,   0, -0.05, 0.2, 0.5, 0.2],
+                [0.14, 0,   0, 0.0,   0,    0, 0.2, -0.1,  0.2, 0.5, 0.2])
+        # This is the gait that works best in 3D. It doesn't work well, though.
+        # Uncomment this if you want to see what the gait looks like in 2D.
+        # NOTE: You will need to stub out adjust_up_targets and maybe_start_down_phase
+        # to match the implementations in simbicon_3D.py.
+        # gait = ([0.14, 0.5, 0.2, -0.2,  0.5, -1.1,   0.6, -0.05,  0, 0.5, 0.2],
+        #         [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
+        return gait
 
     def set_gait_raw(self, target, raw_gait=None):
         up, down = self.base_gait()
@@ -215,7 +222,7 @@ class Simbicon(PDController):
         q[self.swing_idx+c.ANKLE_OFFSET] += state.swing_ankle_relative
 
         torso_actual = self.skel.q[c.THETA_IDX]
-        q[self.swing_idx] = target_swing_angle - torso_actual
+        q[self.swing_idx+c.HIP_OFFSET] = target_swing_angle - torso_actual
         return q
 
     def compute(self):
@@ -235,7 +242,19 @@ class Simbicon(PDController):
         torso_actual = self.skel.q[c.THETA_IDX]
         torso_speed = self.skel.dq[c.THETA_IDX]
         torso_torque = - c.KP_GAIN * (torso_actual - state.torso_world) - c.KD_GAIN * torso_speed
-        control[self.stance_idx] = -torso_torque - control[self.swing_idx]
+        control[self.stance_idx+c.HIP_OFFSET] = -torso_torque - control[self.swing_idx+c.HIP_OFFSET]
+
+        # The following were hacks to attempt to make the 3D model maintain its torso
+        # facing straight forward. They didn't work well but here's the code if you want.
+        #torso_actual = self.skel.q[c.ROLL_IDX]
+        #torso_speed = self.skel.dq[c.ROLL_IDX]
+        #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
+        #control[self.stance_idx+c.HIP_OFFSET_LAT] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_LAT]
+        #torso_actual = self.skel.q[c.YAW_IDX]
+        #torso_speed = self.skel.dq[c.YAW_IDX]
+        #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
+        #control[self.stance_idx+c.HIP_OFFSET_TWIST] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_TWIST]
+
         return control
 
 if __name__ == '__main__':

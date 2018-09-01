@@ -20,8 +20,15 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        return ([0.14, 0.5, 0.2, -0.2,  0.5, -1.1,   0.6, -0.05,   0, 0.5, 0.2],
-                [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
+        # The following "works" but isn't fast or natural-looking, and it's hard to
+        # adjust to get it to work for different step lengths.
+        #gait = ([0.14, 0.5, 0.2, -0.2,  0.5, -1.1,   0.6, -0.05,   0, 0.5, 0.2],
+        #        [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
+        # The following are the settings used for the 2D model. They don't work well in 3D.
+        # (Yaw is poorly controlled, and the swing foot collides with the stance foot.)
+        gait = ([0.14, 0.0, 0.2, -0.0,  0.4, -1.1,   0.0, -0.05,0.2, 0.1, 0.1],
+                [0.14, 0.0, 0.0, -0.0, -0.0, -0.00, 0.20, -0.1, 0.2, 0.1, 0.1])
+        return gait
 
     def adjust_up_targets(self):
         pass
@@ -49,9 +56,10 @@ class Simbicon3D(Simbicon):
         # TODO can I get rid of this base separation by better initializing
         # the stance_heel location? Now that we're in 3D, the lateral location
         # is important, so just setting it to (0,0,0) doesn't work well.
-        base *= 0.1
+        base *= 0.05
         angle = base + balance_feedback
         q[self.swing_idx+c.HIP_OFFSET_LAT] = angle
+        q[self.stance_idx+c.HIP_OFFSET_LAT] = -base
 
         #actual_twist = self.skel.q[4] + self.skel.q[7]
         # TODO why does the robot rotate so much on the third step of test()?
@@ -88,9 +96,9 @@ def test(env):
     env.seed(seed)
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
-    for i in range(16):
+    for i in range(30):
         t = 0.1 + 0.2*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=1, put_dots=False)
+        env.simulate([t,0,0], render=8, put_dots=False)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
