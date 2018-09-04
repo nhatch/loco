@@ -1,12 +1,17 @@
+import numpy as np
+skel_file = "skel/double_walker3d_waist.skel"
+
 BRICK_DOF = 6
+CONTROL_BOUNDS = 1.5 * np.array([100]*15)
 
 LEG_DOF = 6
 RIGHT_IDX = 9
 LEFT_IDX = 15
 Q_DIM = 21
-THETA_IDX = 3
+PITCH_IDX = 3
 YAW_IDX = 4
 ROLL_IDX = 5
+X_IDX = 0
 
 HIP_OFFSET = 0
 HIP_OFFSET_TWIST = 1

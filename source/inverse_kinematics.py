@@ -24,7 +24,7 @@ class InverseKinematics:
         q = agent.q
         # Adding torso, hip, knee, and ankle angles gives the angle of the foot
         # relative to flat ground.
-        foot_angle = q[c.THETA_IDX]+q[swing_idx+c.HIP_OFFSET]+q[swing_idx+c.KNEE_OFFSET]+q[swing_idx+c.ANKLE_OFFSET]
+        foot_angle = q[c.PITCH_IDX]+q[swing_idx+c.HIP_OFFSET]+q[swing_idx+c.KNEE_OFFSET]+q[swing_idx+c.ANKLE_OFFSET]
         if swing_idx == c.RIGHT_IDX:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
@@ -103,7 +103,7 @@ class InverseKinematics:
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
         # relative to the pelvis joint's absolute location and rotation.
         pelvis_com = agent.bodynodes[c.PELVIS_BODYNODE_IDX].com()
-        theta = agent.q[c.THETA_IDX]
+        theta = agent.q[c.PITCH_IDX]
         pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
             self.env.sdf_loader.put_dot(pelvis_bottom[:2], color=RED)

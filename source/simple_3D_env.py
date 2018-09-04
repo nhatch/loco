@@ -6,7 +6,7 @@ from pydart2.gui.trackball import Trackball, _q_add, _q_rotmatrix
 from OpenGL.GL import GLfloat
 
 from stepping_stones_env import SteppingStonesEnv
-import consts_3D
+import consts_human as consts
 from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
@@ -55,23 +55,26 @@ class Simple3DEnv(SteppingStonesEnv):
         self.world.step()
         framerate = int(1 / SIMULATION_RATE / frames_per_second)
         if self.world.frame % framerate == 0:
-            print(self.world.time())
-            self.render()
+            #print(self.world.time())
+            self._render()
 
     def wrap_state(self, raw_state):
         return State3D(raw_state)
 
     def load_world(self):
-        skel_file = "skel/double_walker3d_waist.skel"
+        skel_file = consts.skel_file
         world = pydart.World(SIMULATION_RATE, skel_file)
         skel = world.skeletons[1]
-        self.doppelganger = world.skeletons[2]
-        assert(self.doppelganger.name == "doppelganger")
+        if len(world.skeletons) == 3:
+            self.doppelganger = world.skeletons[2]
+            assert(self.doppelganger.name == "doppelganger")
         skel.set_self_collision_check(True)
+        for dof in skel.dofs[6:]:
+            dof.set_damping_coefficient(0.2)
         return world
 
     def consts(self):
-        return consts_3D
+        return consts
 
 def test_pd_control():
     from pd_control import PDController
@@ -80,14 +83,17 @@ def test_pd_control():
     d = env.world.skeletons[1]
     q = d.q.copy()
     # Set some weird target pose
-    q[6] = -1
-    q[9] = np.pi/2
-    q[12] = -np.pi * 0.75
+    c = env.consts()
+    q[c.RIGHT_IDX + c.HIP_OFFSET] = 1
+    q[c.RIGHT_IDX + c.KNEE_OFFSET] = -np.pi/2
+    q[c.LEFT_IDX + c.HIP_OFFSET] = -np.pi * 0.75
     env.controller.target_q = q
     env.render()
     import time
     # Otherwise somehow it achieves the pose before the GUI launches
     time.sleep(0.1)
-    for i in range(int(2 / SIMULATION_RATE)):
+    for i in range(int(4 / SIMULATION_RATE)):
         env.step(60)
 
+if __name__ == "__main__":
+    test_pd_control()

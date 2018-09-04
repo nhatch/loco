@@ -169,13 +169,14 @@ class Simbicon(PDController):
             return False
 
     def maybe_start_down_phase(self, contacts, swing_heel):
+        c = self.env.consts()
         duration = self.time() - self.step_started
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")
-        target_diff = self.FSMstate().ik_gain * self.skel.dq[0]
+        target_diff = self.FSMstate().ik_gain * self.skel.dq[c.X_IDX]
         heel_close = self.target[0] < swing_heel[0] + target_diff
-        com_close = self.target[0] < self.skel.q[0] + target_diff
+        com_close = self.target[0] < self.skel.q[c.X_IDX] + target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
             self.direction = DOWN
@@ -192,12 +193,13 @@ class Simbicon(PDController):
         return "{:.3f}: Ended step at {}".format(self.time(), res)
 
     def calc_down_ik(self):
+        c = self.env.consts()
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target.
-        tx = self.target[0] - self.FSMstate().ik_gain * self.skel.dq[0]
+        tx = self.target[0] - self.FSMstate().ik_gain * self.skel.dq[c.X_IDX]
         ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
         relative_hip, knee = self.ik.inv_kine([tx, ty])
-        self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[2]
+        self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[c.PITCH_IDX]
         self.FSM[DOWN].swing_knee_relative = knee
 
     def compute_target_q(self):
@@ -209,8 +211,8 @@ class Simbicon(PDController):
 
         cd = state.position_balance_gain
         cv = state.velocity_balance_gain
-        v = self.skel.dq[0]
-        d = self.skel.q[0] - self.stance_heel[0]
+        v = self.skel.dq[c.X_IDX]
+        d = self.skel.q[c.X_IDX] - self.stance_heel[0]
         balance_feedback = cd*d + cv*v
 
         target_swing_angle = state.swing_hip_world + balance_feedback
@@ -221,7 +223,7 @@ class Simbicon(PDController):
         q[self.swing_idx+c.ANKLE_OFFSET] = -(target_swing_angle + target_swing_knee)
         q[self.swing_idx+c.ANKLE_OFFSET] += state.swing_ankle_relative
 
-        torso_actual = self.skel.q[c.THETA_IDX]
+        torso_actual = self.skel.q[c.PITCH_IDX]
         q[self.swing_idx+c.HIP_OFFSET] = target_swing_angle - torso_actual
         return q
 
@@ -239,8 +241,8 @@ class Simbicon(PDController):
             self.Kd[self.stance_idx+c.KNEE_OFFSET] /= 8
 
         # Make modifications to control torso pitch
-        torso_actual = self.skel.q[c.THETA_IDX]
-        torso_speed = self.skel.dq[c.THETA_IDX]
+        torso_actual = self.skel.q[c.PITCH_IDX]
+        torso_speed = self.skel.dq[c.PITCH_IDX]
         torso_torque = - c.KP_GAIN * (torso_actual - state.torso_world) - c.KD_GAIN * torso_speed
         control[self.stance_idx+c.HIP_OFFSET] = -torso_torque - control[self.swing_idx+c.HIP_OFFSET]
 

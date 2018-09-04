@@ -1,10 +1,14 @@
+import numpy as np
+
 BRICK_DOF = 3
+CONTROL_BOUNDS = 1.5 * np.array([100, 100, 20, 100, 100, 20])
 
 LEG_DOF = 3
 RIGHT_IDX = 3
 LEFT_IDX = 6
 Q_DIM = 9
-THETA_IDX = 2
+PITCH_IDX = 2
+X_IDX = 0
 HIP_OFFSET = 0
 # No HIP_OFFSET_LAT
 KNEE_OFFSET = 1
