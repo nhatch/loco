@@ -6,7 +6,7 @@ from pydart2.gui.trackball import Trackball, _q_add, _q_rotmatrix
 from OpenGL.GL import GLfloat
 
 from stepping_stones_env import SteppingStonesEnv
-import consts_human as consts
+import consts_box as consts
 from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
@@ -69,8 +69,9 @@ class Simple3DEnv(SteppingStonesEnv):
             self.doppelganger = world.skeletons[2]
             assert(self.doppelganger.name == "doppelganger")
         skel.set_self_collision_check(True)
-        for dof in skel.dofs[6:]:
-            dof.set_damping_coefficient(0.2)
+        # The kima_human_box model actually has preset damping coeffs.
+        #for dof in skel.dofs[6:]:
+        #    dof.set_damping_coefficient(0.2)
         return world
 
     def consts(self):
@@ -82,6 +83,7 @@ def test_pd_control():
     env.reset()
     d = env.world.skeletons[1]
     q = d.q.copy()
+    env.render()
     # Set some weird target pose
     c = env.consts()
     q[c.RIGHT_IDX + c.HIP_OFFSET] = 1

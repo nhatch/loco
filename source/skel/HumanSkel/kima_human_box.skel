@@ -35,7 +35,7 @@
             </joint>
         </skeleton>
 
-        <skeleton name="human">
+        <skeleton name="walker">
             <transformation>0 0 0 0 -1.570796 0</transformation>
             <body name="pelvis_aux">
                 <transformation>0.0 0.0 0.0 0 1.570796 0</transformation>
@@ -432,11 +432,9 @@
 
             <joint name="j_thigh_left" type="euler">
                 <transformation>0.0 0.0 0.0 0.0 0.0 0</transformation>
-                <!-- the above is a workaround since DART don't have Euler in zxy order -->
                 <parent>pelvis</parent>
                 <child>l-upperleg</child>
                 <axis_order>xyz</axis_order>
-                <!-- actually being zxy, see transformation above-->
                 <axis>
                     <limit>
                         <lower>-1.570796</lower>
@@ -475,10 +473,10 @@
                 <parent>l-upperleg</parent>
                 <child>l-lowerleg</child>
                 <axis>
-                    <xyz>-1.0 0.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                     <limit>
-                        <lower>0.0</lower>
-                        <upper>3.0</upper>
+                        <lower>-3.0</lower>
+                        <upper>0.0</upper>
                     </limit>
                     <dynamics>
                         <damping>2.0</damping>
@@ -561,10 +559,10 @@
                 <parent>r-upperleg</parent>
                 <child>r-lowerleg</child>
                 <axis>
-                    <xyz>-1.0 0.0 0.0</xyz>
+                    <xyz>1.0 0.0 0.0</xyz>
                     <limit>
-                        <lower>0.0</lower>
-                        <upper>3.0</upper>
+                        <lower>-3.0</lower>
+                        <upper>0.0</upper>
                     </limit>
                     <dynamics>
                         <damping>2.0</damping>
