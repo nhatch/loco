@@ -11,7 +11,7 @@ Q_DIM = 21
 PITCH_IDX = 3
 YAW_IDX = 4
 ROLL_IDX = 5
-X_IDX = 2 # TODO somehow it only moves about 1/1000 as far as the Y and Z axes??
+X_IDX = 2
 Y_IDX = 1
 
 HIP_OFFSET = 0
