@@ -133,9 +133,11 @@ class Simbicon(PDController):
         for contact in self.env.world.collision_result.contacts:
             bodynode = contact.bodynode2 if contact.skel_id1 == 0 else contact.bodynode1
             if not bodynode.id in c.ALLOWED_COLLISION_IDS:
+                print("NOT ALLOWED")
                 return True
             if contact.skel_id1 == contact.skel_id2:
                 # The robot crashed into itself
+                print("SELF COLLISION")
                 return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
@@ -243,7 +245,8 @@ class Simbicon(PDController):
         # Make modifications to control torso pitch
         torso_actual = self.skel.q[c.PITCH_IDX]
         torso_speed = self.skel.dq[c.PITCH_IDX]
-        torso_torque = - c.KP_GAIN * (torso_actual - state.torso_world) - c.KD_GAIN * torso_speed
+        idx = c.RIGHT_IDX + c.HIP_OFFSET
+        torso_torque = - c.KP_GAIN[idx] * (torso_actual - state.torso_world) - c.KD_GAIN[idx] * torso_speed
         control[self.stance_idx+c.HIP_OFFSET] = -torso_torque - control[self.swing_idx+c.HIP_OFFSET]
 
         # The following were hacks to attempt to make the 3D model maintain its torso

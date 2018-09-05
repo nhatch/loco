@@ -72,6 +72,8 @@ class Simbicon3D(Simbicon):
         return q
 
     def update_doppelganger(self, q):
+        if self.env.doppelganger is None:
+            return
         c = self.env.consts()
         q = q.copy()
         #q[:c.BRICK_DOF] = self.env.robot_skeleton.q[:c.BRICK_DOF]

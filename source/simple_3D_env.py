@@ -6,7 +6,7 @@ from pydart2.gui.trackball import Trackball, _q_add, _q_rotmatrix
 from OpenGL.GL import GLfloat
 
 from stepping_stones_env import SteppingStonesEnv
-import consts_box as consts
+import consts_armless as consts
 from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
@@ -65,6 +65,7 @@ class Simple3DEnv(SteppingStonesEnv):
         skel_file = consts.skel_file
         world = pydart.World(SIMULATION_RATE, skel_file)
         skel = world.skeletons[1]
+        self.doppelganger = None
         if len(world.skeletons) == 3:
             self.doppelganger = world.skeletons[2]
             assert(self.doppelganger.name == "doppelganger")
