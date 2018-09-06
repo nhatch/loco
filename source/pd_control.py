@@ -19,11 +19,12 @@ class PDController:
         #    self.Kp[c.LEFT_IDX + c.HIP_OFFSET_LAT] *= 4
         self.control_bounds = c.CONTROL_BOUNDS
 
-    def compute(self):
+    def compute_transformed(self, target_q):
         BRICK_DOF = self.env.consts().BRICK_DOF
         if self.inactive:
             return np.zeros_like(self.Kp)
-        control = -self.Kp * (self.skel.q - self.target_q) - self.Kd * self.skel.dq
+        q, dq = self.env.get_x()
+        control = -self.Kp * (q - target_q) - self.Kd * dq
         for i in range(BRICK_DOF, self.skel.ndofs):
             if control[i] > self.control_bounds[i-BRICK_DOF]:
                 control[i] = self.control_bounds[i-BRICK_DOF]
@@ -31,12 +32,15 @@ class PDController:
                 control[i] = -self.control_bounds[i-BRICK_DOF]
         return control
 
+    def compute(self):
+        return self.env.from_features(self.compute_transformed(self.target_q))
+
     def step_complete(self, contacts, swing_heel):
         # Stub to conform to Simbicon interface
         return False
 
     def reset(self):
-        self.target_q = self.skel.q
+        self.target_q = self.env.get_x()[0]
 
     def state(self):
         return []

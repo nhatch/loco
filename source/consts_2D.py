@@ -1,5 +1,8 @@
 import numpy as np
 
+perm = [0,1,2,3,4,5,6,7,8]
+sign_switches = []
+
 BRICK_DOF = 3
 CONTROL_BOUNDS = 1.5 * np.array([100, 100, 20, 100, 100, 20])
 
@@ -8,11 +11,7 @@ RIGHT_IDX = 3
 LEFT_IDX = 6
 Q_DIM = 9
 PITCH_IDX = 2
-X_IDX = 0
-HIP_OFFSET = 0
-# No HIP_OFFSET_LAT
-KNEE_OFFSET = 1
-ANKLE_OFFSET = 2
+KNEE_IDX = 1
 
 PELVIS_BODYNODE_IDX = 2
 RIGHT_BODYNODE_IDX = 5
@@ -25,7 +24,7 @@ L_SHIN =   0.50
 L_FOOT =   0.20
 FOOT_RADIUS = 0.06
 
-KP_GAIN = 200.0
-KD_GAIN = 15.0
+KP_GAIN = [200.0]*6
+KD_GAIN = [15.0]*6
 
 ALLOWED_COLLISION_IDS = [5,8] # The two feet

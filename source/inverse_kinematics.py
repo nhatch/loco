@@ -19,17 +19,16 @@ class InverseKinematics:
         return q[3:]
 
     def forward_kine(self, swing_idx):
-        agent = self.env.robot_skeleton
         c = self.env.consts()
-        q = agent.q
+        q, _ = self.env.get_x()
         # Adding torso, hip, knee, and ankle angles gives the angle of the foot
         # relative to flat ground.
-        foot_angle = q[c.PITCH_IDX]+q[swing_idx+c.HIP_OFFSET]+q[swing_idx+c.KNEE_OFFSET]+q[swing_idx+c.ANKLE_OFFSET]
+        foot_angle = q[c.PITCH_IDX]+q[swing_idx]+q[swing_idx+c.KNEE_IDX]+q[swing_idx+c.KNEE_IDX+1]
         if swing_idx == c.RIGHT_IDX:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
-        foot_com = agent.bodynodes[swing_foot_idx].com()
+        foot_com = self.env.robot_skeleton.bodynodes[swing_foot_idx].com()
         offset = -0.5 * c.L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
         offset[1] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
@@ -60,12 +59,11 @@ class InverseKinematics:
         return hip, knee
 
     def inv_kine_pose(self, hip, knee, is_right_foot=True):
-        agent = self.env.robot_skeleton
-        q = agent.q.copy()
+        q, dq = self.env.get_x()
         c = self.env.consts()
         base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
-        q[base+c.HIP_OFFSET] = hip
-        q[base+c.KNEE_OFFSET] = knee
+        q[base] = hip
+        q[base+c.KNEE_IDX] = knee
         return q
 
     def test_inv_kine(self, planar=True):
@@ -73,15 +71,15 @@ class InverseKinematics:
         c = self.env.consts()
         agent = self.env.robot_skeleton
         brick_pose, target = self.gen_brick_pose(planar)
-        q = agent.q
+        q, _ = self.env.get_x()
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
-        agent.q = q
+        agent.q = self.env.from_features(q)
         self.env.sdf_loader.put_dot(target[:3], color=GREEN)
         print("TARGET:", target)
         hip, knee = self.inv_kine(target, verbose=True)
         q = self.inv_kine_pose(hip, knee)
-        agent.q = q
+        agent.q = self.env.from_features(q)
         self.env.render()
 
     def gen_brick_pose(self, planar=True):
@@ -99,11 +97,11 @@ class InverseKinematics:
 
     def transform_frame(self, target, verbose=False):
         c = self.env.consts()
-        agent = self.env.robot_skeleton
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
         # relative to the pelvis joint's absolute location and rotation.
-        pelvis_com = agent.bodynodes[c.PELVIS_BODYNODE_IDX].com()
-        theta = agent.q[c.PITCH_IDX]
+        pelvis_com = self.env.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX].com()
+        q, _ = self.env.get_x()
+        theta = q[c.PITCH_IDX]
         pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
             self.env.sdf_loader.put_dot(pelvis_bottom[:3], color=RED)

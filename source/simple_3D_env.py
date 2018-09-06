@@ -10,7 +10,7 @@ import consts_armless as consts
 from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
-THETA = -np.pi/6
+THETA = -np.pi/12
 PHI = np.pi / 3
 
 class Simple3DEnv(SteppingStonesEnv):
@@ -82,14 +82,13 @@ def test_pd_control():
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     env.reset()
-    d = env.world.skeletons[1]
-    q = d.q.copy()
+    q, _ = env.get_x()
     env.render()
     # Set some weird target pose
     c = env.consts()
-    q[c.RIGHT_IDX + c.HIP_OFFSET] = 1
-    q[c.RIGHT_IDX + c.KNEE_OFFSET] = -np.pi/2
-    q[c.LEFT_IDX + c.HIP_OFFSET] = -np.pi * 0.75
+    q[c.RIGHT_IDX] = 1
+    q[c.RIGHT_IDX+3] = -np.pi/2
+    q[c.LEFT_IDX] = -np.pi * 0.75
     env.controller.target_q = q
     env.render()
     import time

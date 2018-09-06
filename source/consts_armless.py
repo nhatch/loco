@@ -1,25 +1,23 @@
 import numpy as np
 skel_file = "skel/HumanSkel/kima_human_box_armless.skel"
 
+perm = [2,1,0,3,4,5, # Brick DOFs
+        12,13,14,15,16,17, # Right leg
+        6,7,8,9,10,11, # Left leg
+        18,19,20] # Everything else
+
+sign_switches = [2,8,14]
+
+# These should be the same for all 3D models
 BRICK_DOF = 6
-CONTROL_BOUNDS = 1000 * np.array([100]*31)
-
-LEG_DOF = 6
-RIGHT_IDX = 12
-LEFT_IDX = 6
-Q_DIM = 21
 PITCH_IDX = 3
-YAW_IDX = 4
-ROLL_IDX = 5
-X_IDX = 2
-Y_IDX = 1
+LEG_DOF = 6
+RIGHT_IDX = 6
+LEFT_IDX = 12
+KNEE_IDX = 3
 
-HIP_OFFSET = 0
-HIP_OFFSET_TWIST = 1
-HIP_OFFSET_LAT = 2 #Backward sign
-KNEE_OFFSET = 3
-ANKLE_OFFSET = 4
-ANKLE_OFFSET_LAT = 5
+Q_DIM = 21
+CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
 PELVIS_BODYNODE_IDX = 1
 RIGHT_BODYNODE_IDX = 7 # Used for finding contacts and locating the heel

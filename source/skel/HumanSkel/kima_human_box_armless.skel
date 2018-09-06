@@ -56,7 +56,7 @@
                     <geometry>
                         <mesh>
                             <file_name>pelvis.dae</file_name>
-                            <scale>1.4 1.4 1.4</scale>
+                            <scale>0.1 0.1 0.1</scale>
                         </mesh>
                     </geometry>
 

@@ -143,8 +143,29 @@ class SteppingStonesEnv:
                     self.log(status_string)
                 return obs, terminated
 
+    # Maps the raw agent state to a standardized ordering of DOFs with standardized signs.
+    # The length of the array should not change. The inverse operation is `from_features`.
+    def to_features(self, q):
+        c = self.consts()
+        q = q[c.perm]
+        q[c.sign_switches] *= -1
+        return q
+
+    def get_x(self):
+        q = self.to_features(np.array(self.robot_skeleton.q))
+        dq = self.to_features(np.array(self.robot_skeleton.dq))
+        return q, dq
+
+    def from_features(self, q):
+        c = self.consts()
+        q[c.sign_switches] *= -1
+        base = np.zeros(c.Q_DIM)
+        for i,j in enumerate(c.perm):
+            base[j] = q[i]
+        return base
+
     def current_observation(self):
-        obs = self.robot_skeleton.x.copy()
+        obs = np.concatenate(self.get_x())
         obs = self.controller.standardize_stance(obs)
         return self.wrap_state(np.concatenate((obs, self.controller.state())))
 
@@ -152,17 +173,18 @@ class SteppingStonesEnv:
         print(string)
 
     def set_state(self, state, random):
-        # If random = 0.0, no randomness will be added
+        # If random = 0.0, no randomness will be added.
         perturbation = np.random.uniform(low=-random, high=random, size=2*self.robot_skeleton.ndofs)
         if state is None:
             self.robot_skeleton.x += perturbation
             # Start with some forward momentum (Simbicon has some trouble otherwise)
-            dq = self.robot_skeleton.dq
+            dq = np.zeros(self.consts().Q_DIM)
             dq[0] += 0.8 + random * np.random.uniform(low=0.0, high=0.4)
+            dq = self.robot_skeleton.dq + self.from_features(dq)
             self.robot_skeleton.dq = dq
             self.controller.reset()
         else:
-            self.robot_skeleton.x = state.pose() + perturbation
+            self.robot_skeleton.x = self.from_features(state.pose()) + perturbation
             self.controller.reset(state.controller_state())
 
     def _render(self):

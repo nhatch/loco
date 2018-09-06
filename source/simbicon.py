@@ -176,9 +176,10 @@ class Simbicon(PDController):
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")
-        target_diff = self.FSMstate().ik_gain * self.skel.dq[c.X_IDX]
+        q, dq = self.env.get_x()
+        target_diff = self.FSMstate().ik_gain * dq[0]
         heel_close = self.target[0] < swing_heel[0] + target_diff
-        com_close = self.target[0] < self.skel.q[c.X_IDX] + target_diff
+        com_close = self.target[0] < q[0] + target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
             self.direction = DOWN
@@ -196,71 +197,74 @@ class Simbicon(PDController):
 
     def calc_down_ik(self):
         c = self.env.consts()
+        q, dq = self.env.get_x()
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target.
-        tx = self.target[0] - self.FSMstate().ik_gain * self.skel.dq[c.X_IDX]
+        tx = self.target[0] - self.FSMstate().ik_gain * dq[0]
         ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
         relative_hip, knee = self.ik.inv_kine([tx, ty])
-        self.FSM[DOWN].swing_hip_world = relative_hip + self.skel.q[c.PITCH_IDX]
+        self.FSM[DOWN].swing_hip_world = relative_hip + q[c.PITCH_IDX]
         self.FSM[DOWN].swing_knee_relative = knee
 
-    def compute_target_q(self):
+    def compute_target_q(self, q, dq):
         c = self.env.consts()
         state = self.FSMstate()
-        q = np.zeros(c.Q_DIM)
-        q[self.stance_idx+c.KNEE_OFFSET] = state.stance_knee_relative
-        q[self.stance_idx+c.ANKLE_OFFSET] = state.stance_ankle_relative
+        tq = np.zeros(c.Q_DIM)
+        tq[self.stance_idx+c.KNEE_IDX] = state.stance_knee_relative
+        tq[self.stance_idx+c.KNEE_IDX+1] = state.stance_ankle_relative
 
         cd = state.position_balance_gain
         cv = state.velocity_balance_gain
-        v = self.skel.dq[c.X_IDX]
-        d = self.skel.q[c.X_IDX] - self.stance_heel[0]
+        v = dq[0]
+        d = q[0] - self.stance_heel[0]
         balance_feedback = cd*d + cv*v
 
         target_swing_angle = state.swing_hip_world + balance_feedback
         target_swing_knee = state.swing_knee_relative
-        q[self.swing_idx+c.KNEE_OFFSET] = target_swing_knee
+        tq[self.swing_idx+c.KNEE_IDX] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
-        q[self.swing_idx+c.ANKLE_OFFSET] = -(target_swing_angle + target_swing_knee)
-        q[self.swing_idx+c.ANKLE_OFFSET] += state.swing_ankle_relative
+        tq[self.swing_idx+c.KNEE_IDX+1] = -(target_swing_angle + target_swing_knee)
+        tq[self.swing_idx+c.KNEE_IDX+1] += state.swing_ankle_relative
 
-        torso_actual = self.skel.q[c.PITCH_IDX]
-        q[self.swing_idx+c.HIP_OFFSET] = target_swing_angle - torso_actual
-        return q
+        torso_actual = q[c.PITCH_IDX]
+        tq[self.swing_idx] = target_swing_angle - torso_actual
+        return tq
 
     def compute(self):
         c = self.env.consts()
+        q, dq = self.env.get_x()
         state = self.FSMstate()
-        self.target_q = self.compute_target_q()
+        target_q = self.compute_target_q(q, dq)
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE_OFFSET] *= 8
-        control = super().compute()
+            self.Kd[self.stance_idx+c.KNEE_IDX] *= 8
+        control = self.compute_transformed(target_q)
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE_OFFSET] /= 8
+            self.Kd[self.stance_idx+c.KNEE_IDX] /= 8
 
         # Make modifications to control torso pitch
-        torso_actual = self.skel.q[c.PITCH_IDX]
-        torso_speed = self.skel.dq[c.PITCH_IDX]
-        idx = c.RIGHT_IDX + c.HIP_OFFSET
-        torso_torque = - c.KP_GAIN[idx] * (torso_actual - state.torso_world) - c.KD_GAIN[idx] * torso_speed
-        control[self.stance_idx+c.HIP_OFFSET] = -torso_torque - control[self.swing_idx+c.HIP_OFFSET]
+        torso_actual = q[c.PITCH_IDX]
+        torso_speed = dq[c.PITCH_IDX]
+        kp = self.Kp[self.stance_idx]
+        kd = self.Kd[self.stance_idx]
+        torso_torque = - kp * (torso_actual - state.torso_world) - kd * torso_speed
+        control[self.stance_idx] = -torso_torque - control[self.swing_idx]
 
         # The following were hacks to attempt to make the 3D model maintain its torso
         # facing straight forward. They didn't work well but here's the code if you want.
-        #torso_actual = self.skel.q[c.ROLL_IDX]
-        #torso_speed = self.skel.dq[c.ROLL_IDX]
+        #torso_actual = q[c.ROLL_IDX]
+        #torso_speed = dq[c.ROLL_IDX]
         #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
         #control[self.stance_idx+c.HIP_OFFSET_LAT] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_LAT]
-        #torso_actual = self.skel.q[c.YAW_IDX]
-        #torso_speed = self.skel.dq[c.YAW_IDX]
+        #torso_actual = q[c.YAW_IDX]
+        #torso_speed = dq[c.YAW_IDX]
         #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
         #control[self.stance_idx+c.HIP_OFFSET_TWIST] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_TWIST]
 
-        return control
+        return self.env.from_features(control)
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
