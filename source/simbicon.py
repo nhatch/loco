@@ -132,12 +132,12 @@ class Simbicon(PDController):
         c = self.env.consts()
         for contact in self.env.world.collision_result.contacts:
             bodynode = contact.bodynode2 if contact.skel_id1 == 0 else contact.bodynode1
-            if not bodynode.id in c.ALLOWED_COLLISION_IDS:
-                print("NOT ALLOWED")
-                return True
             if contact.skel_id1 == contact.skel_id2:
                 # The robot crashed into itself
                 print("SELF COLLISION")
+                return True
+            if not bodynode.id in c.ALLOWED_COLLISION_IDS:
+                print("HIT THE GROUND")
                 return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
@@ -155,6 +155,7 @@ class Simbicon(PDController):
         # start and end targets.
         below_line = np.dot(swing_heel - self.starting_swing_heel, self.unit_normal) < tol
         if below_lower or (below_line and below_upper):
+            print("FELL OFF")
             return True
 
     # Returns True if either the swing foot has made contact, or if it seems impossible
@@ -165,7 +166,7 @@ class Simbicon(PDController):
         elif self.direction == UP:
             self.maybe_start_down_phase(contacts, swing_heel)
             return False
-        elif len(contacts) > 0:
+        elif len(contacts) > 0: # and self.direction == DOWN
             return True
         else:
             return False
@@ -264,7 +265,8 @@ class Simbicon(PDController):
         #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
         #control[self.stance_idx+c.HIP_OFFSET_TWIST] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_TWIST]
 
-        return self.env.from_features(control)
+        torques = self.env.from_features(control)
+        return torques
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv

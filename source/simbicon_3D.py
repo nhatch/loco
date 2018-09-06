@@ -46,19 +46,14 @@ class Simbicon3D(Simbicon):
 
         cd = state.position_balance_gain_lat
         cv = state.velocity_balance_gain_lat
-        self.env.sdf_loader.put_dot(q[:3], color=BLUE, index=1)
+        proj = q[:3]
+        proj[1] = self.stance_heel[1]
+        self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
         self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
         d = q[2] - self.stance_heel[2]
         balance_feedback = -(cd*d + cv*dq[2])
 
-        #base = -1 if self.swing_idx == c.RIGHT_IDX else 1
-        #base *= c.HIP_LAT_SIGN
-        # TODO can I get rid of this base separation by better initializing
-        # the stance_heel location? Now that we're in 3D, the lateral location
-        # is important, so just setting it to (0,0,0) doesn't work well.
-        #base *= 0.05
-        #angle = base + balance_feedback
-        tq[self.swing_idx+2] = balance_feedback
+        tq[self.swing_idx+2] = balance_feedback - q[c.PITCH_IDX+2]
         tq[self.stance_idx+2] = 0
 
         #actual_twist = self.skel.q[4] + self.skel.q[7]
@@ -99,7 +94,8 @@ def test(env):
     env.sdf_loader.put_dot([0,0,0])
     for i in range(30):
         t = 0.1 + 0.2*i# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=8, put_dots=False)
+        # TODO customize target y for each .skel file?
+        env.simulate([t,-0.9,0], render=8, put_dots=False)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv

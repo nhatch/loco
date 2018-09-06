@@ -98,7 +98,7 @@ class SteppingStonesEnv:
         return self.current_observation()
 
     def find_contacts(self, bodynode):
-        return [c for c in self.world.collision_result.contacts if c.bodynode1 == bodynode]
+        return [c for c in self.world.collision_result.contacts if (c.bodynode1 == bodynode or c.bodynode2 == bodynode)]
 
     # Executes one world step.
     # Returns (observation, episode_terminated, human-readable message) tuple.
