@@ -56,6 +56,7 @@ class SteppingStonesEnv:
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
         assert(walker.name == "walker")
+        # TODO I spent a whole day tracking down weird behavior that was ultimately due to an incorrect joint limit. Is there a way that I can visualize when these limits are being hit?
         for j in walker.joints:
             j.set_position_limit_enforced()
         self.robot_skeleton = walker
@@ -179,7 +180,7 @@ class SteppingStonesEnv:
             self.robot_skeleton.x += perturbation
             # Start with some forward momentum (Simbicon has some trouble otherwise)
             dq = np.zeros(self.consts().Q_DIM)
-            dq[0] += 0.8 + random * np.random.uniform(low=0.0, high=0.4)
+            dq[0] += 0.4 + random * np.random.uniform(low=0.0, high=0.4)
             dq = self.robot_skeleton.dq + self.from_features(dq)
             self.robot_skeleton.dq = dq
             self.controller.reset()

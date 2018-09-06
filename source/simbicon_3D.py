@@ -26,8 +26,8 @@ class Simbicon3D(Simbicon):
         #        [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
         # The following are the settings used for the 2D model. They don't work well in 3D.
         # (Yaw is poorly controlled, and the swing foot collides with the stance foot.)
-        gait = ([0.14, 0.0, 0.2, -0.0,  0.4, -1.1,   0.0, -0.05,0.2, 0.5, 0.2],
-                [0.14, 0.0, 0.0, -0.0, -0.0, -0.00, 0.20, -0.1, 0.2, 0.5, 0.2])
+        gait = ([0.14, 0.5, 0.2, -0.05,  0.4, -1.1,   0.0, -0.05,0.2, 0.5, 0.2],
+                [0.14, 0.5, 0.2, -0.05, -0.0, -0.00, 0.20, -0.1, 0.2, 0.5, 0.2])
         return gait
 
     def adjust_up_targets(self):
@@ -54,7 +54,11 @@ class Simbicon3D(Simbicon):
         balance_feedback = -(cd*d + cv*dq[2])
 
         tq[self.swing_idx+2] = balance_feedback - q[c.PITCH_IDX+2]
-        tq[self.stance_idx+2] = 0
+        # TODO there might be a more principled way to control the extra DOFs than
+        # the following. But this works for now.
+        tq[self.stance_idx+2] = q[c.PITCH_IDX+2]
+        tq[self.stance_idx+1] = 2*q[c.PITCH_IDX+1]
+        tq[18] = -q[c.PITCH_IDX+2]
 
         #actual_twist = self.skel.q[4] + self.skel.q[7]
         # TODO why does the robot rotate so much on the third step of test()?
@@ -92,10 +96,10 @@ def test(env):
     env.seed(seed)
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
-    for i in range(30):
+    for i in range(20):
         t = 0.1 + 0.2*i# + np.random.uniform(low=-0.2, high=0.2)
         # TODO customize target y for each .skel file?
-        env.simulate([t,-0.9,0], render=8, put_dots=False)
+        env.simulate([t,-0.9,0], render=1, put_dots=False)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv

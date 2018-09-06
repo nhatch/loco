@@ -309,7 +309,7 @@
                 <axis>
                     <limit>
                         <lower>-1.570796</lower>
-                        <upper>0.0</upper>
+                        <upper>1.570796</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -328,7 +328,7 @@
                 </axis2>
                 <axis3>
                     <limit>
-                        <lower>0.0</lower>
+                        <lower>-1.570796</lower>
                         <upper>0.6</upper>
                     </limit>
                     <dynamics>
@@ -394,7 +394,7 @@
                 <axis_order>xyz</axis_order>
                 <axis>
                     <limit>
-                        <lower>0.0</lower>
+                        <lower>-1.570796</lower>
                         <upper>1.570796</upper>
                     </limit>
                     <dynamics>
@@ -415,7 +415,7 @@
                 <axis3>
                     <limit>
                         <lower>-0.6</lower>
-                        <upper>0.0</upper>
+                        <upper>1.570796</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>

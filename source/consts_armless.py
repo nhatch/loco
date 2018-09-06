@@ -32,8 +32,8 @@ L_FOOT =   0.21
 FOOT_RADIUS = 0.049 # Not really a radius; it's a box....
 
 # Three hip, one knee, two ankle
-leg_kp = [200, 200, 200, 200, 200, 100]
-leg_kd = [15, 15, 15, 15, 15, 10]
+leg_kp = [200, 200, 600, 200, 200, 100]
+leg_kd = [15, 15, 70, 15, 15, 10]
 # Two abdomen, one chest
 trunk_kp = [300, 300, 300]
 trunk_kd = [20, 20, 20]
