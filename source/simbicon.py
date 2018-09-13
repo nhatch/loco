@@ -115,6 +115,7 @@ class Simbicon(PDController):
         gait[UP].stance_ankle_relative += + step_dist_diff * 0.4
         gait[UP].swing_hip_world       += + step_dist_diff * 0.4
         gait[UP].swing_knee_relative   += - step_dist_diff * 0.8
+        gait[UP].torso_world           += - step_dist_diff * 0.5
 
     def set_gait(self, gait):
         self.FSM = gait

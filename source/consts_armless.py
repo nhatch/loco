@@ -6,7 +6,8 @@ perm = [2,1,0,3,4,5, # Brick DOFs
         6,7,8,9,10,11, # Left leg
         18,19,20] # Everything else
 
-sign_switches = [2,8,14]
+# These are applied in standardized space
+sign_switches = [2,8,14,17]
 
 # These should be the same for all 3D models
 BRICK_DOF = 6
@@ -32,8 +33,8 @@ L_FOOT =   0.21
 FOOT_RADIUS = 0.049 # Not really a radius; it's a box....
 
 # Three hip, one knee, two ankle
-leg_kp = [200, 200, 600, 200, 200, 100]
-leg_kd = [15, 15, 70, 15, 15, 10]
+leg_kp = [600, 600, 600, 200, 200, 100]
+leg_kd = [70, 70, 70, 15, 15, 10]
 # Two abdomen, one chest
 trunk_kp = [300, 300, 300]
 trunk_kd = [20, 20, 20]
