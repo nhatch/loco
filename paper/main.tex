@@ -86,15 +86,16 @@ Deep RL is a popular technique to learn highly dynamic motions for humanoids \ci
 The resulting policies are both computationally and physically fast.
 However, their effectiveness on rough terrain is uncertain.
 
-Building on this work, we approach dynamic biped locomotion on rough terrain using a combination of curriculum learning, imitation learning, and reinforcement learning, which we call CIRL. \nhatch{Just a working title.}
-The controller learns new skills using RL, which are generalized to a fast policy using imitation learning.
+Building on this work, we approach dynamic biped locomotion on rough terrain using a combination of curriculum learning and imitation learning, which we call ResCu. \nhatch{Just a working title.}
+\nhatch{Should mention that the ``controller'' below is only learning a residual on top of an already-reassnable basic controller.}
+The controller learns a fast policy through imitation of an expert that uses (slow) zero-order optimization.
 Use of a curriculum allows the controller to build up from flat ground to a challenging combination of stepping stones at various heights, distances, and orientations.
-In contrast to prior work in RL, our controller \emph{plans its footstep locations}, which allows it to handle larger and more frequent obstacles.
+In contrast to prior work in learning-based locomotion, our controller \emph{plans its footstep locations}, which allows it to handle larger and more frequent obstacles.
 In contrast to prior work in footstep planning, our controller learns a dynamic policy that requires no optimization at execution time.
 
 We evaluate this algorithm on a simulated Darwin humanoid robot.
 Of course, applying the resulting policy to a real-world system requires overcoming the ``reality gap''.
-Nonetheless, recent advances in sim-to-real techniques \citep{tan2016simulation, tan2018sim} make us optimistic that CIRL will be a valuable technique in robotic biped locomotion.
+Nonetheless, recent advances in sim-to-real techniques \citep{tan2016simulation, tan2018sim} make us optimistic that ResCu will be a valuable technique in robotic biped locomotion.
 
 \section{Related work}
 
@@ -114,7 +115,7 @@ However, we are interested in exploring alternative possibilities that can explo
 
 \nhatch{I think Honda does a lot with dynamic gaits, but I don't really understand how it works. I need to find and read some papers. To what extent can they plan step locations and handle rough terrain?}
 
-There are a few prior works that use reinforcement learning to do step planning for simulated systems.
+There are a few prior works that use learning-based approaches to do step planning for simulated systems.
 \cite{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
 However, the target step locations are unrealistic and rarely actually achieved.
 The path that the agent follows is perfectly flat; on rough terrain, such inaccurate step planning would probably fail.
@@ -136,7 +137,7 @@ For now, we assume that perception is solved\footnote{In the experiments, we eva
 The problem is to choose motor torques to accomplish the given step plan.
 
 
-Our algorithm is called CIRL, which stands for ``curriculum, imitation, and reinforcement learning''.
+Our algorithm is called ResCu, which stands for ``residual curriculum learning''.
 It consists of four components: a basic parametrized walking controller, a higher-level controller that outputs parameters for the basic controller, a data collection scheme for single-step targets according to a gradually more difficult curriculum, and an optimization algorithm to solve those single-step targets.
 \nhatch{This system is rather complicated, and probably some of these components are unnecessary or unwise to include in the current paper. A major focus of work in August will be ablation studies to determine which of these ideas are most important.}
 
@@ -190,7 +191,6 @@ It has the same input (``state'') as the basic controller: joint angles and velo
 Its output (``action'') is a vector of parameters that modify the behavior of the basic controller during the subsequent step (22 dimensions in 3D, 18 dimensions in 2D; see Table \ref{table:params}).
 These parameters are the same parameters that were hand-tuned during the initial design of the basic controller; the HLC output corresponds to a residual on top of the hand-tuned values.
 We exploit bilateral symmetry by mirroring the joint states if necessary so that the swing foot is always the right foot.
-\nhatch{For 3D we'll have to mirror the targets as well; I don't think I've implemented this yet.}
 
 \begin{table}
   \caption{Parameters of the basic walking controller for the UP phase.
@@ -228,6 +228,7 @@ For this project, we chose a linear hypothesis class for the HLC.
 Because our dataset is relatively small, we use ridge regression to avoid overfitting.
 Our dataset also tends to contain outliers, because the basic controller can behave unpredictably in some situations (such as when the agent stubs its toe).
 We handle this by using RANSAC \citep{fischler1981random} to discard outliers at training time.
+\nhatch{RANSAC might not be necessary if the optimization alg. to collect the dataset is good enough. Maybe that alg could throw out examples where no good parameter setting was found.}
 
 \subsection{Curriculum} \label{sec:curriculum}
 
@@ -259,13 +260,12 @@ Later still, we introduce some vertical variation into the target step locations
 We believe \nhatch{and test experimentally} that this curriculum of gradually increasing difficulty is key to good performance.
 In our algorithm, the initial point of the optimization problem in step 3 is the action suggested by the current HLC.
 The problem is nonconvex, so this initialization point matters a lot.
-With better initialization, the saddle point is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
+With better initialization, the stationary point is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
 Hence, it makes sense to scale the difficulty of the optimization problem roughly proportionally to the current capabilities of the HLC.
 
 \subsection{Single-step optimization} \label{sec:optimization}
 
 We now give more details about the optimization problem in step 3 of Sec. \ref{sec:curriculum}.
-\nhatch{Spoiler: It is not actually solved with reinforcement learning, so I should probably remove ``reinforcement learning'' from the title of the algorithm.}
 The objective of the problem is the Euclidean distance between the target and achieved step locations.
 We define the achieved step location as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
 The optimization variables are the parameters of the basic controller (see Table \ref{table:params}).
@@ -274,7 +274,7 @@ There are no constraints.
 
 Because it would be difficult to calculate gradients for this objective, we use the zero-order optimization algorithm described in \cite{mania2018simple}.
 At each iteration, we estimate gradients as a weighted average of $Q = 4$ random directions, with the weight for each direction chosen as the central difference of the objective value along that direction.
-Hence, we perform $2Q$ single-step rollouts for each update of the optimization variables.
+Hence, we perform $2Q$ single-footstep rollouts for each update of the optimization variables.
 We end the optimization once the accuracy reaches two centimeters, or once a certain maximum number of iterations (in our case, ten) is reached.
 
 \section{Experiments}
