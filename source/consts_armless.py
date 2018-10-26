@@ -1,5 +1,5 @@
 import numpy as np
-skel_file = "skel/HumanSkel/kima_human_box_armless.skel"
+skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 
 perm = [2,1,0,3,4,5, # Brick DOFs
         12,13,14,15,16,17, # Right leg
@@ -41,4 +41,4 @@ trunk_kd = [20, 20, 20]
 KP_GAIN = leg_kp + leg_kp + trunk_kp
 KD_GAIN = leg_kd + leg_kd + trunk_kd
 
-ALLOWED_COLLISION_IDS = [4,7] # The two feet and toes
+ALLOWED_COLLISION_IDS = [4,7] # The two feet
