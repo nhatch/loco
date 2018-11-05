@@ -20,8 +20,8 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        gait = ([0.14, 0.5, 0.2, -0.1,  0.4, -1.1,   0.0, -0.05,0.2, 0.5, 0.2],
-                [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.5, 0.2])
+        gait = ([0.14, 0.5, 0.2, -0.1,  0.4, -1.1,   0.0, -0.05,0.2, 0.7, 0.2],
+                [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.7, 0.2])
         return gait
 
     def compute_target_q(self, q, dq):
@@ -37,13 +37,20 @@ class Simbicon3D(Simbicon):
         self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
         self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
         d = q[2] - self.stance_heel[2]
+        if d*dq[2] < 0:
+            # If COM is moving (laterally) towards the stance heel, use no velocity gain.
+            # This attempts to correct for a "sashay" issue that was causing self collisions.
+            cv = 0
         balance_feedback = -(cd*d + cv*dq[2])
 
+        # Set lateral (roll) swing hip angle
         tq[self.swing_idx+2] = balance_feedback - q[c.PITCH_IDX+2]
         # TODO there might be a more principled way to control the extra DOFs than
         # the following. But this works for now.
         tq[self.stance_idx+2] = q[c.PITCH_IDX+2]
-        tq[self.stance_idx+1] = 2*q[c.PITCH_IDX+1]
+        tq[self.stance_idx+1] = q[c.PITCH_IDX+1]
+        # Try to keep the torso upright (in terms of roll/yaw, *not* pitch) using the
+        # abdomen joints. TODO use words, not numbers like "18"
         tq[18] = -q[c.PITCH_IDX+2]
 
         # This doesn't look very pretty; I'd rather not use it.
@@ -51,6 +58,7 @@ class Simbicon3D(Simbicon):
         # by pushing itself a bit sideways at the start of every toe-off.
         if self.direction == UP:
             angle = 1.0
+            # Ankle roll angle
             tq[self.swing_idx+5] = angle if self.swing_idx == c.LEFT_IDX else -angle
 
         self.update_doppelganger(tq)
@@ -83,7 +91,7 @@ def test(env):
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
     for i in range(20):
-        t = 0.2 + 0.4*i# + np.random.uniform(low=-0.2, high=0.2)
+        t = 0.2 + 0.7*i# + np.random.uniform(low=-0.2, high=0.2)
         # TODO customize target y for each .skel file?
         env.simulate([t,-0.9,0], render=1, put_dots=True)
 

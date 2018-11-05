@@ -116,6 +116,14 @@ class Simbicon(PDController):
         gait[UP].swing_hip_world       += + step_dist_diff * 0.4
         gait[UP].swing_knee_relative   += - step_dist_diff * 0.8
         gait[UP].torso_world           += - step_dist_diff * 0.5
+        q, dq = self.env.get_x()
+        tq = self.compute_target_q(q, dq)
+        print("Ending swing roll (world):", q[self.stance_idx + 2]+q[5])
+        print("==========================")
+        print("Target swing roll (world):", tq[self.swing_idx + 2]+q[5])
+        print("Actual swing roll (world):", q[self.swing_idx + 2]+q[5])
+        print("Lateral offset from stance heel:", q[2] - self.stance_heel[2])
+        print("Lateral velocity:", dq[2])
 
     def set_gait(self, gait):
         self.FSM = gait

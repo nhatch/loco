@@ -221,7 +221,7 @@
                     <transformation>0.0 0.0735 0.0 0 0 0</transformation>
                     <geometry>
                         <box>
-                            <size>0.175 0.1855 0.315</size>
+                            <size>0.175 0.1255 0.315</size>
                         </box>
                     </geometry>
                 </visualization_shape>
@@ -229,7 +229,7 @@
                     <transformation>0.0 0.0735 0.0 0 0 0</transformation>
                     <geometry>
                         <box>
-                            <size>0.175 0.1855 0.315</size>
+                            <size>0.175 0.1255 0.315</size>
                         </box>
                     </geometry>
                 </collision_shape>
