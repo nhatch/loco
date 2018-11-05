@@ -76,12 +76,6 @@ class Simbicon(PDController):
         # Then modified for the new parameters format.
         gait = ([0.14, 0, 0.2, 0.0, 0.4, -1.1,   0, -0.05, 0.2, 0.5, 0.2],
                 [0.14, 0,   0, 0.0,   0,    0, 0.2, -0.1,  0.2, 0.5, 0.2])
-        # This is the gait that works best in 3D. It doesn't work well, though.
-        # Uncomment this if you want to see what the gait looks like in 2D.
-        # NOTE: You will need to stub out adjust_up_targets and maybe_start_down_phase
-        # to match the implementations in simbicon_3D.py.
-        # gait = ([0.14, 0.5, 0.2, -0.2,  0.5, -1.1,   0.6, -0.05,  0, 0.5, 0.2],
-        #         [0.14, 0.5, 0.2, -0.2, -0.1, -0.05, 0.15, -0.1, 0.0, 0.5, 0.2])
         return gait
 
     def set_gait_raw(self, target, raw_gait=None):
@@ -213,32 +207,32 @@ class Simbicon(PDController):
         tx = self.target[0] - self.FSMstate().ik_gain * dq[0]
         ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
         relative_hip, knee = self.ik.inv_kine([tx, ty])
-        self.FSM[DOWN].swing_hip_world = relative_hip + q[c.PITCH_IDX]
+        self.FSM[DOWN].swing_hip_world = relative_hip + q[c.ROOT_PITCH]
         self.FSM[DOWN].swing_knee_relative = knee
 
     def compute_target_q(self, q, dq):
         c = self.env.consts()
         state = self.FSMstate()
         tq = np.zeros(c.Q_DIM)
-        tq[self.stance_idx+c.KNEE_IDX] = state.stance_knee_relative
-        tq[self.stance_idx+c.KNEE_IDX+1] = state.stance_ankle_relative
+        tq[self.stance_idx+c.KNEE] = state.stance_knee_relative
+        tq[self.stance_idx+c.ANKLE] = state.stance_ankle_relative
 
         cd = state.position_balance_gain
         cv = state.velocity_balance_gain
-        v = dq[0]
-        d = q[0] - self.stance_heel[0]
+        v = dq[c.X]
+        d = q[c.X] - self.stance_heel[c.X]
         balance_feedback = cd*d + cv*v
 
         target_swing_angle = state.swing_hip_world + balance_feedback
         target_swing_knee = state.swing_knee_relative
-        tq[self.swing_idx+c.KNEE_IDX] = target_swing_knee
+        tq[self.swing_idx+c.KNEE] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
-        tq[self.swing_idx+c.KNEE_IDX+1] = -(target_swing_angle + target_swing_knee)
-        tq[self.swing_idx+c.KNEE_IDX+1] += state.swing_ankle_relative
+        tq[self.swing_idx+c.ANKLE] = -(target_swing_angle + target_swing_knee)
+        tq[self.swing_idx+c.ANKLE] += state.swing_ankle_relative
 
-        torso_actual = q[c.PITCH_IDX]
-        tq[self.swing_idx] = target_swing_angle - torso_actual
+        torso_actual = q[c.ROOT_PITCH]
+        tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
         return tq
 
     def compute(self):
@@ -250,29 +244,18 @@ class Simbicon(PDController):
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE_IDX] *= 8
+            self.Kd[self.stance_idx+c.KNEE] *= 8
         control = self.compute_transformed(target_q)
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE_IDX] /= 8
+            self.Kd[self.stance_idx+c.KNEE] /= 8
 
         # Make modifications to control torso pitch
-        torso_actual = q[c.PITCH_IDX]
-        torso_speed = dq[c.PITCH_IDX]
-        kp = self.Kp[self.stance_idx]
-        kd = self.Kd[self.stance_idx]
+        torso_actual = q[c.ROOT_PITCH]
+        torso_speed = dq[c.ROOT_PITCH]
+        kp = self.Kp[self.stance_idx+c.HIP_PITCH]
+        kd = self.Kd[self.stance_idx+c.HIP_PITCH]
         torso_torque = - kp * (torso_actual - state.torso_world) - kd * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
-
-        # The following were hacks to attempt to make the 3D model maintain its torso
-        # facing straight forward. They didn't work well but here's the code if you want.
-        #torso_actual = q[c.ROLL_IDX]
-        #torso_speed = dq[c.ROLL_IDX]
-        #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
-        #control[self.stance_idx+c.HIP_OFFSET_LAT] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_LAT]
-        #torso_actual = q[c.YAW_IDX]
-        #torso_speed = dq[c.YAW_IDX]
-        #torso_torque = - c.KP_GAIN * (torso_actual - 0) - c.KD_GAIN * torso_speed
-        #control[self.stance_idx+c.HIP_OFFSET_TWIST] = -torso_torque# - control[self.swing_idx+c.HIP_OFFSET_TWIST]
 
         torques = self.env.from_features(control)
         return torques

@@ -4,6 +4,8 @@ from IPython import embed
 from simbicon import Simbicon, UP, DOWN
 from sdf_loader import RED, GREEN, BLUE
 
+from consts_common3D import *
+
 class Simbicon3D(Simbicon):
     # TODO test this
     def standardize_stance(self, state):
@@ -33,33 +35,18 @@ class Simbicon3D(Simbicon):
         cd = state.position_balance_gain_lat
         cv = state.velocity_balance_gain_lat
         proj = q[:3]
-        proj[1] = self.stance_heel[1]
+        proj[Y] = self.stance_heel[Y]
         self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
         self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
-        d = q[2] - self.stance_heel[2]
-        if d*dq[2] < 0:
+        d = q[Z] - self.stance_heel[Z]
+        if d*dq[Z] < 0:
             # If COM is moving (laterally) towards the stance heel, use no velocity gain.
             # This attempts to correct for a "sashay" issue that was causing self collisions.
             cv = 0
-        balance_feedback = -(cd*d + cv*dq[2])
+        balance_feedback = -(cd*d + cv*dq[Z])
 
-        # Set lateral (roll) swing hip angle
-        tq[self.swing_idx+2] = balance_feedback - q[c.PITCH_IDX+2]
-        # TODO there might be a more principled way to control the extra DOFs than
-        # the following. But this works for now.
-        tq[self.stance_idx+2] = q[c.PITCH_IDX+2]
-        tq[self.stance_idx+1] = q[c.PITCH_IDX+1]
-        # Try to keep the torso upright (in terms of roll/yaw, *not* pitch) using the
-        # abdomen joints. TODO use words, not numbers like "18"
-        tq[18] = -q[c.PITCH_IDX+2]
-
-        # This doesn't look very pretty; I'd rather not use it.
-        # Basically it's a hack to try to keep the robot from falling off the edge of the track
-        # by pushing itself a bit sideways at the start of every toe-off.
-        if self.direction == UP:
-            angle = 1.0
-            # Ankle roll angle
-            tq[self.swing_idx+5] = angle if self.swing_idx == c.LEFT_IDX else -angle
+        tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_PITCH+HIP_ROLL]
+        tq[TORSO_ROLL] = -q[ROOT_ROLL]
 
         self.update_doppelganger(tq)
         return tq
@@ -69,8 +56,8 @@ class Simbicon3D(Simbicon):
             return
         c = self.env.consts()
         q = q.copy()
-        q[2] = 0.5
-        q[0] = self.env.get_x()[0][0]
+        q[Z] = 0.5
+        q[X] = self.env.get_x()[0][X] # lowercase x means "full state"; uppercase is X axis. Sry
         self.env.doppelganger.q = self.env.from_features(q)
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 

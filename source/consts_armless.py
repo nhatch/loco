@@ -9,13 +9,7 @@ perm = [2,1,0,3,4,5, # Brick DOFs
 # These are applied in standardized space
 sign_switches = [2,8,14,17]
 
-# These should be the same for all 3D models
-BRICK_DOF = 6
-PITCH_IDX = 3
-LEG_DOF = 6
-RIGHT_IDX = 6
-LEFT_IDX = 12
-KNEE_IDX = 3
+from consts_common3D import *
 
 Q_DIM = 21
 CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)

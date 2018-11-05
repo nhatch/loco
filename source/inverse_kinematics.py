@@ -23,14 +23,14 @@ class InverseKinematics:
         q, _ = self.env.get_x()
         # Adding torso, hip, knee, and ankle angles gives the angle of the foot
         # relative to flat ground.
-        foot_angle = q[c.PITCH_IDX]+q[swing_idx]+q[swing_idx+c.KNEE_IDX]+q[swing_idx+c.KNEE_IDX+1]
+        foot_angle = q[c.ROOT_PITCH]+q[swing_idx]+q[swing_idx+c.KNEE]+q[swing_idx+c.ANKLE]
         if swing_idx == c.RIGHT_IDX:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
         foot_com = self.env.robot_skeleton.bodynodes[swing_foot_idx].com()
         offset = -0.5 * c.L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
-        offset[1] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
+        offset[c.Y] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
         return foot_com + offset
 
     def test(self):
@@ -101,7 +101,7 @@ class InverseKinematics:
         # relative to the pelvis joint's absolute location and rotation.
         pelvis_com = self.env.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX].com()
         q, _ = self.env.get_x()
-        theta = q[c.PITCH_IDX]
+        theta = q[c.ROOT_PITCH]
         pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
             self.env.sdf_loader.put_dot(pelvis_bottom[:3], color=RED)
