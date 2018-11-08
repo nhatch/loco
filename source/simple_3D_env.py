@@ -28,6 +28,10 @@ class Simple3DEnv(SteppingStonesEnv):
         trans = [-x2, -y2, -(z2 + 5)]
         self.viewer.scene.tb.trans[0:3] = trans
 
+    def set_rot_manual(self, phi):
+        self.phi = phi
+        self.set_rot(self.viewer.scene.tb)
+
     def set_rot(self, tb):
         # The default Trackball parameters rotate phi around the z axis
         # rather than the y axis. I modified this code from the

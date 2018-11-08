@@ -13,9 +13,12 @@ class Simbicon3D(Simbicon):
         state = super().standardize_stance(state)
         # Rotations are absolute, not relative, so we need to multiply some angles
         # by -1 to obtain a mirrored pose.
-        D = c.Q_DIM
+        D = Q_DIM
         m = np.ones(D)
-        absolute_rotation_indices = [2,4,5,6,7,10,11,14,16,17,20] # TODO update this
+        absolute_rotation_indices = [Z, ROOT_YAW, ROOT_ROLL,
+                RIGHT_IDX + HIP_YAW, RIGHT_IDX + HIP_ROLL, RIGHT_IDX + ANKLE_ROLL,
+                LEFT_IDX + HIP_YAW, LEFT_IDX + HIP_ROLL, LEFT_IDX + ANKLE_ROLL,
+                TORSO_ROLL, TORSO_YAW]
         m[absolute_rotation_indices] = -1
         state[0:D] *= m
         state[D:2*D] *= m
@@ -45,8 +48,8 @@ class Simbicon3D(Simbicon):
         cv = state.velocity_balance_gain_lat
         proj = q[:3]
         proj[Y] = self.stance_heel[Y]
-        self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
-        self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
+        #self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
+        #self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
         d = q[Z] - self.stance_heel[Z]
         if d*dq[Z] < 0:
             # If COM is moving (laterally) towards the stance heel, use no velocity gain.
@@ -78,6 +81,7 @@ class Simbicon3D(Simbicon):
 def test_standardize_stance(env):
     from time import sleep
     env.reset(random=0.5)
+    env.set_rot_manual(np.pi/2)
     c = env.controller
     c.change_stance([], [0,0,0])
     obs = env.current_observation()
@@ -99,5 +103,6 @@ def test(env):
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    test(env)
+    #test(env)
+    test_standardize_stance(env)
     embed()
