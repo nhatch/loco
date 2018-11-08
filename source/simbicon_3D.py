@@ -26,6 +26,15 @@ class Simbicon3D(Simbicon):
                 [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.7, 0.2])
         return gait
 
+    def adjust_up_targets(self):
+        q, dq = self.env.get_x()
+        diff = self.target - q[:3]
+        target_yaw = np.arctan(diff[Z]/(diff[X]))
+        target_yaw = 0 # The above doesn't work. Just 0 works better. TODO why??
+        self.FSM[UP].yaw_world = target_yaw
+        self.FSM[DOWN].yaw_world = target_yaw
+        super().adjust_up_targets()
+
     def compute_target_q(self, q, dq):
         tq = super().compute_target_q(q, dq)
 
@@ -45,7 +54,12 @@ class Simbicon3D(Simbicon):
             cv = 0
         balance_feedback = -(cd*d + cv*dq[Z])
 
-        tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_PITCH+HIP_ROLL]
+        tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
+        # TODO is there a principled way to control yaw?
+        # For instance, how might we get the robot to walk in a circle?
+        tq[self.stance_idx+HIP_ROLL] = q[ROOT_ROLL]
+        tq[self.stance_idx+HIP_YAW] = state.yaw_world + q[ROOT_YAW]
+
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 
         self.update_doppelganger(tq)
@@ -78,7 +92,7 @@ def test(env):
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
     for i in range(20):
-        t = 0.2 + 0.7*i# + np.random.uniform(low=-0.2, high=0.2)
+        t = 0.2 + 0.5*i# + np.random.uniform(low=-0.2, high=0.2)
         # TODO customize target y for each .skel file?
         env.simulate([t,-0.9,0], render=1, put_dots=True)
 
