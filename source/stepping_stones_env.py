@@ -159,7 +159,7 @@ class SteppingStonesEnv:
 
     def from_features(self, q):
         c = self.consts()
-        #q = q.copy() # Should I do this?
+        q = q.copy()
         q[c.sign_switches] *= -1
         base = np.zeros(c.Q_DIM)
         for i,j in enumerate(c.perm):
