@@ -1,7 +1,7 @@
 import numpy as np
 
-# len(robot_skeleton.x)
-X_LEN = 42
+from consts_common3D import *
+X_LEN = Q_DIM*2
 
 class State3D:
     def __init__(self, raw_state):
@@ -16,17 +16,14 @@ class State3D:
     def controller_state(self):
         return self.raw_state[X_LEN:]
 
-    def stance_contact_location(self):
-        return self.raw_state[X_LEN:X_LEN+2]
-
     def stance_heel_location(self):
-        return self.raw_state[X_LEN+2:X_LEN+4]
-
-    def stance_platform(self):
-        return self.raw_state[X_LEN+4:X_LEN+6]
+        return self.raw_state[X_LEN:X_LEN+3]
 
     def swing_platform(self):
-        return self.raw_state[X_LEN+6:X_LEN+8]
+        return self.raw_state[X_LEN+3:X_LEN+6]
+
+    def stance_platform(self):
+        return self.raw_state[X_LEN+6:X_LEN+9]
 
     def crashed(self):
         return not np.isfinite(self.raw_state).all()
