@@ -95,6 +95,7 @@ def test(env):
     env.seed(seed)
     env.reset(random=0.0)
     env.sdf_loader.put_dot([0,0,0])
+    env.sdf_loader.put_grounds([[0,-0.9,0]], runway_length=20.0)
     for i in range(20):
         t = 0.2 + 0.5*i# + np.random.uniform(low=-0.2, high=0.2)
         # TODO customize target y for each .skel file?
@@ -103,6 +104,7 @@ def test(env):
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    #test(env)
-    test_standardize_stance(env)
+    env.sdf_loader.ground_width = 2.0
+    test(env)
+    #test_standardize_stance(env)
     embed()

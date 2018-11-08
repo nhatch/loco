@@ -11,23 +11,6 @@
             <mobile>false</mobile>
             <body name="ground">
                 <transformation>0 -1.1025 0 0 0 0</transformation>
-                <visualization_shape>
-                    <transformation>0 0 0 0 0 0</transformation>
-                    <geometry>
-                        <box>
-                            <size>500.0 0.4 2.0</size>
-                        </box>
-                    </geometry>
-                    <color>0.8 0.8 0.8</color>
-                </visualization_shape>
-                <collision_shape>
-                    <transformation>0 0 0 0 0 0</transformation>
-                    <geometry>
-                        <box>
-                            <size>500.0 0.4 2.0</size>
-                        </box>
-                    </geometry>
-                </collision_shape>
             </body>
             <joint name="joint_1" type="free">
                 <parent>world</parent>

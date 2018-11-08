@@ -11,6 +11,7 @@ class SDFLoader:
     def __init__(self):
         self.ground_length = 0.1
         self.ground_offset = 0.02
+        self.ground_width = 0.5
 
     def reset(self, world):
         self.world = world
@@ -32,7 +33,7 @@ class SDFLoader:
         dot.q = q
 
     # Length is in meters.
-    def put_ground(self, x, y, length, index):
+    def put_ground(self, x, y, length, width, index):
         num_grounds = len(self.grounds)
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
@@ -40,8 +41,9 @@ class SDFLoader:
             os.system("sed -e 's/__NAME__/ground_" + str(num_grounds)
                         + "/' skel/ground.sdf > skel/_ground.sdf")
             os.system("sed -e 's/__LEN__/" + str(length) + "/' skel/_ground.sdf > skel/__ground.sdf")
+            os.system("sed -e 's/__WIDTH__/" + str(width) + "/' skel/__ground.sdf > skel/___ground.sdf")
 
-            self.grounds.append(self.world.add_skeleton('./skel/__ground.sdf'))
+            self.grounds.append(self.world.add_skeleton('./skel/___ground.sdf'))
 
         ground = self.grounds[index]
         q = ground.q
@@ -56,7 +58,8 @@ class SDFLoader:
             length = self.ground_length
             if i == 0 and runway_length is not None:
                 length = runway_length
-            self.put_ground(x - self.ground_offset, y, length, i)
+            width = self.ground_width
+            self.put_ground(x - self.ground_offset, y, length, width, i)
 
 if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
