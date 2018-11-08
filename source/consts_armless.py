@@ -11,7 +11,6 @@ sign_switches = [2,8,14,17]
 
 from consts_common3D import *
 
-Q_DIM = 21
 CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
 PELVIS_BODYNODE_IDX = 1

@@ -1,6 +1,7 @@
 
 # These should be the same for all 3D models
 BRICK_DOF = 6
+Q_DIM = 21
 
 X = 0 # forward
 Y = 1 # vertical
