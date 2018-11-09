@@ -4,13 +4,10 @@ import pickle
 import time
 import gym
 
-controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-                        1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0]
-
 class RandomSearch:
     def __init__(self, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
-        self.w_policy = np.zeros(len(controllable_indices))
+        self.w_policy = self.runner.env.controller.controllable_indices() * 0.0
 
         self.n_dirs = n_dirs
         self.eps = eps
@@ -19,7 +16,7 @@ class RandomSearch:
 
     def sample_perturbation(self):
         delta = np.random.randn(np.prod(self.w_policy.shape))
-        delta *= controllable_indices
+        delta *= self.runner.env.controller.controllable_indices()
         delta /= np.linalg.norm(delta)
         return delta.reshape(self.w_policy.shape)
 

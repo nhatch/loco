@@ -13,8 +13,6 @@ from simbicon_params import *
 UP = 'UP'
 DOWN = 'DOWN'
 
-SIMBICON_ACTION_SIZE = 22
-
 class FSMState:
     def __init__(self, params):
         self.raw_params = params
@@ -70,9 +68,13 @@ class Simbicon(PDController):
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
-        gait = ([0.14, 0, 0.2, 0.0, 0.4, -1.1,   0, -0.05, 0.2, 0.5, 0.2],
-                [0.14, 0,   0, 0.0,   0,    0, 0.2, -0.1,  0.2, 0.5, 0.2])
+        gait = ([0.14, 0, 0.2, 0.0, 0.4, -1.1,   0, -0.05, 0.2],
+                [0.14, 0,   0, 0.0,   0,    0, 0.2, -0.1,  0.2])
         return gait
+
+    def controllable_indices(self):
+        return np.array([0, 1, 1, 1, 0, 0, 0, 0, 0,
+                         1, 0, 0, 1, 0, 0, 0, 1, 1])
 
     def set_gait_raw(self, target, raw_gait=None):
         up, down = self.base_gait()
