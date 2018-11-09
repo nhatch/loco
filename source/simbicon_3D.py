@@ -5,6 +5,7 @@ from simbicon import Simbicon, UP, DOWN
 from sdf_loader import RED, GREEN, BLUE
 
 from consts_common3D import *
+from simbicon_params import *
 
 class Simbicon3D(Simbicon):
     # TODO test this
@@ -25,8 +26,8 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        gait = ([0.14, 0.5, 0.2, -0.1,  0.4, -1.1,   0.0, -0.05,0.2, 0.7, 0.2],
-                [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.7, 0.2])
+        gait = ([0.14, 0.5, 0.2, -0.1,  0.4, -1.1,   0.0, -0.05,0.2, 0.7, 0.2, 0.0],
+                [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.7, 0.2, 0.0])
         return gait
 
     def adjust_up_targets(self):
@@ -34,8 +35,8 @@ class Simbicon3D(Simbicon):
         diff = self.target - q[:3]
         target_yaw = np.arctan(diff[Z]/(diff[X]))
         target_yaw = 0 # The above doesn't work. Just 0 works better. TODO why??
-        self.FSM[UP].yaw_world = target_yaw
-        self.FSM[DOWN].yaw_world = target_yaw
+        self.FSM[UP][YAW_WORLD] = target_yaw
+        self.FSM[DOWN][YAW_WORLD] = target_yaw
         super().adjust_up_targets()
 
     def compute_target_q(self, q, dq):
@@ -44,8 +45,8 @@ class Simbicon3D(Simbicon):
         c = self.env.consts()
         state = self.FSMstate()
 
-        cd = state.position_balance_gain_lat
-        cv = state.velocity_balance_gain_lat
+        cd = state[POSITION_BALANCE_GAIN_LAT]
+        cv = state[VELOCITY_BALANCE_GAIN_LAT]
         proj = q[:3]
         proj[Y] = self.stance_heel[Y]
         #self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
@@ -61,7 +62,7 @@ class Simbicon3D(Simbicon):
         # TODO is there a principled way to control yaw?
         # For instance, how might we get the robot to walk in a circle?
         tq[self.stance_idx+HIP_ROLL] = q[ROOT_ROLL]
-        tq[self.stance_idx+HIP_YAW] = state.yaw_world + q[ROOT_YAW]
+        tq[self.stance_idx+HIP_YAW] = state[YAW_WORLD] + q[ROOT_YAW]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 

@@ -103,7 +103,7 @@ class LearnInverseDynamics:
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
-        rs = RandomSearch(self.env, runner, 4, 0.1, 0.05)
+        rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         rs.random_search(render=None)
         return rs.w_policy, runner

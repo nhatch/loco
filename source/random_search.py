@@ -8,7 +8,7 @@ controllable_indices = [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
                         1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0]
 
 class RandomSearch:
-    def __init__(self, env, runner, n_dirs, step_size=0.01, eps=0.05):
+    def __init__(self, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
         self.w_policy = np.zeros(len(controllable_indices))
 
@@ -36,7 +36,7 @@ class RandomSearch:
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, max_iters=10, tol=0.02, render=1.0):
+    def random_search(self, max_iters=10, tol=0.03, render=1.0):
         for i in range(max_iters):
             if self.eval(tol, render):
                 return
