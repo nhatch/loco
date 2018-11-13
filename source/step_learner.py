@@ -13,10 +13,7 @@ class Runner:
     def run(self, action, render=None):
         self.reset()
         r, _ = self.env.simulate(self.target, action=action, put_dots=True, render=render)
-        c = self.env.consts()
-        # We want the pelvis roughly upright as well
-        root_roll = r.pose()[c.ROOT_ROLL] * 10 if c.LEG_DOF == 6 else 0
-        score = -np.linalg.norm(r.stance_heel_location() - self.target) - root_roll**2
+        score = -np.linalg.norm(r.stance_heel_location() - self.target)
         return score
 
     def reset(self):
@@ -46,13 +43,13 @@ def learn_last_move(env, targets):
     env.clear_skeletons()
 
 GY = -0.9 # Ground level for the 3D environment
-LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [0.9, GY, 0.1], [1.7, GY, -0.1]])
+LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
 LONG_STEP_2D = np.array([[0, 0, 0], [0.3, 0, 0], [0.6, 0, 0], [1.4, 0, 0], [1.7, 0, 0]])
 STAIR_2D = np.array([[0, 0, 0], [0.4, 0, 0], [0.8, 0, 0], [1.2, 0.1, 0]])
 
 if __name__ == '__main__':
-    use_3D = True
-    if not use_3D:
+    mode = '3D'
+    if mode == '2D':
         from stepping_stones_env import SteppingStonesEnv
         env = SteppingStonesEnv()
         learn_last_move(env, LONG_STEP_2D)

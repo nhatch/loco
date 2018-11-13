@@ -50,11 +50,8 @@ class Simbicon(PDController):
         self.direction = UP
 
     def standardize_stance(self, state):
-        c = self.env.consts()
-        # Ensure the stance leg is the right leg.
-        if self.swing_idx == c.RIGHT_IDX:
-            return state
         # We need to flip the left and right leg.
+        c = self.env.consts()
         D = c.LEG_DOF
         R = c.RIGHT_IDX
         L = c.LEFT_IDX
