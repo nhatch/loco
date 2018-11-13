@@ -33,7 +33,7 @@ class RandomSearch:
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, max_iters=10, tol=0.03, render=1.0):
+    def random_search(self, max_iters=10, tol=0.05, render=1.0):
         for i in range(max_iters):
             if self.eval(tol, render):
                 return

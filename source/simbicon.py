@@ -132,7 +132,12 @@ class Simbicon(PDController):
     def crashed(self, swing_heel):
         c = self.env.consts()
         for contact in self.env.world.collision_result.contacts:
-            bodynode = contact.bodynode2 if contact.skel_id1 == 0 else contact.bodynode1
+            if contact.skel_id1 == 1:
+                bodynode = contact.bodynode1
+            elif contact.skel_id2 == 1:
+                bodynode = contact.bodynode2
+            else:
+                continue
             if contact.skel_id1 == contact.skel_id2:
                 # The robot crashed into itself
                 print("SELF COLLISION")
