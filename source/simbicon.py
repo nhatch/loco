@@ -13,7 +13,7 @@ from simbicon_params import *
 UP = 'UP'
 DOWN = 'DOWN'
 
-class FSMState:
+class Params:
     def __init__(self, params):
         self.raw_params = params
 
@@ -65,21 +65,21 @@ class Simbicon(PDController):
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
-        gait = ([0.14, 0, 0.2, 0.0, 0.4, -1.1,   0, -0.05, 0.2],
-                [0.14, 0,   0, 0.0,   0,    0, 0.2, -0.1,  0.2])
+        gait = [0.14, 0, 0.2, 0.0, 0.2, # Previously index 2 param was zero for DOWN direction.
+                0.4, -1.1,   0, -0.05,
+                0,    0, 0.2, -0.1]
         return gait
 
     def controllable_indices(self):
-        return np.array([0, 1, 1, 1, 0, 0, 0, 0, 0,
-                         1, 0, 0, 1, 0, 0, 0, 1, 1])
+        return np.array([1, 1, 1, 1, 1,
+                         0, 0, 0, 0,
+                         0, 0, 0, 1])
 
     def set_gait_raw(self, target, raw_gait=None):
-        up, down = self.base_gait()
+        params = self.base_gait()
         if raw_gait is not None:
-            up += raw_gait[:len(up)]
-            down += raw_gait[len(up):]
-        gait = {UP: FSMState(up), DOWN: FSMState(down)}
-        self.set_gait(gait)
+            params += raw_gait[:len(up)]
+        self.set_gait(Params(params))
 
         self.target, self.prev_target = target, self.target
 
@@ -99,12 +99,13 @@ class Simbicon(PDController):
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
-        gait = self.FSM
-        gait[UP][STANCE_KNEE_RELATIVE]  += - step_dist_diff * 0.2
-        gait[UP][STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
-        gait[UP][SWING_HIP_WORLD]       += + step_dist_diff * 0.4
-        gait[UP][SWING_KNEE_RELATIVE]   += - step_dist_diff * 0.8
-        gait[UP][TORSO_WORLD]           += - step_dist_diff * 0.5
+        params = self.params
+        params[STANCE_KNEE_RELATIVE+UP_IDX]  += - step_dist_diff * 0.2
+        params[SWING_HIP_WORLD+UP_IDX]       += + step_dist_diff * 0.4
+        params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
+        # These now also affect the DOWN direction. TODO rename this method
+        params[STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
+        params[TORSO_WORLD]           += - step_dist_diff * 0.5
         #q, dq = self.env.get_x()
         #tq = self.compute_target_q(q, dq)
         #print("Ending swing roll (world):", q[self.stance_idx + 2]+q[5])
@@ -114,14 +115,11 @@ class Simbicon(PDController):
         #print("Lateral offset from stance heel:", q[2] - self.stance_heel[2])
         #print("Lateral velocity:", dq[2])
 
-    def set_gait(self, gait):
-        self.FSM = gait
+    def set_gait(self, params):
+        self.params = params
 
     def state(self):
         return np.concatenate((self.stance_heel, self.target, self.prev_target))
-
-    def FSMstate(self):
-        return self.FSM[self.direction]
 
     def time(self):
         return self.env.world.time()
@@ -181,7 +179,7 @@ class Simbicon(PDController):
         if early_strike:
             print("Early strike!")
         q, dq = self.env.get_x()
-        target_diff = self.FSMstate()[IK_GAIN] * dq[0]
+        target_diff = self.params[IK_GAIN] * dq[0]
         heel_close = self.target[0] < swing_heel[0] + target_diff
         com_close = self.target[0] < q[0] + target_diff
         if (heel_close and com_close) or early_strike:
@@ -204,32 +202,34 @@ class Simbicon(PDController):
         q, dq = self.env.get_x()
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target.
-        tx = self.target[0] - self.FSMstate()[IK_GAIN] * dq[0]
+        tx = self.target[0] - self.params[IK_GAIN] * dq[0]
         ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
         relative_hip, knee = self.ik.inv_kine([tx, ty])
-        self.FSM[DOWN][SWING_HIP_WORLD] = relative_hip + q[c.ROOT_PITCH]
-        self.FSM[DOWN][SWING_KNEE_RELATIVE] = knee
+        # TODO this completely overrides the base_gait and set_gait settings. Make this clearer
+        self.params[SWING_HIP_WORLD+DN_IDX] = relative_hip + q[c.ROOT_PITCH]
+        self.params[SWING_KNEE_RELATIVE+DN_IDX] = knee
 
     def compute_target_q(self, q, dq):
         c = self.env.consts()
-        state = self.FSMstate()
+        params = self.params
+        DIR_IDX = UP_IDX if self.direction == UP else DN_IDX
         tq = np.zeros(c.Q_DIM)
-        tq[self.stance_idx+c.KNEE] = state[STANCE_KNEE_RELATIVE]
-        tq[self.stance_idx+c.ANKLE] = state[STANCE_ANKLE_RELATIVE]
+        tq[self.stance_idx+c.KNEE] = params[STANCE_KNEE_RELATIVE+DIR_IDX]
+        tq[self.stance_idx+c.ANKLE] = params[STANCE_ANKLE_RELATIVE]
 
-        cd = state[POSITION_BALANCE_GAIN]
-        cv = state[VELOCITY_BALANCE_GAIN]
+        cd = params[POSITION_BALANCE_GAIN]
+        cv = params[VELOCITY_BALANCE_GAIN]
         v = dq[c.X]
         d = q[c.X] - self.stance_heel[c.X]
         balance_feedback = cd*d + cv*v
 
-        target_swing_angle = state[SWING_HIP_WORLD] + balance_feedback
-        target_swing_knee = state[SWING_KNEE_RELATIVE]
+        target_swing_angle = params[SWING_HIP_WORLD+DIR_IDX] + balance_feedback
+        target_swing_knee = params[SWING_KNEE_RELATIVE+DIR_IDX]
         tq[self.swing_idx+c.KNEE] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
         tq[self.swing_idx+c.ANKLE] = -(target_swing_angle + target_swing_knee)
-        tq[self.swing_idx+c.ANKLE] += state[SWING_ANKLE_RELATIVE]
+        tq[self.swing_idx+c.ANKLE] += params[SWING_ANKLE_RELATIVE+DIR_IDX]
 
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
@@ -238,7 +238,7 @@ class Simbicon(PDController):
     def compute(self):
         c = self.env.consts()
         q, dq = self.env.get_x()
-        state = self.FSMstate()
+        params = self.params
         target_q = self.compute_target_q(q, dq)
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
@@ -254,7 +254,7 @@ class Simbicon(PDController):
         torso_speed = dq[c.ROOT_PITCH]
         kp = self.Kp[self.stance_idx+c.HIP_PITCH]
         kd = self.Kd[self.stance_idx+c.HIP_PITCH]
-        torso_torque = - kp * (torso_actual - state[TORSO_WORLD]) - kd * torso_speed
+        torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
         control[self.stance_idx] = -torso_torque - control[self.swing_idx]
 
         torques = self.env.from_features(control)

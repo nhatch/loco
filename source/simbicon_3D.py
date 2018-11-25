@@ -26,22 +26,26 @@ class Simbicon3D(Simbicon):
         return state
 
     def base_gait(self):
-        gait = ([0.14, 0.5, 0.2, -0.1,  0.4, -1.1,   0.0, -0.05,0.2, 0.7, 0.2, 0.0, 0.0, 0.0],
-                [0.14, 0.5, 0.2, -0.1, -0.0, -0.00, 0.20, -0.1, 0.2, 0.7, 0.2, 0.0, 0.0, 0.0])
+        gait = [0.14, 0.5, 0.2, -0.1, 0.2,
+                0.4, -1.1,   0.0, -0.05,
+                -0.0, -0.00, 0.20, -0.1,
+                0.7, 0.2, 0.0, 0.0, 0.0]
         return gait
 
     def controllable_indices(self):
-        return np.array([0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-                         1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0])
+        return np.array([1, 1, 1, 1, 1,
+                         0, 0, 0, 0,
+                         0, 0, 0, 1,
+                         0, 0, 1, 1, 1])
 
     def compute_target_q(self, q, dq):
         tq = super().compute_target_q(q, dq)
 
         c = self.env.consts()
-        state = self.FSMstate()
+        params = self.params
 
-        cd = state[POSITION_BALANCE_GAIN_LAT]
-        cv = state[VELOCITY_BALANCE_GAIN_LAT]
+        cd = params[POSITION_BALANCE_GAIN_LAT]
+        cv = params[VELOCITY_BALANCE_GAIN_LAT]
         proj = q[:3]
         proj[Y] = self.stance_heel[Y]
         #self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
@@ -56,9 +60,9 @@ class Simbicon3D(Simbicon):
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
         # TODO is there a principled way to control yaw?
         # For instance, how might we get the robot to walk in a circle?
-        tq[self.stance_idx+HIP_ROLL] = state[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
-        tq[self.stance_idx+HIP_YAW] = state[YAW_WORLD] + q[ROOT_YAW]
-        tq[self.stance_idx+ANKLE_ROLL] = state[STANCE_ANKLE_ROLL]
+        tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
+        tq[self.stance_idx+HIP_YAW] = params[YAW_WORLD] + q[ROOT_YAW]
+        tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 
