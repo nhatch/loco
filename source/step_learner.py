@@ -21,7 +21,7 @@ class Runner:
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets):
-    action = np.concatenate(env.controller.base_gait())*0
+    action = env.controller.base_gait()*0
     # Two short steps, then a long step. This causes issues for the basic SIMBICON
     # controller, if the next step is another short step. This is because the
     # velocity-based swing hip correction tends to overcorrect so that the robot

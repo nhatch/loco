@@ -65,7 +65,7 @@ class Simbicon(PDController):
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
-        gait = [0.14, 0, 0.2, 0.0, 0.2, # Previously index 2 param was zero for DOWN direction.
+        gait = [0.14, 0, 0.2, 0.0, 0.2,
                 0.4, -1.1,   0, -0.05,
                 0,    0, 0.2, -0.1]
         return gait
@@ -78,7 +78,7 @@ class Simbicon(PDController):
     def set_gait_raw(self, target, raw_gait=None):
         params = self.base_gait()
         if raw_gait is not None:
-            params += raw_gait[:len(up)]
+            params += raw_gait
         self.set_gait(Params(params))
 
         self.target, self.prev_target = target, self.target
@@ -93,9 +93,9 @@ class Simbicon(PDController):
         d = np.array([-d[1], d[0], 0])
         self.unit_normal = d / np.linalg.norm(d)
 
-        self.adjust_up_targets()
+        self.adjust_targets()
 
-    def adjust_up_targets(self):
+    def adjust_targets(self):
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
@@ -103,7 +103,6 @@ class Simbicon(PDController):
         params[STANCE_KNEE_RELATIVE+UP_IDX]  += - step_dist_diff * 0.2
         params[SWING_HIP_WORLD+UP_IDX]       += + step_dist_diff * 0.4
         params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
-        # These now also affect the DOWN direction. TODO rename this method
         params[STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
         params[TORSO_WORLD]           += - step_dist_diff * 0.5
         #q, dq = self.env.get_x()
