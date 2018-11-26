@@ -29,6 +29,7 @@ class Simbicon3D(Simbicon):
         gait = [0.14, 0.5, 0.2, -0.1, 0.2,
                 0.4, -1.1,   0.0, -0.05,
                 -0.0, -0.00, 0.20, -0.1,
+                0,0,0,
                 0.7, 0.2, 0.0, 0.0, 0.0]
         return gait
 
@@ -36,6 +37,7 @@ class Simbicon3D(Simbicon):
         return np.array([1, 1, 1, 1, 1,
                          0, 0, 0, 0,
                          0, 0, 0, 1,
+                         0,0,0,
                          0, 0, 1, 1, 1])
 
     def compute_target_q(self, q, dq):

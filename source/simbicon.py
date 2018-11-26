@@ -67,13 +67,15 @@ class Simbicon(PDController):
         # Then modified for the new parameters format.
         gait = [0.14, 0, 0.2, 0.0, 0.2,
                 0.4, -1.1,   0, -0.05,
-                0,    0, 0.2, -0.1]
+                0,    0, 0.2, -0.1,
+                0,0,0]
         return gait
 
     def controllable_indices(self):
         return np.array([1, 1, 1, 1, 1,
                          0, 0, 0, 0,
-                         0, 0, 0, 1])
+                         0, 0, 0, 1,
+                         0,0,0])
 
     def set_gait_raw(self, target, raw_gait=None):
         params = self.base_gait()
@@ -98,8 +100,11 @@ class Simbicon(PDController):
     def adjust_targets(self):
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
-        step_dist_diff = self.target[0] - self.stance_heel[0] - 0.4
-        params = self.params
+        params = self.params # This should work like np.array
+        params[TX] += self.target[0]
+        params[TY] += self.target[1]
+        params[TZ] += self.target[2]
+        step_dist_diff = params[TX] - self.stance_heel[0] - 0.4
         params[STANCE_KNEE_RELATIVE+UP_IDX]  += - step_dist_diff * 0.2
         params[SWING_HIP_WORLD+UP_IDX]       += + step_dist_diff * 0.4
         params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
@@ -179,8 +184,9 @@ class Simbicon(PDController):
             print("Early strike!")
         q, dq = self.env.get_x()
         target_diff = self.params[IK_GAIN] * dq[0]
-        heel_close = self.target[0] < swing_heel[0] + target_diff
-        com_close = self.target[0] < q[0] + target_diff
+        heel_close = self.params[TX] < swing_heel[0] + target_diff
+        # TODO somehow this is misfiring, I think. TODO debug `python simbicon.py`
+        com_close = self.params[TX] < q[0] + target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
             self.direction = DOWN
@@ -201,8 +207,8 @@ class Simbicon(PDController):
         q, dq = self.env.get_x()
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location on the ground at target.
-        tx = self.target[0] - self.params[IK_GAIN] * dq[0]
-        ty = self.target[1] - 0.1 # TODO should we adjust this based on vertical velocity?
+        tx = self.params[TX] - self.params[IK_GAIN] * dq[0]
+        ty = self.params[TY] - 0.1 # TODO should we adjust this based on vertical velocity?
         relative_hip, knee = self.ik.inv_kine([tx, ty])
         # TODO this completely overrides the base_gait and set_gait settings. Make this clearer
         self.params[SWING_HIP_WORLD+DN_IDX] = relative_hip + q[c.ROOT_PITCH]
