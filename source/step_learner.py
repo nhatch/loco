@@ -38,26 +38,32 @@ def collect_start_state(env, targets):
 def learn_last_move(env, targets):
     start_state = collect_start_state(env, targets)
     runner = Runner(env, start_state, targets[-1])
-    rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
+    rs = RandomSearch(runner, 4, step_size=0.3, eps=0.05)
     rs.random_search()
     env.clear_skeletons()
 
-GY = -0.9 # Ground level for the 3D environment
-LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
-LONG_STEP_2D = np.array([[0, 0, 0], [0.3, 0, 0], [0.6, 0, 0], [1.4, 0, 0], [1.7, 0, 0]])
-STAIR_2D = np.array([[0, 0, 0], [0.4, 0, 0], [0.8, 0, 0], [1.2, 0.1, 0]])
+def test_2D():
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    LONG_STEP_2D = np.array([[0, 0, 0], [0.3, 0, 0], [0.6, 0, 0], [1.4, 0, 0], [1.7, 0, 0]])
+    STAIR_2D = np.array([[0, 0, 0], [0.4, 0, 0], [0.8, 0, 0], [1.2, 0.1, 0]])
+    learn_last_move(env, LONG_STEP_2D)
+    learn_last_move(env, STAIR_2D)
+
+def test_3D():
+    from simple_3D_env import Simple3DEnv
+    from simbicon_3D import Simbicon3D
+    env = Simple3DEnv(Simbicon3D)
+    env.sdf_loader.ground_width = 2.0
+    env.sdf_loader.ground_length = 1.0
+    GY = -0.9 # Ground level for the 3D environment
+    # LONG_STEP is a little too hard, but BASIC at least should be learnable
+    LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
+    BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
+    learn_last_move(env, BASIC_3D)
+    learn_last_move(env, LONG_STEP_3D)
 
 if __name__ == '__main__':
-    mode = '3D'
-    if mode == '2D':
-        from stepping_stones_env import SteppingStonesEnv
-        env = SteppingStonesEnv()
-        learn_last_move(env, LONG_STEP_2D)
-        learn_last_move(env, STAIR_2D)
-    else:
-        from simple_3D_env import Simple3DEnv
-        from simbicon_3D import Simbicon3D
-        env = Simple3DEnv(Simbicon3D)
-        env.sdf_loader.ground_width = 2.0
-        learn_last_move(env, LONG_STEP_3D)
+    test_2D()
+    test_3D()
     embed()

@@ -34,11 +34,11 @@ class Simbicon3D(Simbicon):
         return gait
 
     def controllable_indices(self):
-        return np.array([1, 1, 1, 1, 1,
+        return np.array([1, 0, 0, 0, 0,
                          0, 0, 0, 0,
-                         0, 0, 0, 1,
+                         0, 0, 0, 0,
                          0,0,0,
-                         0, 0, 1, 1, 1])
+                         1, 1, 1, 0, 1])
 
     def compute_target_q(self, q, dq):
         tq = super().compute_target_q(q, dq)
