@@ -192,7 +192,7 @@ class SteppingStonesEnv:
             perturbation[:ndofs] += self.from_features(state.pose()[:qdim])
             perturbation[ndofs:] += self.from_features(state.pose()[qdim:])
             self.robot_skeleton.x = perturbation
-            self.controller.reset(state.controller_state())
+            self.controller.reset(state)
 
     def _render(self):
         if self.video_recorder:

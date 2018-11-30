@@ -34,20 +34,30 @@ class Simbicon(PDController):
         self.step_started = self.time()
         self.swing_idx = c.RIGHT_IDX
         self.stance_idx = c.LEFT_IDX
+        self.direction = UP
 
         if state is None:
-            state = np.zeros(9)
-            stance_heel = self.ik.forward_kine(self.stance_idx)
-            state[0:3] = stance_heel
+            self.stance_heel = self.ik.forward_kine(self.stance_idx)
+            self.target = np.zeros(3)
+            self.prev_target = np.zeros(3)
+        else:
+            self.stance_heel = state.stance_heel_location()
+            # The method `set_gait_raw` must also be called before simulation continues,
+            # in order to set a new target and gait.
+            # At that point, we will rotate self.target to self.prev_target.
+            self.target = state.stance_platform()
+            # We track prev_target so that, in principle, we know all of the possible
+            # places where the agent is in contact with the environment. However, the
+            # algorithm does not use this (yet) except when resetting the environment
+            # to a previously visited state.
+            self.prev_target = state.swing_platform()
 
-        self.stance_heel = state[0:3]
-        self.target = state[3:6]
-        # We track prev_target so that, in principle, we know all of the possible
-        # places where the agent is in contact with the environment. However, the
-        # algorithm does not use this (yet) except when resetting the environment
-        # to a previously visited state.
-        self.prev_target = state[6:9]
-        self.direction = UP
+    def state(self):
+        # TODO make State attributes settable, so we can construct this like
+        # state.stance_platform = self.target
+        # Until then, make sure that this order corresponds to the indices defined
+        # in the State object.
+        return np.concatenate((self.stance_heel, self.target, self.prev_target))
 
     def standardize_stance(self, state):
         # We need to flip the left and right leg.
@@ -121,9 +131,6 @@ class Simbicon(PDController):
 
     def set_gait(self, params):
         self.params = params
-
-    def state(self):
-        return np.concatenate((self.stance_heel, self.target, self.prev_target))
 
     def time(self):
         return self.env.world.time()

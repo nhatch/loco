@@ -7,7 +7,6 @@ from OpenGL.GL import GLfloat
 
 from stepping_stones_env import SteppingStonesEnv
 import consts_armless as consts
-from state_3D import State3D
 
 SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/12
@@ -61,9 +60,6 @@ class Simple3DEnv(SteppingStonesEnv):
         if self.world.frame % framerate == 0:
             #print(self.world.time())
             self._render()
-
-    def wrap_state(self, raw_state):
-        return State3D(raw_state)
 
     def load_world(self):
         skel_file = consts.skel_file
