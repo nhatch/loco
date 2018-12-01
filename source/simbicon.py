@@ -170,12 +170,9 @@ class Simbicon(PDController):
             print("FELL OFF")
             return True
 
-    # Returns True if either the swing foot has made contact, or if it seems impossible
-    # that the swing foot will make contact in the future.
-    def step_complete(self, contacts, swing_heel):
-        if self.crashed(swing_heel):
-            return True
-        elif self.direction == UP:
+    # Returns True if the swing foot has made contact.
+    def swing_contact(self, contacts, swing_heel):
+        if self.direction == UP:
             self.maybe_start_down_phase(contacts, swing_heel)
             return False
         elif len(contacts) > 0: # and self.direction == DOWN

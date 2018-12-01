@@ -35,7 +35,7 @@ class PDController:
     def compute(self):
         return self.env.from_features(self.compute_transformed(self.target_q))
 
-    def step_complete(self, contacts, swing_heel):
+    def swing_contact(self, contacts, swing_heel):
         # Stub to conform to Simbicon interface
         return False
 

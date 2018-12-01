@@ -112,14 +112,15 @@ class SteppingStonesEnv:
         swing_foot = self.robot_skeleton.bodynodes[swing_foot_idx]
         contacts = self.find_contacts(swing_foot)
         swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)
-        step_complete = self.controller.step_complete(contacts, swing_heel)
+        crashed = self.controller.crashed(swing_heel)
+        step_complete = crashed or self.controller.swing_contact(contacts, swing_heel)
         if step_complete:
             status_string = self.controller.change_stance(contacts, swing_heel)
 
         obs = self.current_observation()
         if self.world.time() > EPISODE_TIME_LIMIT:
             return obs, True, "ERROR: Time limit reached"
-        elif obs.crashed():
+        elif crashed or obs.crashed():
             return obs, True, "ERROR: Crashed"
         elif step_complete:
             return obs, False, status_string

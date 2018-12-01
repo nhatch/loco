@@ -87,6 +87,16 @@ class LearnInverseDynamics:
             self.start_states, self.train_features, self.train_responses = pickle.load(f)
         self.train_inverse_dynamics()
 
+    def collect_dataset(self):
+        self.env.clear_skeletons()
+        indices = np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER)
+        for i,j in enumerate(indices):
+            print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
+            self.collect_samples(self.start_states[j])
+        print(len(self.start_states), len(self.train_features))
+        self.dump_train_set()
+        self.env.clear_skeletons()
+
     def collect_samples(self, start_state):
         target = self.generate_targets(start_state, 1)[0]
         mean_action, runner = self.learn_action(start_state, target)
@@ -180,16 +190,6 @@ class LearnInverseDynamics:
         self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
         return targets[2:] # Don't include the starting platforms
 
-    def collect_dataset(self):
-        self.env.clear_skeletons()
-        indices = np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER)
-        for i,j in enumerate(indices):
-            print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
-            self.collect_samples(self.start_states[j])
-        print(len(self.start_states), len(self.train_features))
-        self.dump_train_set()
-        self.env.clear_skeletons()
-
     def training_iter(self):
         self.collect_dataset()
         self.train_inverse_dynamics()
@@ -249,9 +249,9 @@ def test_train_state_storage(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    test_train_state_storage(env)
+    #test_train_state_storage(env)
 
     learn = LearnInverseDynamics(env)
-    #learn.load_train_set()
-    #learn.training_iter()
+    learn.load_train_set()
+    learn.training_iter()
     embed()
