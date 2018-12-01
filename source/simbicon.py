@@ -85,7 +85,7 @@ class Simbicon(PDController):
         return np.array([1, 1, 1, 1, 1,
                          0, 0, 0, 0,
                          0, 0, 0, 1,
-                         0,0,0])
+                         1,1,0])
 
     def set_gait_raw(self, target, raw_gait=None):
         params = self.base_gait()

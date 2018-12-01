@@ -8,9 +8,10 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 
 from simbicon import Simbicon
+from simbicon_params import *
 from state import State
 from step_learner import Runner
-from random_search import controllable_indices, RandomSearch
+from random_search import RandomSearch
 
 N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 128
@@ -24,11 +25,9 @@ class LearnInverseDynamics:
     def __init__(self, env):
         self.env = env
         self.initialize_start_states()
-        self.train_states, self.train_targets = [], []
-        target_space_shape = 1
-        self.n_action = env.action_space.shape[0]
-        # The actual target is sort of part of the state, hence the *2.
-        self.n_dynamic = 26
+        self.train_features, self.train_responses = [], []
+        self.n_action = len(self.env.controller.base_gait())
+        self.n_dynamic = 22
         # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
@@ -69,9 +68,9 @@ class LearnInverseDynamics:
             self.env.reset()
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
-            target = np.array([0,0])
+            target = np.array([0,0,0])
             for j in range(size):
-                prev_target, target = target, np.array([starter + length * j, 0])
+                prev_target, target = target, np.array([starter + length * j, 0, 0])
                 end_state, _ = self.env.simulate(target, render=0.1)
                 # We need to collect the location of the previous target in order to
                 # place stepping stones properly when resetting to this state.
@@ -81,11 +80,11 @@ class LearnInverseDynamics:
 
     def dump_train_set(self):
         with open(TRAIN_FILENAME, 'wb') as f:
-            pickle.dump((self.start_states, self.train_states, self.train_targets), f)
+            pickle.dump((self.start_states, self.train_features, self.train_responses), f)
 
     def load_train_set(self):
         with open(TRAIN_FILENAME, 'rb') as f:
-            self.start_states, self.train_states, self.train_targets = pickle.load(f)
+            self.start_states, self.train_features, self.train_responses = pickle.load(f)
         self.train_inverse_dynamics()
 
     def collect_samples(self, start_state):
@@ -93,12 +92,13 @@ class LearnInverseDynamics:
         mean_action, runner = self.learn_action(start_state, target)
         for _ in range(N_ACTIONS_PER_STATE):
             runner.reset()
+            # TODO test whether these perturbations actually help
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
-            perturbation *= controllable_indices
+            perturbation *= self.env.controller.controllable_indices()
             action = mean_action + perturbation
             end_state, terminated = self.env.simulate(target, action)
             if not terminated:
-                self.append_to_train_set(start_state, action, end_state)
+                self.append_to_train_set(start_state, target, action, end_state)
                 self.start_states.append(end_state)
 
     def learn_action(self, start_state, target):
@@ -108,38 +108,48 @@ class LearnInverseDynamics:
         rs.random_search(render=None)
         return rs.w_policy, runner
 
-    def append_to_train_set(self, start_state, action, end_state):
-        train_state = self.center_state(start_state,
-                end_state.stance_platform(), end_state.stance_heel_location())
-        self.train_states.append(train_state)
-        self.train_targets.append(action)
+    def append_to_train_set(self, start_state, target, action, end_state):
+        # The train set is a set of (features, action) pairs
+        # where taking `action` when the environment features are `features`
+        # will *exactly* hit the target with the swing foot.
+        # Note that the target must be part of `features` and that
+        # the `features` must capture all information necessary to reconstruct the
+        # world state to verify that this action will indeed hit the target.
+        # But it also must be reasonably low-dimensional because these are also the
+        # features used in our ML algorithm. TODO: separate these two responsibilities.
+        achieved_target = end_state.stance_heel_location()
+        # TODO: This "hindsight retargeting" doesn't exactly work. The problem is that
+        # moving the target platform to the new location actually changes end-of-step
+        # detection (e.g. the toe hits something where before there was empty space).
+        action[TX:TX+3] += target - achieved_target
+        train_state = self.extract_features(start_state, achieved_target)
+        self.train_features.append(train_state)
+        self.train_responses.append(action)
 
-    def center_state(self, state, target, achieved_target):
-        # TODO this needs to be updated for 2D -> 3D
+    # TODO Is there a way to "mask out" some of these features rather than rewriting this code
+    # every time? (e.g. adding/removing the Z dimension)
+    def extract_features(self, state, target):
         centered_state = np.zeros(self.n_dynamic)
 
         centered_state[ 0:18] = state.pose()
-        centered_state[18:20] = state.stance_contact_location()
-        centered_state[20:22] = state.stance_heel_location()
-        # We don't include state.swing_platform because it seems less important
+        centered_state[18:20] = state.stance_heel_location()[:2]
+        # We don't include state.swing_platform or state.stance_platform
+        # because they seem less important
         # (and we are desperate to reduce problem dimension).
-        centered_state[22:24] = achieved_target
-        centered_state[24:26] = target
+        centered_state[20:22] = target[:2]
 
         # Absolute location does not affect dynamics, so recenter all (x,y) coordinates
         # around the location of the starting platform.
-        base = state.stance_platform()
+        base = state.stance_platform()[:2]
         centered_state[ 0: 2] -= base # starting location of agent
-        centered_state[18:20] -= base # starting stance contact location
-        centered_state[20:22] -= base # starting stance heel location
-        centered_state[22:24] -= base # ending heeldown location
-        centered_state[24:26] -= base # ending platform location
+        centered_state[18:20] -= base # starting stance heel location
+        centered_state[20:22] -= base # ending platform location
 
         return centered_state
 
     def train_inverse_dynamics(self):
-        X = np.array(self.train_states)
-        y = np.array(self.train_targets)
+        X = np.array(self.train_features)
+        y = np.array(self.train_responses)
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
         X = (X - self.X_mean) / self.X_scale_factor
@@ -147,13 +157,13 @@ class LearnInverseDynamics:
         self.model.fit(X, y)
 
     def act(self, state, target):
-        X = self.center_state(state, target, target).reshape(1,-1)
+        X = self.extract_features(state, target).reshape(1,-1)
         X = (X - self.X_mean) / self.X_scale_factor
         if hasattr(self.model, 'estimator_'):
             rescaled_action = self.model.predict(X).reshape(-1)
         else:
             rescaled_action = np.zeros(self.n_action)
-        rescaled_action *= controllable_indices
+        rescaled_action *= self.env.controller.controllable_indices()
         return rescaled_action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, start_state, num_steps, runway_length=None):
@@ -163,8 +173,9 @@ class LearnInverseDynamics:
         next_target = targets[-1]
         for _ in range(num_steps):
             dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
-            dy = np.random.uniform() * 0.1
-            next_target = next_target + [dx, dy]
+            dy = np.random.uniform() * 0.0
+            dz = 0.0
+            next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
         return targets[2:] # Don't include the starting platforms
@@ -175,7 +186,7 @@ class LearnInverseDynamics:
         for i,j in enumerate(indices):
             print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
             self.collect_samples(self.start_states[j])
-        print(len(self.start_states), len(self.train_states))
+        print(len(self.start_states), len(self.train_features))
         self.dump_train_set()
         self.env.clear_skeletons()
 
@@ -219,10 +230,28 @@ class LearnInverseDynamics:
                 }
         return result
 
+def test_train_state_storage(env):
+    learn = LearnInverseDynamics(env)
+    start_state = np.random.choice(learn.start_states)
+    learn.collect_samples(start_state)
+    for i in range(len(learn.train_features)):
+        features = learn.train_features[i]
+        response = learn.train_responses[i]
+        target = start_state.stance_platform().copy()
+        target[0:2] += features[-2:]
+        # TODO reconstruct start_state from features (in order to see things from the
+        # perspective of the learning algorithm)
+        runner = Runner(env, start_state, target)
+        score = runner.run(response, render=1.0)
+        print("Score:", score) # This score should be exactly zero.
+        # But often it isn't; see todo in append_to_train_set
+
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
+    test_train_state_storage(env)
+
     learn = LearnInverseDynamics(env)
     #learn.load_train_set()
-    learn.training_iter()
+    #learn.training_iter()
     embed()
