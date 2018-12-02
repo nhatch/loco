@@ -279,6 +279,8 @@ if __name__ == '__main__':
     for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
+        # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
+        # than its heel. This makes difficult training environments for random optimization.
         t = 0.3 + 0.8*i# + np.random.uniform(low=-0.2, high=0.2)
         env.simulate([t,0,0], render=1, put_dots=True)
     embed()

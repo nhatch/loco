@@ -100,6 +100,8 @@ class LearnInverseDynamics:
     def collect_samples(self, start_state):
         target = self.generate_targets(start_state, 1)[0]
         mean_action, runner = self.learn_action(start_state, target)
+        if mean_action is None:
+            return
         for _ in range(N_ACTIONS_PER_STATE):
             runner.reset()
             # TODO test whether these perturbations actually help
@@ -115,8 +117,8 @@ class LearnInverseDynamics:
         runner = Runner(self.env, start_state, target)
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
-        rs.random_search(render=None)
-        return rs.w_policy, runner
+        w_policy = rs.random_search(render=None)
+        return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
         # The train set is a set of (features, action) pairs

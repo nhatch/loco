@@ -35,12 +35,14 @@ class RandomSearch:
 
     def random_search(self, max_iters=10, tol=0.05, render=1.0):
         for i in range(max_iters):
+            # TODO: should we "give up" if we don't see fast enough progress?
             if self.eval(tol, render):
-                return
+                return self.w_policy
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
             self.step_size *= 0.8
         print("Max iters exceeded")
+        return None
 
     def eval(self, tol, render):
         ret = self.runner.run(self.w_policy, render=render)
