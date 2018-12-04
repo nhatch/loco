@@ -47,6 +47,7 @@ class SteppingStonesEnv:
                 c.observable_features_t,
                 c.observable_features_t,
                 ])
+        self.is_3D = (c.BRICK_DOF == 6)
 
     def consts(self):
         return consts_2D
@@ -177,9 +178,10 @@ class SteppingStonesEnv:
 
     def current_observation(self):
         obs = np.concatenate(self.get_x())
+        obs = np.concatenate((obs, self.controller.state()))
         if self.controller.swing_idx == self.consts().LEFT_IDX:
             obs = self.controller.standardize_stance(obs)
-        return self.wrap_state(np.concatenate((obs, self.controller.state())))
+        return self.wrap_state(obs)
 
     def log(self, string):
         print(string)

@@ -8,7 +8,6 @@ from consts_common3D import *
 from simbicon_params import *
 
 class Simbicon3D(Simbicon):
-    # TODO test this
     def standardize_stance(self, state):
         c = self.env.consts()
         state = super().standardize_stance(state)
@@ -23,6 +22,7 @@ class Simbicon3D(Simbicon):
         m[absolute_rotation_indices] = -1
         state[0:D] *= m
         state[D:2*D] *= m
+        state[[-7,-4,-1]] *= -1 # Z coordinates of heel location and platforms
         return state
 
     def base_gait(self):

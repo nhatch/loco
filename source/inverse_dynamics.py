@@ -27,7 +27,7 @@ class LearnInverseDynamics:
         self.initialize_start_states()
         self.train_features, self.train_responses = [], []
         self.n_action = len(self.env.controller.base_gait())
-        self.n_dynamic = 22
+        self.n_dynamic = sum(self.env.consts().observable_features)
         # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
@@ -98,6 +98,7 @@ class LearnInverseDynamics:
         self.env.clear_skeletons()
 
     def collect_samples(self, start_state):
+        # We don't need to flip this target, because start_state is standardized.
         target = self.generate_targets(start_state, 1)[0]
         mean_action, runner = self.learn_action(start_state, target)
         if mean_action is None:
@@ -168,14 +169,19 @@ class LearnInverseDynamics:
         y = (y - self.y_mean) * self.y_scale_factor
         self.model.fit(X, y)
 
-    def act(self, state, target):
-        X = self.extract_features(state, target).reshape(1,-1)
+    def act(self, state, target, flip_z=False):
+        # `state` has been standardized, but `target` has not.
+        # TODO there must be a cleaner way to handle this.
+        m = np.array([1,1,-1]) if flip_z else np.array([1,1,1])
+        X = self.extract_features(state, target*m).reshape(1,-1)
         X = (X - self.X_mean) / self.X_scale_factor
         if hasattr(self.model, 'estimator_'):
             rescaled_action = self.model.predict(X).reshape(-1)
         else:
             rescaled_action = np.zeros(self.n_action)
         rescaled_action *= self.env.controller.controllable_indices()
+        if flip_z:
+            rescaled_action[FLIP_Z] *= -1
         return rescaled_action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, start_state, num_steps, runway_length=None):
@@ -183,10 +189,11 @@ class LearnInverseDynamics:
         # we will see during testing episodes.
         targets = start_state.starting_platforms()
         next_target = targets[-1]
-        for _ in range(num_steps):
+        for i in range(num_steps):
             dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
             dy = np.random.uniform() * 0.0
-            dz = 0.0
+            # TODO maybe off by -1
+            dz = 0.2 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
@@ -210,7 +217,8 @@ class LearnInverseDynamics:
         num_successful_steps = 0
         for i in range(self.n_steps):
             target = targets[i]
-            action = self.act(state, target)
+            flip_z = self.env.is_3D and (i % 2 == 1)
+            action = self.act(state, target, flip_z=flip_z)
             state, terminated = self.env.simulate(target, action, render=render)
             if terminated:
                 break

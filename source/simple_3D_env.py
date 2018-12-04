@@ -73,6 +73,8 @@ class Simple3DEnv(SteppingStonesEnv):
         # The kima_human_box model actually has preset damping coeffs.
         #for dof in skel.dofs[6:]:
         #    dof.set_damping_coefficient(0.2)
+        self.sdf_loader.ground_width = 2.0
+        self.sdf_loader.ground_length = 1.0
         return world
 
     def consts(self):

@@ -37,6 +37,10 @@ def collect_start_state(env, targets):
 
 def learn_last_move(env, targets):
     start_state = collect_start_state(env, targets)
+    # TODO perhaps we should flip the sign on the Z coordinate of the target
+    # when the state has been flipped (i.e. standardized).
+    # However, for now this is OK because the tests are designed so that the
+    # step of interest is *not* flipped (to make them easier to evaluate visually).
     runner = Runner(env, start_state, targets[-1])
     rs = RandomSearch(runner, 4, step_size=0.3, eps=0.05)
     rs.random_search()
@@ -54,8 +58,6 @@ def test_3D():
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    env.sdf_loader.ground_width = 2.0
-    env.sdf_loader.ground_length = 1.0
     GY = -0.9 # Ground level for the 3D environment
     # LONG_STEP is a little too hard, but BASIC at least should be learnable
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
