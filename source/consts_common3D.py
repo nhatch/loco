@@ -1,5 +1,6 @@
-
 # These should be the same for all 3D models
+import numpy as np
+
 BRICK_DOF = 6
 Q_DIM = 21
 
@@ -24,3 +25,10 @@ ANKLE_ROLL = 5
 
 TORSO_ROLL = 18
 TORSO_YAW = 20
+
+observable_features_q = np.array([
+        1,0,1,1,1,1,
+        0,0,0,0,0,0,
+        0,0,0,0,0,0,
+        0,0,0]) == 1 # Bool array
+observable_features_t = np.array([1,0,1]) == 1

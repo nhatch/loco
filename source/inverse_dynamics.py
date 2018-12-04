@@ -101,6 +101,7 @@ class LearnInverseDynamics:
         target = self.generate_targets(start_state, 1)[0]
         mean_action, runner = self.learn_action(start_state, target)
         if mean_action is None:
+            # Random search couldn't find a good enough action; don't use this for training.
             return
         for _ in range(N_ACTIONS_PER_STATE):
             runner.reset()
@@ -117,7 +118,8 @@ class LearnInverseDynamics:
         runner = Runner(self.env, start_state, target)
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
-        w_policy = rs.random_search(render=None)
+        # TODO put max_iters and tol in the object initialization params instead
+        w_policy = rs.random_search(max_iters=10, tol=0.02, render=None)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -138,26 +140,24 @@ class LearnInverseDynamics:
         self.train_features.append(train_state)
         self.train_responses.append(action)
 
-    # TODO Is there a way to "mask out" some of these features rather than rewriting this code
-    # every time? (e.g. adding/removing the Z dimension)
     def extract_features(self, state, target):
-        centered_state = np.zeros(self.n_dynamic)
-
-        centered_state[ 0:18] = state.pose()
-        centered_state[18:20] = state.stance_heel_location()[:2]
-        # We don't include state.swing_platform or state.stance_platform
-        # because they seem less important
-        # (and we are desperate to reduce problem dimension).
-        centered_state[20:22] = target[:2]
+        c = self.env.consts()
+        centered_state = np.zeros(2*c.Q_DIM + 2*3)
 
         # Absolute location does not affect dynamics, so recenter all (x,y) coordinates
         # around the location of the starting platform.
-        base = state.stance_platform()[:2]
-        centered_state[ 0: 2] -= base # starting location of agent
-        centered_state[18:20] -= base # starting stance heel location
-        centered_state[20:22] -= base # ending platform location
+        # TODO: also rotate so absolute yaw is 0. TODO this will also require doing the same
+        # to the action that was taken?
+        base = state.stance_platform()
+        centered_state[ 0:-6] = state.pose()
+        centered_state[ 0: 3] -= base # starting location of agent
+        centered_state[-6:-3] = state.stance_heel_location() - base
+        # We don't include state.swing_platform or state.stance_platform
+        # because they seem less important
+        # (and we are desperate to reduce problem dimension).
+        centered_state[-3:  ] = target - base
 
-        return centered_state
+        return centered_state[c.observable_features]
 
     def train_inverse_dynamics(self):
         X = np.array(self.train_features)
@@ -255,5 +255,5 @@ if __name__ == '__main__':
 
     learn = LearnInverseDynamics(env)
     learn.load_train_set()
-    learn.training_iter()
+    #learn.training_iter()
     embed()
