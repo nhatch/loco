@@ -33,8 +33,7 @@ FOOT_RADIUS = 0.06
 KP_GAIN = [200.0]*6
 KD_GAIN = [15.0]*6
 
-ALLOWED_COLLISION_IDS = [5,8,4,7] # The two feet, the two shins
-# (TODO why are the shins hitting the ground during normal steps?)
+ALLOWED_COLLISION_IDS = [5,8] # The two feet
 
 observable_features_q = np.ones(Q_DIM) == 1 # Bool array
 observable_features_t = np.array([1,1,0]) == 1

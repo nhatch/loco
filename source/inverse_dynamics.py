@@ -16,15 +16,19 @@ from random_search import RandomSearch
 N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 128
 EXPLORATION_STD = 0.1
-START_STATES_FILENAME = 'data/start_states.pkl'
-TRAIN_FILENAME = 'data/train.pkl'
+START_STATES_FMT = 'data/start_states_{}.pkl'
+TRAIN_FMT = 'data/train_{}.pkl'
 
 RIDGE_ALPHA = 10.0
 
 class LearnInverseDynamics:
-    def __init__(self, env):
+    def __init__(self, env, exp_name=''):
         self.env = env
-        self.initialize_start_states()
+        self.exp_name = exp_name
+        if env.is_3D:
+            self.initialize_start_states(n_resets=8, min_length=0.1, max_length=0.7)
+        else:
+            self.initialize_start_states()
         self.train_features, self.train_responses = [], []
         self.n_action = len(self.env.controller.base_gait())
         self.n_dynamic = sum(self.env.consts().observable_features)
@@ -50,27 +54,34 @@ class LearnInverseDynamics:
         self.runway_length = 0.4
 
     def initialize_start_states(self):
-        if not os.path.exists(START_STATES_FILENAME):
+        fname = START_STATES_FMT.format(self.exp_name)
+        if not os.path.exists(fname):
             states = self.collect_starting_states()
-            with open(START_STATES_FILENAME, 'wb') as f:
+            with open(fname, 'wb') as f:
                 pickle.dump(states, f)
-        with open(START_STATES_FILENAME, 'rb') as f:
+        with open(fname, 'rb') as f:
             self.start_states = pickle.load(f)
 
-    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
+    def collect_starting_states(self, size=12, n_resets=16, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
-        self.env.sdf_loader.put_grounds([[0,0,0]], runway_length=100)
         for i in range(n_resets):
+            #i = 11
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
             start_state = self.env.reset()
+            # TODO if I use [0,0,0] or [-1,0,0] or anything more than [-50,0,0],
+            # the robot fails to walk, in incredibly bizarre ways.
+            # Also, somehow the shin comes into contact with the ground.
+            # Why??????
+            self.env.sdf_loader.put_grounds([[-50,0,0]], runway_length=100)
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
             targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
             for target in targets[2:]:
                 # This makes the first step half as long. TODO is this necessary/sufficient?
                 target[0] -= length*0.5
+                #end_state, _ = self.env.simulate(target, render=1, put_dots=True)
                 end_state, _ = self.env.simulate(target, render=0.1)
                 # Fix end_state.starting_platforms to reflect where the swing foot
                 # actually ended up. We must do this because stance_platform and
@@ -80,15 +91,18 @@ class LearnInverseDynamics:
                 # Don't change the Y coordinate, since we want this all to be flat ground.
                 end_state.stance_platform()[[0,2]] = end_state.stance_heel_location()[[0,2]]
                 start_states.append(end_state)
+            #embed()
         self.env.clear_skeletons()
         return start_states
 
     def dump_train_set(self):
-        with open(TRAIN_FILENAME, 'wb') as f:
+        fname = TRAIN_FMT.format(self.exp_name)
+        with open(fname, 'wb') as f:
             pickle.dump((self.start_states, self.train_features, self.train_responses), f)
 
     def load_train_set(self):
-        with open(TRAIN_FILENAME, 'rb') as f:
+        fname = TRAIN_FMT.format(self.exp_name)
+        with open(fname, 'rb') as f:
             self.start_states, self.train_features, self.train_responses = pickle.load(f)
         self.train_inverse_dynamics()
 
@@ -125,7 +139,7 @@ class LearnInverseDynamics:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.02, render=None)
+        w_policy = rs.random_search(max_iters=10, tol=0.02, render=1)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -265,10 +279,14 @@ def test_train_state_storage(env):
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
+    from simple_3D_env import Simple3DEnv
+    from simbicon_3D import Simbicon3D
     env = SteppingStonesEnv()
+    #env = Simple3DEnv(Simbicon3D)
     #test_train_state_storage(env)
 
-    learn = LearnInverseDynamics(env)
+    name = '3D' if env.is_3D else '2D'
+    learn = LearnInverseDynamics(env, name)
     #learn.load_train_set()
     #learn.training_iter()
     embed()
