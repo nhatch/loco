@@ -60,20 +60,25 @@ class LearnInverseDynamics:
     def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
-        starter = 0.3
         self.env.sdf_loader.put_grounds([[0,0,0]], runway_length=100)
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
-            self.env.reset()
+            start_state = self.env.reset()
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
-            target = np.array([0,0,0])
-            for j in range(size):
-                prev_target, target = target, np.array([starter + length * j, 0, 0])
+            targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
+            for target in targets[2:]:
+                # This makes the first step half as long. TODO is this necessary/sufficient?
+                target[0] -= length*0.5
                 end_state, _ = self.env.simulate(target, render=0.1)
-                # We need to collect the location of the previous target in order to
-                # place stepping stones properly when resetting to this state.
+                # Fix end_state.starting_platforms to reflect where the swing foot
+                # actually ended up. We must do this because stance_platform and
+                # stance_heel_location might actually be quite far apart, since there's
+                # no optimization procedure here to guarantee otherwise.
+                # TODO should we just make this a "flat runway" part of the curriculum?
+                # Don't change the Y coordinate, since we want this all to be flat ground.
+                end_state.stance_platform()[[0,2]] = end_state.stance_heel_location()[[0,2]]
                 start_states.append(end_state)
         self.env.clear_skeletons()
         return start_states
@@ -99,7 +104,7 @@ class LearnInverseDynamics:
 
     def collect_samples(self, start_state):
         # We don't need to flip this target, because start_state is standardized.
-        target = self.generate_targets(start_state, 1)[0]
+        target = self.generate_targets(start_state, 1)[-1]
         mean_action, runner = self.learn_action(start_state, target)
         if mean_action is None:
             # Random search couldn't find a good enough action; don't use this for training.
@@ -184,39 +189,41 @@ class LearnInverseDynamics:
             rescaled_action[FLIP_Z] *= -1
         return rescaled_action / self.y_scale_factor + self.y_mean
 
-    def generate_targets(self, start_state, num_steps, runway_length=None):
+    def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
+        if dist_mean is None:
+            dist_mean = self.dist_mean
+        if dist_spread is None:
+            dist_spread = self.dist_spread
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
         targets = start_state.starting_platforms()
         next_target = targets[-1]
         for i in range(num_steps):
-            dx = self.dist_mean + self.dist_spread * (np.random.uniform() - 0.5)
+            dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
             dy = np.random.uniform() * 0.0
             # TODO maybe off by -1
             dz = 0.2 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
-        self.env.sdf_loader.put_grounds(targets, runway_length=runway_length)
-        return targets[2:] # Don't include the starting platforms
+        # Return value includes the two starting platforms
+        return targets
 
     def training_iter(self):
         self.collect_dataset()
         self.train_inverse_dynamics()
 
     def evaluate(self, render=1.0, record_video=False, seed=None):
-        if seed is None:
-            seed = np.random.randint(100000)
-        self.env.seed(seed)
-        state = self.env.reset(record_video=record_video)
+        state = self.env.reset(record_video=record_video, seed=seed)
         total_error = 0
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
-        targets = self.generate_targets(state, self.n_steps, self.runway_length)
+        targets = self.generate_targets(state, self.n_steps)
+        self.env.sdf_loader.put_grounds(targets, runway_length=self.runway_length)
         total_offset = 0
         num_successful_steps = 0
         for i in range(self.n_steps):
-            target = targets[i]
+            target = targets[2+i]
             flip_z = self.env.is_3D and (i % 2 == 1)
             action = self.act(state, target, flip_z=flip_z)
             state, terminated = self.env.simulate(target, action, render=render)
@@ -262,6 +269,6 @@ if __name__ == '__main__':
     #test_train_state_storage(env)
 
     learn = LearnInverseDynamics(env)
-    learn.load_train_set()
+    #learn.load_train_set()
     #learn.training_iter()
     embed()

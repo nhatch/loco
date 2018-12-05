@@ -92,11 +92,12 @@ class SteppingStonesEnv:
         tb.trans[2] = -5
         return tb
 
-    def seed(self, seed):
+    def reset(self, state=None, record_video=False, random=0.005, seed=None):
+        if seed is None:
+            seed = np.random.randint(100000)
         print("Seed:", seed)
         np.random.seed(seed)
 
-    def reset(self, state=None, record_video=False, random=0.005):
         self.world.reset()
         self.set_state(state, random)
         if self.video_recorder:
@@ -137,7 +138,7 @@ class SteppingStonesEnv:
             self.world.step()
             return None, False, None
 
-    # Run one footstep of simulation, returning the final state and the achieved step distance
+    # Run one footstep of simulation, returning the final state
     def simulate(self, target, action=None, render=False, put_dots=False):
         self.controller.set_gait_raw(raw_gait=action, target=target)
         steps_per_render = None

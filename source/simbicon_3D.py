@@ -95,8 +95,7 @@ def test_standardize_stance(env):
 
 def test(env):
     seed = np.random.randint(100000)
-    env.seed(seed)
-    env.reset(random=0.0)
+    env.reset(random=0.0, seed=seed)
     env.sdf_loader.put_dot([0,0,0])
     env.sdf_loader.put_grounds([[0,-0.9,0]], runway_length=20.0)
     for i in range(20):
