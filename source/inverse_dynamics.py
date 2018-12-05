@@ -66,15 +66,10 @@ class LearnInverseDynamics:
         self.env.log("Collecting initial starting states")
         start_states = []
         for i in range(n_resets):
-            #i = 11
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
             start_state = self.env.reset()
-            # TODO if I use [0,0,0] or [-1,0,0] or anything more than [-50,0,0],
-            # the robot fails to walk, in incredibly bizarre ways.
-            # Also, somehow the shin comes into contact with the ground.
-            # Why??????
-            self.env.sdf_loader.put_grounds([[-50,0,0]], runway_length=100)
+            self.env.sdf_loader.put_grounds([[0,0,0]], runway_length=15)
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
             targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
@@ -91,7 +86,6 @@ class LearnInverseDynamics:
                 # Don't change the Y coordinate, since we want this all to be flat ground.
                 end_state.stance_platform()[[0,2]] = end_state.stance_heel_location()[[0,2]]
                 start_states.append(end_state)
-            #embed()
         self.env.clear_skeletons()
         return start_states
 

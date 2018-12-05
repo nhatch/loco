@@ -269,19 +269,36 @@ class Simbicon(PDController):
         torques = self.env.from_features(control)
         return torques
 
-if __name__ == '__main__':
-    from stepping_stones_env import SteppingStonesEnv
-    env = SteppingStonesEnv()
-    seed=73298
+def test(env, length, seed=None, runway_length=15, runway_x=0):
+    env.clear_skeletons() # Necessary in order to change the runway length
     start_state = env.reset(seed=seed)
-    env.sdf_loader.put_grounds([[0,0,0]], runway_length=20)
+    env.sdf_loader.put_grounds([[runway_x,0,0]], runway_length=runway_length)
     for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.
         # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
         # than its heel. This makes difficult training environments for random optimization.
-        length = 0.6125
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
         env.simulate([t,0,0], render=1, put_dots=True)
-    embed()
 
+def reproduce_bug(env):
+    # Don't abort the simulation if the shins touch the ground.
+    # This makes the bug more obvious visually (otherwise the only evidence will be
+    # that the simulation stops early and writes "ERROR: Crashed" to the console).
+    env.consts().ALLOWED_COLLISION_IDS.append(4)
+    env.consts().ALLOWED_COLLISION_IDS.append(7)
+
+    seed=73298 # Pretty much any seed will do
+    test(env, 0.6, seed=seed, runway_length=100)
+    embed()
+    # But note that if runway_x is -50 then this still works.
+    test(env, 0.6, seed=seed, runway_length=100, runway_x=-50)
+    # And if the runway is shorter then it also still works.
+    test(env, 0.6, seed=seed, runway_length=15)
+
+if __name__ == '__main__':
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    #test(env, 0.6)
+    reproduce_bug(env)
+    embed()
