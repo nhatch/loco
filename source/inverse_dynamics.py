@@ -14,7 +14,7 @@ from step_learner import Runner
 from random_search import RandomSearch
 
 N_ACTIONS_PER_STATE = 4
-N_STATES_PER_ITER = 128
+N_STATES_PER_ITER = 32
 EXPLORATION_STD = 0.1
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
@@ -25,10 +25,7 @@ class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
         self.env = env
         self.exp_name = exp_name
-        if env.is_3D:
-            self.initialize_start_states(n_resets=8, min_length=0.1, max_length=0.7)
-        else:
-            self.initialize_start_states()
+        self.initialize_start_states()
         self.train_features, self.train_responses = [], []
         self.n_action = len(self.env.controller.base_gait())
         self.n_dynamic = sum(self.env.consts().observable_features)
@@ -49,35 +46,37 @@ class LearnInverseDynamics:
 
         # Evaluation settings
         self.dist_mean = 0.42
-        self.dist_spread = 0.3
+        self.dist_spread = 0.0 if env.is_3D else 0.3
         self.n_steps = 16
         self.runway_length = 0.4
 
     def initialize_start_states(self):
         fname = START_STATES_FMT.format(self.exp_name)
         if not os.path.exists(fname):
-            states = self.collect_starting_states()
+            if env.is_3D:
+                states = self.collect_starting_states(n_resets=8, min_length=0.1, max_length=0.7)
+            else:
+                states = self.collect_starting_states()
             with open(fname, 'wb') as f:
                 pickle.dump(states, f)
         with open(fname, 'rb') as f:
             self.start_states = pickle.load(f)
 
-    def collect_starting_states(self, size=12, n_resets=16, min_length=0.2, max_length=0.8):
+    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
             start_state = self.env.reset()
-            self.env.sdf_loader.put_grounds([[0,0,0]], runway_length=15)
+            self.env.sdf_loader.put_grounds([start_state.swing_platform()], runway_length=15)
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
             targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
             for target in targets[2:]:
                 # This makes the first step half as long. TODO is this necessary/sufficient?
                 target[0] -= length*0.5
-                #end_state, _ = self.env.simulate(target, render=1, put_dots=True)
-                end_state, _ = self.env.simulate(target, render=0.1)
+                end_state, _ = self.env.simulate(target, render=0.1, put_dots=True)
                 # Fix end_state.starting_platforms to reflect where the swing foot
                 # actually ended up. We must do this because stance_platform and
                 # stance_heel_location might actually be quite far apart, since there's
@@ -133,7 +132,7 @@ class LearnInverseDynamics:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.02, render=1)
+        w_policy = rs.random_search(max_iters=10, tol=0.05, render=1)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -210,7 +209,7 @@ class LearnInverseDynamics:
             dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
             dy = np.random.uniform() * 0.0
             # TODO maybe off by -1
-            dz = 0.2 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
+            dz = 0.3 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         # Return value includes the two starting platforms
@@ -275,8 +274,8 @@ if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    env = SteppingStonesEnv()
-    #env = Simple3DEnv(Simbicon3D)
+    #env = SteppingStonesEnv()
+    env = Simple3DEnv(Simbicon3D)
     #test_train_state_storage(env)
 
     name = '3D' if env.is_3D else '2D'

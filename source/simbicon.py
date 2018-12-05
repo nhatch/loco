@@ -38,8 +38,9 @@ class Simbicon(PDController):
 
         if state is None:
             self.stance_heel = self.ik.forward_kine(self.stance_idx)
-            self.target = np.zeros(3)
-            self.prev_target = np.zeros(3)
+            self.target = self.stance_heel
+            swing_heel = self.ik.forward_kine(self.swing_idx)
+            self.prev_target = swing_heel
         else:
             self.stance_heel = state.stance_heel_location()
             # The method `set_gait_raw` must also be called before simulation continues,
