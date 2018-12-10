@@ -37,7 +37,7 @@ class InverseKinematics:
         c = self.env.consts()
         self.test_inv_kine()
         r_heel = self.forward_kine(c.RIGHT_IDX)
-        self.env.sdf_loader.put_dot(r_heel[:3], color=BLUE)
+        self.env.sdf_loader.put_dot(r_heel[:3], 'right_heel', color=BLUE)
         self.env.render()
 
     def inv_kine(self, target, verbose=False):
@@ -63,7 +63,7 @@ class InverseKinematics:
         c = self.env.consts()
         base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
         q[base] = hip
-        q[base+c.KNEE_IDX] = knee
+        q[base+c.KNEE] = knee
         return q
 
     def test_inv_kine(self, planar=True):
@@ -75,7 +75,7 @@ class InverseKinematics:
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
         agent.q = self.env.from_features(q)
-        self.env.sdf_loader.put_dot(target[:3], color=GREEN)
+        self.env.sdf_loader.put_dot(target[:3], 'ik_target', color=GREEN)
         print("TARGET:", target)
         hip, knee = self.inv_kine(target, verbose=True)
         q = self.inv_kine_pose(hip, knee)
@@ -104,7 +104,7 @@ class InverseKinematics:
         theta = q[c.ROOT_PITCH]
         pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
         if verbose:
-            self.env.sdf_loader.put_dot(pelvis_bottom[:3], color=RED)
+            self.env.sdf_loader.put_dot(pelvis_bottom[:3], 'pelvis_bottom', color=RED)
             print("CENTER JOINT:", pelvis_bottom)
         # Put pelvis bottom at origin
         x = target[0] - pelvis_bottom[0]

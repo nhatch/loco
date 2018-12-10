@@ -50,8 +50,8 @@ class Simbicon3D(Simbicon):
         cv = params[VELOCITY_BALANCE_GAIN_LAT]
         proj = q[:3]
         proj[Y] = self.stance_heel[Y]
-        #self.env.sdf_loader.put_dot(proj, color=BLUE, index=1)
-        #self.env.sdf_loader.put_dot(self.stance_heel, color=GREEN, index=2)
+        #self.env.sdf_loader.put_dot(proj, 'root_projection', color=BLUE)
+        #self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=GREEN)
         d = q[Z] - self.stance_heel[Z]
         if d*dq[Z] < 0:
             # If COM is moving (laterally) towards the stance heel, use no velocity gain.
@@ -96,8 +96,8 @@ def test_standardize_stance(env):
 def test(env, length):
     seed = np.random.randint(100000)
     env.reset(seed=seed)
-    env.sdf_loader.put_dot([0,0,0])
-    env.sdf_loader.put_grounds([[0,-0.9,0]], runway_length=20.0)
+    env.sdf_loader.put_dot([0,-0.9,0], 'origin')
+    env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
     for i in range(8):
         t = length*(0.5+i)
         # TODO customize target y for each .skel file?
@@ -106,7 +106,7 @@ def test(env, length):
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    env.sdf_loader.ground_width = 2.0
-    #test(env, 0.5)
+    env.sdf_loader.ground_width = 20.0
+    test(env, 0.5)
     #test_standardize_stance(env)
     embed()

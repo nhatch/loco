@@ -15,19 +15,18 @@ class SDFLoader:
 
     def reset(self, world):
         self.world = world
-        self.dots = []
+        self.dots = {}
         self.grounds = []
 
-    def put_dot(self, target, color=RED, index=0):
+    def put_dot(self, target, name, color=RED):
         # Change the skeleton name so that the console output is not cluttered
         # with warnings about duplicate names.
-        num_dots = len(self.dots)
-        if num_dots <= index:
-            os.system("sed -e 's/__NAME__/dot_" + str(num_dots) + "/' skel/dot.sdf > skel/_dot.sdf")
+        dot = self.dots.get(name)
+        if dot is None:
+            os.system("sed -e 's/__NAME__/dot_" + name + "/' skel/dot.sdf > skel/_dot.sdf")
             os.system("sed -e 's/__COLOR__/" + color + "/' skel/_dot.sdf > skel/__dot.sdf")
-
-            self.dots.append(self.world.add_skeleton('./skel/__dot.sdf'))
-        dot = self.dots[index]
+            dot = self.world.add_skeleton('./skel/__dot.sdf')
+            self.dots[name] = dot
         q = dot.q
         q[3:6] = target
         dot.q = q

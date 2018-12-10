@@ -145,7 +145,7 @@ class SteppingStonesEnv:
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
             if put_dots:
-                self.sdf_loader.put_dot(target, color=GREEN)
+                self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
         while True:
             if steps_per_render and self.world.frame % steps_per_render == 0:
                 self._render()
