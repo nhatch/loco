@@ -90,7 +90,6 @@ class Simbicon3D(Simbicon):
 
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
         tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
-        tq[self.stance_idx+HIP_YAW] = params[YAW_WORLD] + q[ROOT_YAW]
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
@@ -142,17 +141,21 @@ def next_target_circle(prev_target, idx, length):
     target = np.dot(rot, offset) + prev_target
     return target
 
-def test(env, length, r=1, n=8):
+def test(env, length, r=1, n=8, a=0.0):
     seed = np.random.randint(100000)
-    env.reset(seed=seed)
+    obs = env.reset(seed=seed)
+    angle = a
+    obs.raw_state[ROOT_YAW] = angle
+    rot = env.controller.rotmatrix(-angle)
+    obs.dq()[:3] = np.dot(rot, obs.dq()[:3]) # This actually changes `obs`
+    env.reset(obs, random=0.0)
     env.sdf_loader.put_dot([0,-0.9,0], 'origin')
     env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
-    t = np.array([0.0, -0.9, 0.0])
+    t = env.controller.stance_heel
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = autogen_target(env, l)
         #t = next_target_circle(t, i, l)
-        # TODO customize target y for each .skel file?
         env.simulate(t, render=r, put_dots=True)
 
 if __name__ == "__main__":

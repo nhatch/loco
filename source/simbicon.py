@@ -96,26 +96,44 @@ class Simbicon(PDController):
 
         self.target, self.prev_target = target, self.target
 
+        swing_heel = self.ik.forward_kine(self.swing_idx)
+        self.starting_swing_heel = swing_heel
+        d = self.target - self.starting_swing_heel
+        # In 2D this is always in the positive X direction (+- some Y variation)
+        # but in 3D this is important to track.
+        target_dir = d.copy()
+        target_dir[1] = 0.0 # Project to X-Z plane
+        self.target_direction = target_dir / np.linalg.norm(target_dir)
+        # The following looks better but obviously only works when going in that direction
+        #self.target_direction = np.array([1.0, 0.0, 0.0])
+
+        # Gives the vector in the ground plane perpendicular to the direction `d`
+        # such that the cross product between those two vectors should point up-ish.
+        transverse_d = np.array([d[2], 0.0, -d[0]])
+        # If d=[x,y,z] the result should be [-xy, z^2+x^2, -yz]
+        d = np.cross(d, transverse_d)
         # Calculate a normal vector for the line between the starting location
         # of the swing heel and the target.
         # This is used when detecting crashes and evaluating progress of
         # the learning algorithm.
-        swing_heel = self.ik.forward_kine(self.swing_idx)
-        self.starting_swing_heel = swing_heel
-        d = self.target - self.starting_swing_heel
-        d = np.array([-d[1], d[0], 0])
         self.unit_normal = d / np.linalg.norm(d)
 
         self.adjust_targets()
+
+    def distance_to_go(self, current_location):
+        # TODO use adjusted target not self.target
+        d = np.dot(self.target_direction, self.target - current_location)
+        return d
+
+    def speed(self, dq):
+        v = np.dot(self.target_direction, dq[:3])
+        return v
 
     def adjust_targets(self):
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         params = self.params # This should work like np.array
-        params[TX] += self.target[0]
-        params[TY] += self.target[1]
-        params[TZ] += self.target[2]
-        step_dist_diff = params[TX] - self.stance_heel[0] - 0.4
+        step_dist_diff = self.distance_to_go(self.stance_heel) - 0.4
         params[STANCE_KNEE_RELATIVE+UP_IDX]  += - step_dist_diff * 0.2
         params[SWING_HIP_WORLD+UP_IDX]       += + step_dist_diff * 0.4
         params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
@@ -166,6 +184,7 @@ class Simbicon(PDController):
         below_upper = swing_heel[1] - upper < tol
         # Calculate the distance of the swing heel from the line between the
         # start and end targets.
+        # Technically in 3D this is a plane, not a line.
         below_line = np.dot(swing_heel - self.starting_swing_heel, self.unit_normal) < tol
         if below_lower or (below_line and below_upper):
             print("FELL OFF")
@@ -188,10 +207,9 @@ class Simbicon(PDController):
         if early_strike:
             print("Early strike!")
         q, dq = self.env.get_x()
-        target_diff = self.params[IK_GAIN] * dq[0]
-        heel_close = self.params[TX] < swing_heel[0] + target_diff
-        # TODO somehow this is misfiring, I think. TODO debug `python simbicon.py`
-        com_close = self.params[TX] < q[0] + target_diff
+        target_diff = self.params[IK_GAIN] * self.speed(dq)
+        heel_close = self.distance_to_go(swing_heel) < target_diff
+        com_close = self.distance_to_go(q[:3]) < target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
             self.direction = DOWN
@@ -211,10 +229,11 @@ class Simbicon(PDController):
         c = self.env.consts()
         q, dq = self.env.get_x()
         # Upon starting the DOWN part of the step, choose target swing leg angles
-        # based on the location on the ground at target.
-        tx = self.params[TX] - self.params[IK_GAIN] * dq[0]
-        ty = self.params[TY] - 0.1 # TODO should we adjust this based on vertical velocity?
-        relative_hip, knee = self.ik.inv_kine([tx, ty])
+        # based on the location of the target.
+        dx = self.params[IK_GAIN] * self.speed(dq)
+        # TODO use target set by params[TX:TX+3], not self.target
+        adjusted_target = self.target - np.array([0,0.1,0]) - dx*self.target_direction
+        relative_hip, knee = self.ik.inv_kine(adjusted_target, self.swing_idx)
         # TODO this completely overrides the base_gait and set_gait settings. Make this clearer
         self.params[SWING_HIP_WORLD+DN_IDX] = relative_hip + q[c.ROOT_PITCH]
         self.params[SWING_KNEE_RELATIVE+DN_IDX] = knee
@@ -302,6 +321,6 @@ def reproduce_bug(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    #test(env, 0.6)
-    reproduce_bug(env)
+    test(env, 0.6)
+    #reproduce_bug(env)
     embed()
