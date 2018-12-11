@@ -3,42 +3,25 @@ import numpy as np
 from sdf_loader import RED, GREEN, BLUE
 
 class InverseKinematics:
-    def __init__(self, env, target=None):
+    def __init__(self, env):
         self.env = env
-        self.target = target
-
-    def controller(self, obs):
-        # TODO: Maybe use obs rather than directly pulling agent state from environment (to avoid accusations of cheating)
-        hip, knee = self.inv_kine([self.target, 0.0])
-        # Right foot step
-        q = self.inv_kine_pose(hip, knee, True)
-        q[5] = 0
-        q[6] = 0
-        q[7] = 0
-        q[8] = 0
-        return q[3:]
 
     def forward_kine(self, swing_idx):
         c = self.env.consts()
-        q, _ = self.env.get_x()
-        # Adding torso, hip, knee, and ankle angles gives the angle of the foot
-        # relative to flat ground.
-        foot_angle = q[c.ROOT_PITCH]+q[swing_idx]+q[swing_idx+c.KNEE]+q[swing_idx+c.ANKLE]
+        foot = self.get_foot(swing_idx)
+        foot_centric_offset = np.array([-0.5*c.L_FOOT, -c.FOOT_RADIUS, 0.0])
+        # TODO is it cheating to pull foot.com() directly from the environment?
+        heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
+        return heel_location
+
+    def get_foot(self, swing_idx):
+        c = self.env.consts()
         if swing_idx == c.RIGHT_IDX:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
-        foot_com = self.env.robot_skeleton.bodynodes[swing_foot_idx].com()
-        offset = -0.5 * c.L_FOOT * np.array([np.cos(foot_angle), np.sin(foot_angle), 0.0])
-        offset[c.Y] -= c.FOOT_RADIUS # So we get the *bottom* of the heel
-        return foot_com + offset
-
-    def test(self):
-        c = self.env.consts()
-        self.test_inv_kine()
-        r_heel = self.forward_kine(c.RIGHT_IDX)
-        self.env.sdf_loader.put_dot(r_heel[:3], 'right_heel', color=BLUE)
-        self.env.render()
+        foot = self.env.robot_skeleton.bodynodes[swing_foot_idx]
+        return foot
 
     def inv_kine(self, target, verbose=False):
         r, theta = self.transform_frame(target, verbose)
@@ -66,35 +49,6 @@ class InverseKinematics:
         q[base+c.KNEE] = knee
         return q
 
-    def test_inv_kine(self, planar=True):
-        self.env.clear_skeletons()
-        c = self.env.consts()
-        agent = self.env.robot_skeleton
-        brick_pose, target = self.gen_brick_pose(planar)
-        q, _ = self.env.get_x()
-        print("BRICK POSE:", brick_pose)
-        q[:c.BRICK_DOF] = brick_pose
-        agent.q = self.env.from_features(q)
-        self.env.sdf_loader.put_dot(target[:3], 'ik_target', color=GREEN)
-        print("TARGET:", target)
-        hip, knee = self.inv_kine(target, verbose=True)
-        q = self.inv_kine_pose(hip, knee)
-        agent.q = self.env.from_features(q)
-        self.env.render()
-
-    def gen_brick_pose(self, planar=True):
-        # Generate a random starting pose and target.
-        D = self.env.consts().BRICK_DOF
-        center = np.zeros(D)
-        center[1] += 0.3
-        brick_pose = center + np.random.uniform(low=-0.2, high=0.2, size=D)
-        if planar and D == 6:
-            non_planar_dofs = [2,4,5]
-            brick_pose[non_planar_dofs] = 0.0
-        target = center + np.random.uniform(low=-0.5, high=0.5, size=D)
-        target[1] += 0.5
-        return brick_pose, target
-
     def transform_frame(self, target, verbose=False):
         c = self.env.consts()
         # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
@@ -120,11 +74,54 @@ class InverseKinematics:
             print("POLAR COORDINATES:", r, phi)
         return r, phi
 
+    def test(self):
+        c = self.env.consts()
+        self.test_inv_kine()
+        r_heel = self.forward_kine(c.RIGHT_IDX)
+        self.env.sdf_loader.put_dot(r_heel[:3], 'right_heel', color=BLUE)
+        self.env.render()
+
+    def test_inv_kine(self, planar=True):
+        self.env.clear_skeletons()
+        c = self.env.consts()
+        agent = self.env.robot_skeleton
+        brick_pose, target = self.gen_brick_pose(planar)
+        q, _ = self.env.get_x()
+        print("BRICK POSE:", brick_pose)
+        q[:c.BRICK_DOF] = brick_pose
+        agent.q = self.env.from_features(q)
+        self.env.sdf_loader.put_dot(target[:3], 'ik_target', color=GREEN)
+        print("TARGET:", target)
+        hip, knee = self.inv_kine(target, verbose=True)
+        q = self.inv_kine_pose(hip, knee)
+        agent.q = self.env.from_features(q)
+        self.env.render()
+
+    def gen_brick_pose(self, planar):
+        # Generate a random starting pose and target.
+        D = self.env.consts().BRICK_DOF
+        center = np.zeros(D)
+        if D == 3:
+            scale = [0.2, 0.2, 0.2]
+        else:
+            scale = [0.2, 0.2, 0.2, np.pi/6, 2*np.pi, np.pi/6]
+            if planar:
+                non_planar_dofs = [2,4,5]
+                scale[non_planar_dofs] = 0.0
+        center[1] += 0.3
+        brick_pose = center + scale*np.random.uniform(low=-0.5, high=0.5, size=D)
+        target = center + np.random.uniform(low=-0.5, high=0.5, size=D)
+        target[1] += 0.5
+        if D == 3:
+            # Technically 2 represents the pitch, but here we're repurposing it as Z coordinate
+            target[2] = 0.0
+        return brick_pose, target[:3]
+
 if __name__ == "__main__":
-    #from stepping_stones_env import SteppingStonesEnv
-    #env = SteppingStonesEnv()
+    from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
-    env = Simple3DEnv()
-    ik = InverseKinematics(env, 0.5)
+    env = SteppingStonesEnv()
+    #env = Simple3DEnv()
+    ik = InverseKinematics(env)
     ik.test()
     embed()
