@@ -219,6 +219,9 @@ class Simbicon(PDController):
         self.params[SWING_HIP_WORLD+DN_IDX] = relative_hip + q[c.ROOT_PITCH]
         self.params[SWING_KNEE_RELATIVE+DN_IDX] = knee
 
+    def balance_params(self, q, dq):
+        return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X,Y coordinates
+
     def compute_target_q(self, q, dq):
         c = self.env.consts()
         params = self.params
@@ -229,9 +232,8 @@ class Simbicon(PDController):
 
         cd = params[POSITION_BALANCE_GAIN]
         cv = params[VELOCITY_BALANCE_GAIN]
-        v = dq[c.X]
-        d = q[c.X] - self.stance_heel[c.X]
-        balance_feedback = cd*d + cv*v
+        d, v = self.balance_params(q, dq)
+        balance_feedback = cd*d[c.X] + cv*v[c.X]
 
         target_swing_angle = params[SWING_HIP_WORLD+DIR_IDX] + balance_feedback
         target_swing_knee = params[SWING_KNEE_RELATIVE+DIR_IDX]

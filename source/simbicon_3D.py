@@ -40,6 +40,23 @@ class Simbicon3D(Simbicon):
                          0,0,0,
                          1, 1, 1, 0, 1])
 
+    def heading(self, q):
+        return q[ROOT_YAW]
+
+    def rotmatrix(self, theta):
+        # Since we're rotating in the X-Z plane instead of X-Y, the sign of the 2nd
+        # coordinate is backwards.
+        return np.array([[np.cos(theta), 0, -np.sin(theta)],
+                         [            0, 1,              0],
+                         [np.sin(theta), 0,  np.cos(theta)]])
+
+    def balance_params(self, q, dq):
+        theta = self.heading(q)
+        rot = self.rotmatrix(theta)
+        com_displacement = np.dot(rot, q[:3] - self.stance_heel)
+        heading_velocity = np.dot(rot, dq[:3])
+        return com_displacement, heading_velocity
+
     def compute_target_q(self, q, dq):
         tq = super().compute_target_q(q, dq)
 
@@ -48,20 +65,30 @@ class Simbicon3D(Simbicon):
 
         cd = params[POSITION_BALANCE_GAIN_LAT]
         cv = params[VELOCITY_BALANCE_GAIN_LAT]
+
         proj = q[:3]
         proj[Y] = self.stance_heel[Y]
-        #self.env.sdf_loader.put_dot(proj, 'root_projection', color=BLUE)
-        #self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=GREEN)
-        d = q[Z] - self.stance_heel[Z]
-        if d*dq[Z] < 0:
+        self.env.sdf_loader.put_dot(proj, 'root_projection', color=BLUE)
+        self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=RED)
+
+        d, v = self.balance_params(q, dq)
+        if d[Z]*v[Z] < 0:
             # If COM is moving (laterally) towards the stance heel, use no velocity gain.
             # This attempts to correct for a "sashay" issue that was causing self collisions.
             cv = 0
-        balance_feedback = -(cd*d + cv*dq[Z])
+        balance_feedback = -(cd*d[Z] + cv*v[Z])
+
+        # TODO this code is WIP; doesn't do anything yet
+        k_yaw = 0.2
+        rot = self.rotmatrix(self.heading(q))
+        target_lateral_offset = np.dot(rot, self.target - self.stance_heel)[Z]
+        if self.stance_idx == RIGHT_IDX:
+            target_lateral_offset *= -1
+        target_yaw = -k_yaw*(target_lateral_offset - 0.3) # relative to current heading
+        #tq[self.stance_idx+HIP_YAW] = q[self.stance_idx+HIP_YAW]+target_yaw
+        #tq[self.swing_idx+HIP_YAW] = q[self.swing_idx+HIP_YAW]+target_yaw
 
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
-        # TODO is there a principled way to control yaw?
-        # For instance, how might we get the robot to walk in a circle?
         tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
         tq[self.stance_idx+HIP_YAW] = params[YAW_WORLD] + q[ROOT_YAW]
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
@@ -71,14 +98,15 @@ class Simbicon3D(Simbicon):
         self.update_doppelganger(tq)
         return tq
 
-    def update_doppelganger(self, q):
+    def update_doppelganger(self, tq):
         if self.env.doppelganger is None:
             return
         c = self.env.consts()
-        q = q.copy()
-        q[Z] = 0.5
-        q[X] = self.env.get_x()[0][X] # lowercase x means "full state"; uppercase is X axis. Sry
-        self.env.doppelganger.q = self.env.from_features(q)
+        tq = tq.copy()
+        q = self.env.get_x()[0]
+        tq[:6] = q[:6]
+        tq[Z] += 0.5
+        self.env.doppelganger.q = self.env.from_features(tq)
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
 def test_standardize_stance(env):
@@ -93,15 +121,39 @@ def test_standardize_stance(env):
     env.reset(obs, random=0.0)
     env.render()
 
-def test(env, length):
+def autogen_target(env, length):
+    c = env.controller
+    theta = c.heading(env.get_x()[0])
+    rot = c.rotmatrix(-theta)
+    lateral_length = 0.3 if c.swing_idx == RIGHT_IDX else -0.3
+    lateral_length += 0.1
+    offset = [length, 0.0, lateral_length]
+    heel = c.stance_heel
+    target = np.dot(rot, offset) + heel
+    print(theta, target)
+    return target
+
+def next_target_circle(prev_target, idx, length):
+    c = env.controller
+    theta = idx*0.2
+    lateral_length = 0.3 if c.swing_idx == RIGHT_IDX else -0.3
+    offset = [length, 0.0, lateral_length]
+    rot = c.rotmatrix(theta)
+    target = np.dot(rot, offset) + prev_target
+    return target
+
+def test(env, length, r=1, n=8):
     seed = np.random.randint(100000)
     env.reset(seed=seed)
     env.sdf_loader.put_dot([0,-0.9,0], 'origin')
     env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
-    for i in range(8):
-        t = length*(0.5+i)
+    t = np.array([0.0, -0.9, 0.0])
+    for i in range(n):
+        l = length*0.5 if i == 0 else length
+        t = autogen_target(env, l)
+        #t = next_target_circle(t, i, l)
         # TODO customize target y for each .skel file?
-        env.simulate([t,-0.9,0], render=1, put_dots=True)
+        env.simulate(t, render=r, put_dots=True)
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
