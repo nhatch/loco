@@ -15,11 +15,12 @@ CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
 PELVIS_BODYNODE_IDX = 1
 RIGHT_BODYNODE_IDX = 7 # Used for finding contacts and locating the heel
+RIGHT_THIGH_IDX = 5
 LEFT_BODYNODE_IDX = 4
+LEFT_THIGH_IDX = 2
 
 # TODO this skel file has a lot of "transformation" values that might invalidate
 # the current IK code.
-L_PELVIS = 0.1855
 L_THIGH =    0.42875
 L_SHIN =   0.400875
 L_FOOT =   0.21

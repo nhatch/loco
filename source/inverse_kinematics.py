@@ -29,8 +29,8 @@ class InverseKinematics:
         foot = self.env.robot_skeleton.bodynodes[swing_foot_idx]
         return foot
 
-    def inv_kine(self, target, verbose=False):
-        r, theta = self.transform_frame(target, verbose)
+    def inv_kine(self, target, swing_idx, verbose=False):
+        r, theta = self.transform_frame(target, swing_idx, verbose)
         c = self.env.consts()
 
         # Handle out-of-reach targets by moving them within reach
@@ -47,44 +47,39 @@ class InverseKinematics:
         hip = hip + theta
         return hip, knee
 
-    def inv_kine_pose(self, hip, knee, is_right_foot=True):
-        q, dq = self.env.get_x()
+    def transform_frame(self, target, swing_idx, verbose=False):
         c = self.env.consts()
-        base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
-        q[base] = hip
-        q[base+c.KNEE] = knee
-        return q
-
-    def transform_frame(self, target, verbose=False):
-        c = self.env.consts()
-        # Takes the absolute coordinates (x,y) and transforms them into (down, forward)
-        # relative to the pelvis joint's absolute location and rotation.
-        pelvis_com = self.env.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX].com()
-        q, _ = self.env.get_x()
-        theta = q[c.ROOT_PITCH]
-        pelvis_bottom = pelvis_com + c.L_PELVIS/2 * np.array([np.sin(theta), -np.cos(theta), 0])
+        bodynode_idx = c.RIGHT_THIGH_IDX if swing_idx == c.RIGHT_IDX else c.LEFT_THIGH_IDX
+        thigh = self.env.robot_skeleton.bodynodes[bodynode_idx]
+        # Locate the hip joint
+        thigh_centric_offset = np.array([0.0, 0.5*c.L_THIGH, 0.0])
+        hip_location = np.dot(thigh.transform()[:3,:3], thigh_centric_offset) + thigh.com()
         if verbose:
-            self.env.sdf_loader.put_dot(pelvis_bottom[:3], 'pelvis_bottom', color=RED)
-            print("CENTER JOINT:", pelvis_bottom)
-        # Put pelvis bottom at origin
-        x = target[0] - pelvis_bottom[0]
-        y = target[1] - pelvis_bottom[1]
+            self.env.sdf_loader.put_dot(hip_location, 'hip_joint', color=RED)
+            print("CENTER JOINT:", hip_location)
+        # Move the target to the coordinate system centered at the hip joint
+        # facing in the same direction as the pelvis.
+        pelvis = self.env.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
+        rot = np.linalg.inv(pelvis.transform())[:3,:3]
+        egocentric_target = np.dot(rot, target - hip_location)
+        # Ignore the Z coordinate for now (TODO?)
+        x, y, _ = egocentric_target
+
         # Transform to polar coordinates
         r = np.sqrt(x**2 + y**2)
         phi = np.arcsin(x/r)
-        # Rotate
-        phi = phi - theta
         if y > 0:
             phi = np.pi - phi
         if verbose:
             print("POLAR COORDINATES:", r, phi)
         return r, phi
 
-    def test(self):
+    def test(self, right=True):
         c = self.env.consts()
-        self.test_inv_kine()
-        r_heel = self.forward_kine(c.RIGHT_IDX)
-        self.env.sdf_loader.put_dot(r_heel[:3], 'right_heel', color=BLUE)
+        idx = c.RIGHT_IDX if right else c.LEFT_IDX
+        self.test_inv_kine(idx)
+        heel_loc = self.forward_kine(idx)
+        self.env.sdf_loader.put_dot(heel_loc[:3], 'heel_loc', color=BLUE)
         # In 3D, give the viewer some time to rotate the environment and look around.
         # TODO have some kind of background thread do rendering, to avoid this hack
         # and make 3D environments easier to explore visually.
@@ -94,21 +89,31 @@ class InverseKinematics:
             self.env.render()
             time.sleep(0.05)
 
-    def test_inv_kine(self, planar=False):
+    def test_inv_kine(self, idx, planar=False):
         self.env.clear_skeletons()
         c = self.env.consts()
         agent = self.env.robot_skeleton
         brick_pose, target = self.gen_brick_pose(planar)
+
         q, _ = self.env.get_x()
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
         agent.q = self.env.from_features(q)
-        self.env.sdf_loader.put_dot(target[:3], 'ik_target', color=GREEN)
+
+        self.env.sdf_loader.put_dot(target, 'ik_target', color=GREEN)
         print("TARGET:", target)
-        hip, knee = self.inv_kine(target, verbose=True)
+        hip, knee = self.inv_kine(target, idx, verbose=True)
         q = self.inv_kine_pose(hip, knee)
         agent.q = self.env.from_features(q)
         self.env.render()
+
+    def inv_kine_pose(self, hip, knee, is_right_foot=True):
+        q, _ = self.env.get_x()
+        c = self.env.consts()
+        base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
+        q[base+c.HIP_PITCH] = hip
+        q[base+c.KNEE] = knee
+        return q
 
     def gen_brick_pose(self, planar):
         # Generate a random starting pose and target.
