@@ -8,8 +8,14 @@ class InverseKinematics:
 
     def forward_kine(self, swing_idx):
         c = self.env.consts()
+        if c.BRICK_DOF == 3:
+            foot_centric_offset = np.array([-0.5*c.L_FOOT, -c.FOOT_RADIUS, 0.0])
+        else:
+            # I found the signs/order of these offsets by trial and error.
+            # I think the reason it's different might be the axis_order setting
+            # of 'zyx' in the skel file for the simple 3D model.
+            foot_centric_offset = np.array([0.0, -c.FOOT_RADIUS, 0.5*c.L_FOOT])
         foot = self.get_foot(swing_idx)
-        foot_centric_offset = np.array([-0.5*c.L_FOOT, -c.FOOT_RADIUS, 0.0])
         # TODO is it cheating to pull foot.com() directly from the environment?
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
         return heel_location
@@ -79,9 +85,16 @@ class InverseKinematics:
         self.test_inv_kine()
         r_heel = self.forward_kine(c.RIGHT_IDX)
         self.env.sdf_loader.put_dot(r_heel[:3], 'right_heel', color=BLUE)
-        self.env.render()
+        # In 3D, give the viewer some time to rotate the environment and look around.
+        # TODO have some kind of background thread do rendering, to avoid this hack
+        # and make 3D environments easier to explore visually.
+        import time
+        n = 1 if c.BRICK_DOF == 3 else 30
+        for i in range(n):
+            self.env.render()
+            time.sleep(0.05)
 
-    def test_inv_kine(self, planar=True):
+    def test_inv_kine(self, planar=False):
         self.env.clear_skeletons()
         c = self.env.consts()
         agent = self.env.robot_skeleton
@@ -108,20 +121,21 @@ class InverseKinematics:
             if planar:
                 non_planar_dofs = [2,4,5]
                 scale[non_planar_dofs] = 0.0
-        center[1] += 0.3
         brick_pose = center + scale*np.random.uniform(low=-0.5, high=0.5, size=D)
         target = center + np.random.uniform(low=-0.5, high=0.5, size=D)
-        target[1] += 0.5
         if D == 3:
+            target[1] += 0.5
             # Technically 2 represents the pitch, but here we're repurposing it as Z coordinate
             target[2] = 0.0
+        else:
+            target[1] -= 0.5
         return brick_pose, target[:3]
 
 if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
-    env = SteppingStonesEnv()
-    #env = Simple3DEnv()
+    #env = SteppingStonesEnv()
+    env = Simple3DEnv()
     ik = InverseKinematics(env)
     ik.test()
     embed()
