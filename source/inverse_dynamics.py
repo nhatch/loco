@@ -130,9 +130,11 @@ class LearnInverseDynamics:
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
+        rs.record_video = self.record_video
+        render = 0.7 if self.record_video else 1.0
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.05, render=1)
+        w_policy = rs.random_search(max_iters=10, tol=0.05, render=render)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -280,6 +282,7 @@ if __name__ == '__main__':
 
     name = '3D' if env.is_3D else '2D'
     learn = LearnInverseDynamics(env, name)
+    learn.record_video = False
     #learn.load_train_set()
-    #learn.training_iter()
+    learn.training_iter()
     embed()

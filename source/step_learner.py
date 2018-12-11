@@ -10,14 +10,14 @@ class Runner:
         self.grounds = start_state.starting_platforms() + [target]
         self.target = target
 
-    def run(self, action, render=None):
-        self.reset()
+    def run(self, action, render=None, record_video=False):
+        self.reset(record_video)
         r, _ = self.env.simulate(self.target, action=action, put_dots=True, render=render)
         score = -np.linalg.norm(r.stance_heel_location() - self.target)
         return score
 
-    def reset(self):
-        self.env.reset(self.start_state, random=0.0)
+    def reset(self, record_video=False):
+        self.env.reset(self.start_state, random=0.0, record_video=record_video)
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets):
