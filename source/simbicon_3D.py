@@ -2,6 +2,7 @@ import numpy as np
 from IPython import embed
 
 from simbicon import Simbicon, UP, DOWN
+from state import State
 from sdf_loader import RED, GREEN, BLUE
 
 from consts_common3D import *
@@ -129,7 +130,6 @@ def autogen_target(env, length):
     offset = [length, 0.0, lateral_length]
     heel = c.stance_heel
     target = np.dot(rot, offset) + heel
-    print(theta, target)
     return target
 
 def next_target_circle(prev_target, idx, length):
@@ -141,14 +141,21 @@ def next_target_circle(prev_target, idx, length):
     target = np.dot(rot, offset) + prev_target
     return target
 
+def rotate_state(state, angle, env):
+    rotated = State(state.raw_state.copy())
+    rotated.raw_state[ROOT_YAW] += angle
+    rot = env.controller.rotmatrix(-angle)
+    rotated.pose()[:3] = np.dot(rot, state.pose()[:3])
+    rotated.dq()[:3] = np.dot(rot, state.dq()[:3])
+    rotated.stance_heel_location()[:3] = np.dot(rot, state.stance_heel_location()[:3])
+    rotated.stance_platform()[:3] = np.dot(rot, state.stance_platform()[:3])
+    rotated.swing_platform()[:3] = np.dot(rot, state.swing_platform()[:3])
+    return rotated
+
 def test(env, length, r=1, n=8, a=0.0):
     seed = np.random.randint(100000)
-    obs = env.reset(seed=seed)
-    angle = a
-    obs.raw_state[ROOT_YAW] = angle
-    rot = env.controller.rotmatrix(-angle)
-    obs.dq()[:3] = np.dot(rot, obs.dq()[:3]) # This actually changes `obs`
-    env.reset(obs, random=0.0)
+    obs = env.reset(seed=seed, random=0)
+    env.reset(rotate_state(obs, a, env), random=0.0)
     env.sdf_loader.put_dot([0,-0.9,0], 'origin')
     env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
     t = env.controller.stance_heel
@@ -156,12 +163,14 @@ def test(env, length, r=1, n=8, a=0.0):
         l = length*0.5 if i == 0 else length
         t = autogen_target(env, l)
         #t = next_target_circle(t, i, l)
-        env.simulate(t, render=r, put_dots=True)
+        _, terminated = env.simulate(t, render=r, put_dots=True)
+        if terminated:
+            break
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
     env.sdf_loader.ground_width = 20.0
-    test(env, 0.5)
+    test(env, 0.5, a=3.1)
     #test_standardize_stance(env)
     embed()

@@ -139,14 +139,6 @@ class Simbicon(PDController):
         params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
         params[STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
         params[TORSO_WORLD]           += - step_dist_diff * 0.5
-        #q, dq = self.env.get_x()
-        #tq = self.compute_target_q(q, dq)
-        #print("Ending swing roll (world):", q[self.stance_idx + 2]+q[5])
-        #print("==========================")
-        #print("Target swing roll (world):", tq[self.swing_idx + 2]+q[5])
-        #print("Actual swing roll (world):", q[self.swing_idx + 2]+q[5])
-        #print("Lateral offset from stance heel:", q[2] - self.stance_heel[2])
-        #print("Lateral velocity:", dq[2])
 
     def set_gait(self, params):
         self.params = params
@@ -301,7 +293,9 @@ def test(env, length, seed=None, runway_length=15, runway_x=0):
         # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
         # than its heel. This makes difficult training environments for random optimization.
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
-        env.simulate([t,0,0], render=1, put_dots=True)
+        _, terminated = env.simulate([t,0,0], render=1, put_dots=True)
+        if terminated:
+            break
 
 def reproduce_bug(env):
     # Don't abort the simulation if the shins touch the ground.
