@@ -99,5 +99,30 @@ def test_pd_control():
     for i in range(int(4 / SIMULATION_RATE)):
         env.step(60)
 
+def test_gimbal_lock():
+    from pd_control import PDController
+    from sdf_loader import RED, GREEN, BLUE
+    env = Simple3DEnv(PDController)
+    env.sdf_loader.put_dot([1,0,0], "positive_x", color=RED)
+    env.sdf_loader.put_dot([0,1,0], "positive_y", color=GREEN)
+    env.sdf_loader.put_dot([0,0,1], "positive_z", color=BLUE)
+    q = env.robot_skeleton.q.copy()
+    def t(a,b,c):
+        q[3:6] = [a,b,c]; env.robot_skeleton.q = q; env.render()
+    import time
+    t(0,0,0)
+    time.sleep(1)
+    t(0,0,0.5)
+    time.sleep(1)
+    t(0,0.5,0) # Should look different from previous (i.e. no gimbal lock)
+    time.sleep(1)
+    t(1,0.5,0) # Should just rotate around the Z axis
+    time.sleep(1)
+    t(np.pi/2, 0.5, 0) # Same as above
+    time.sleep(1)
+    t(np.pi/2, 0.25, 0.25) # Should look different from above (i.e. no gimbal lock)
+    time.sleep(1)
+
 if __name__ == "__main__":
-    test_pd_control()
+    #test_pd_control()
+    test_gimbal_lock()
