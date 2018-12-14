@@ -45,8 +45,7 @@ class Simbicon3D(Simbicon):
         return q[ROOT_YAW]
 
     def rotmatrix(self, theta):
-        # Since we're rotating in the X-Z plane instead of X-Y, the sign of the 2nd
-        # coordinate is backwards.
+        # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.
         return np.array([[np.cos(theta), 0, -np.sin(theta)],
                          [            0, 1,              0],
                          [np.sin(theta), 0,  np.cos(theta)]])

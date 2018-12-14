@@ -231,7 +231,7 @@ class Simbicon(PDController):
         self.params[SWING_KNEE_RELATIVE+DN_IDX] = knee
 
     def balance_params(self, q, dq):
-        return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X,Y coordinates
+        return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X coordinate
 
     def compute_target_q(self, q, dq):
         c = self.env.consts()
@@ -278,8 +278,7 @@ class Simbicon(PDController):
         kp = self.Kp[self.stance_idx+c.HIP_PITCH]
         kd = self.Kd[self.stance_idx+c.HIP_PITCH]
         torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
-        control[self.stance_idx] = -torso_torque - control[self.swing_idx]
-
+        control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
         torques = self.env.from_features(control)
         return torques
 
