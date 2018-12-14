@@ -10,6 +10,8 @@ class PDController:
         self.reset()
 
         c = self.env.consts()
+        self.swing_idx = c.RIGHT_IDX # Stub to conform to Simbicon interface
+
         BRICK_DOF = c.BRICK_DOF
         self.Kp = np.array([0.0] * BRICK_DOF + c.KP_GAIN)
         self.Kd = np.array([0.0] * BRICK_DOF + c.KD_GAIN)

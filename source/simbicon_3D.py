@@ -155,7 +155,7 @@ def test(env, length, r=1, n=8, a=0.0):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed, random=0)
     env.reset(rotate_state(obs, a, env), random=0.0)
-    env.sdf_loader.put_dot([0,-0.9,0], 'origin')
+    env.sdf_loader.put_dot([0,-0.9,0], 'origin', color=RED)
     env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
     t = env.controller.stance_heel
     for i in range(n):
@@ -170,6 +170,6 @@ if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
     env.sdf_loader.ground_width = 20.0
-    test(env, 0.5, a=3.1)
+    test(env, 0.5, a=0)
     #test_standardize_stance(env)
     embed()

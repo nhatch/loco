@@ -1,23 +1,23 @@
 import numpy as np
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 
-perm = [2,1,0,3,4,5, # Brick DOFs
+perm = [0,1,2,4,3,5, # Brick DOFs
         12,13,14,15,16,17, # Right leg
         6,7,8,9,10,11, # Left leg
         18,19,20] # Everything else
 
 # These are applied in standardized space
-sign_switches = [2,8,14,17]
+sign_switches = [8,14,17]
 
 from consts_common3D import *
 
 CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
-PELVIS_BODYNODE_IDX = 1
-RIGHT_BODYNODE_IDX = 7 # Used for finding contacts and locating the heel
-RIGHT_THIGH_IDX = 5
-LEFT_BODYNODE_IDX = 4
-LEFT_THIGH_IDX = 2
+PELVIS_BODYNODE_IDX = 2
+RIGHT_BODYNODE_IDX = 8 # Used for finding contacts and locating the heel
+RIGHT_THIGH_IDX = 6
+LEFT_BODYNODE_IDX = 5
+LEFT_THIGH_IDX = 3
 
 # TODO this skel file has a lot of "transformation" values that might invalidate
 # the current IK code.
@@ -35,4 +35,4 @@ trunk_kd = [20, 20, 20]
 KP_GAIN = leg_kp + leg_kp + trunk_kp
 KD_GAIN = leg_kd + leg_kd + trunk_kd
 
-ALLOWED_COLLISION_IDS = [4,7] # The two feet
+ALLOWED_COLLISION_IDS = [RIGHT_BODYNODE_IDX, LEFT_BODYNODE_IDX] # The two feet

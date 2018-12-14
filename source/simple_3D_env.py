@@ -84,6 +84,7 @@ def test_pd_control():
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     env.reset()
+    env.sdf_loader.put_grounds([[-10,-0.9,0]], runway_length=20)
     q, _ = env.get_x()
     env.render()
     # Set some weird target pose
@@ -96,7 +97,7 @@ def test_pd_control():
     import time
     # Otherwise somehow it achieves the pose before the GUI launches
     time.sleep(0.1)
-    for i in range(int(4 / SIMULATION_RATE)):
+    for i in range(int(2 / SIMULATION_RATE)):
         env.step(60)
 
 def test_gimbal_lock():
@@ -124,5 +125,5 @@ def test_gimbal_lock():
     time.sleep(1)
 
 if __name__ == "__main__":
-    #test_pd_control()
-    test_gimbal_lock()
+    test_pd_control()
+    #test_gimbal_lock()
