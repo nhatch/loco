@@ -27,7 +27,13 @@
                     <offset>0.0 0 0.0</offset>
                 </inertia>
             </body>
-
+            <body name="pelvis_aux2">
+                <transformation>0.0 0.0 0.0 0 0 0</transformation>
+                <inertia>
+                    <mass>0.0</mass>
+                    <offset>0.0 0 0.0</offset>
+                </inertia>
+            </body>
             <body name="pelvis">
                 <transformation>0.0 0.0 0.0 0 1.570796 0</transformation>
                 <inertia>
@@ -266,16 +272,33 @@
 
             <!-- JOINT: Pelvis -->
             <joint type="translational" name="j_pelvis">
-                <transformation>0.0 0.0 0.0 0.0 1.57 0.</transformation>
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.</transformation>
                 <parent>world</parent>
                 <child>pelvis_aux</child>
             </joint>
 
-            <joint type="euler" name="j_pelvis2">
-
+            <joint type="universal" name="j_pelvis1">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>pelvis_aux</parent>
+                <child>pelvis_aux2</child>
+                <axis>
+                  <xyz>0.0 1.0 0.0</xyz>
+                </axis>
+                <axis2>
+                  <xyz>1.0 0.0 0.0</xyz>
+                </axis2>
+                <init_pos>0.0 0.0</init_pos>
+                <init_vel>0 0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_pelvis2">
+                <parent>pelvis_aux2</parent>
                 <child>pelvis</child>
-                <axis_order>zyx</axis_order>
+                <axis>
+                  <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0.0</init_pos>
+                <init_vel>0</init_vel>
             </joint>
 
             <joint name="j_thigh_left" type="euler">
@@ -514,7 +537,13 @@
                     <offset>0.0 0 0.0</offset>
                 </inertia>
             </body>
-
+            <body name="pelvis_aux2">
+                <transformation>0.0 0.0 0.0 0 0 0</transformation>
+                <inertia>
+                    <mass>0.0</mass>
+                    <offset>0.0 0 0.0</offset>
+                </inertia>
+            </body>
             <body name="pelvis">
                 <transformation>0.0 0.0 0.0 0 1.570796 0</transformation>
                 <inertia>
@@ -759,16 +788,33 @@
 
             <!-- JOINT: Pelvis -->
             <joint type="translational" name="j_pelvis">
-                <transformation>0.0 0.0 0.0 0.0 1.57 0.</transformation>
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.</transformation>
                 <parent>world</parent>
                 <child>pelvis_aux</child>
             </joint>
 
-            <joint type="euler" name="j_pelvis2">
-
+            <joint type="universal" name="j_pelvis1">
+                <transformation>0.0 0.0 0.0 0.0 0.0 0.0</transformation>
                 <parent>pelvis_aux</parent>
+                <child>pelvis_aux2</child>
+                <axis>
+                  <xyz>0.0 1.0 0.0</xyz>
+                </axis>
+                <axis2>
+                  <xyz>1.0 0.0 0.0</xyz>
+                </axis2>
+                <init_pos>0.0 0.0</init_pos>
+                <init_vel>0 0</init_vel>
+            </joint>
+
+            <joint type="revolute" name="j_pelvis2">
+                <parent>pelvis_aux2</parent>
                 <child>pelvis</child>
-                <axis_order>zyx</axis_order>
+                <axis>
+                  <xyz>1.0 0.0 0.0</xyz>
+                </axis>
+                <init_pos>0.0</init_pos>
+                <init_vel>0</init_vel>
             </joint>
 
             <joint name="j_thigh_left" type="euler">

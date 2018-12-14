@@ -118,7 +118,7 @@ def test_gimbal_lock():
     time.sleep(1)
     t(1,0.5,0) # Should just rotate around the Z axis
     time.sleep(1)
-    t(np.pi/2, 0.5, 0) # Same as above
+    t(np.pi/2, 0.5, 0) # Same as above (heading is now perpendicular to original)
     time.sleep(1)
     t(np.pi/2, 0.25, 0.25) # Should look different from above (i.e. no gimbal lock)
     time.sleep(1)
