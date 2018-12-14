@@ -130,8 +130,8 @@ class LearnInverseDynamics:
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
-        rs.record_video = self.record_video
-        render = 0.7 if self.record_video else 1.0
+        rs.video_save_dir = self.video_save_dir
+        render = 0.7 if self.video_save_dir else 1.0
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
         w_policy = rs.random_search(max_iters=10, tol=0.05, render=render)
@@ -221,8 +221,8 @@ class LearnInverseDynamics:
         self.collect_dataset()
         self.train_inverse_dynamics()
 
-    def evaluate(self, render=1.0, record_video=False, seed=None):
-        state = self.env.reset(record_video=record_video, seed=seed)
+    def evaluate(self, render=1.0, video_save_dir=None, seed=None):
+        state = self.env.reset(video_save_dir=video_save_dir, seed=seed)
         total_error = 0
         max_error = 0
         total_score = 0
@@ -246,7 +246,7 @@ class LearnInverseDynamics:
             total_error += error
             if error < 1:
                 total_score += (1-error) * (DISCOUNT**i)
-        if record_video:
+        if video_save_dir:
             self.env.reset() # This ensures the video recorder is closed properly.
         result = {
                 "total_score": total_score,
@@ -282,7 +282,7 @@ if __name__ == '__main__':
 
     name = '3D' if env.is_3D else '2D'
     learn = LearnInverseDynamics(env, name)
-    learn.record_video = False
+    learn.video_save_dir = None
     #learn.load_train_set()
     learn.training_iter()
     embed()
