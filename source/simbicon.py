@@ -108,6 +108,8 @@ class Simbicon(PDController):
         # Remember Z sign is flipped (TODO maybe I should switch the sign of yaw?)
         if self.target_direction[2] > 0:
             self.target_heading *= -1
+        # TODO adjust target_heading by multiples of 2*pi until it's close to the
+        # current heading.
 
         # Gives the vector in the ground plane perpendicular to the direction `d`
         # such that the cross product between those two vectors should point up-ish.

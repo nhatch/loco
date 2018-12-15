@@ -41,7 +41,7 @@ class PDController:
         # Stub to conform to Simbicon interface
         return False
 
-    def reset(self):
+    def reset(self, state=None):
         self.target_q = self.env.get_x()[0]
 
     def state(self):

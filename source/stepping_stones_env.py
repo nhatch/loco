@@ -191,19 +191,18 @@ class SteppingStonesEnv:
     def set_state(self, state, random):
         # If random = 0.0, no randomness will be added.
         ndofs = self.robot_skeleton.ndofs
-        qdim = self.consts().Q_DIM
         perturbation = np.random.uniform(low=-random, high=random, size=2*ndofs)
         if state is None:
             self.robot_skeleton.x += perturbation
             # Start with some forward momentum (Simbicon has some trouble otherwise)
-            dq = np.zeros(qdim)
+            dq = np.zeros(ndofs)
             dq[0] += 0.4 + random * np.random.uniform(low=0.0, high=0.4)
             dq = self.robot_skeleton.dq + self.from_features(dq)
             self.robot_skeleton.dq = dq
             self.controller.reset()
         else:
-            perturbation[:ndofs] += self.from_features(state.pose()[:qdim])
-            perturbation[ndofs:] += self.from_features(state.pose()[qdim:])
+            perturbation[:ndofs] += self.from_features(state.raw_state[:ndofs])
+            perturbation[ndofs:] += self.from_features(state.raw_state[ndofs:2*ndofs])
             self.robot_skeleton.x = perturbation
             self.controller.reset(state)
 
