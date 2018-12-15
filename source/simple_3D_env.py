@@ -107,25 +107,27 @@ def test_gimbal_lock(joint):
     env.sdf_loader.put_dot([1.5,0,0], "positive_x", color=RED)
     env.sdf_loader.put_dot([0,1.5,0], "positive_y", color=GREEN)
     env.sdf_loader.put_dot([0,0,1.5], "positive_z", color=BLUE)
-    q = env.robot_skeleton.q.copy()
+    q = env.current_observation()
     def t(a,b,c):
-        q[joint] = [a,b,c]; env.robot_skeleton.q = q; env.render()
+        q.raw_state[joint] = [a,b,c]; env.reset(q, random=0); env.render()
     import time
     t(0,0,0)
     time.sleep(1)
     t(0,0,0.5)
     time.sleep(1)
-    t(0,0.5,0) # Should look different from previous (i.e. no gimbal lock)
+    t(0.5,0.0,0) # Should look different from previous (i.e. no gimbal lock)
     time.sleep(1)
-    t(1,0.5,0) # Should just rotate around the Z axis
+    t(0.5,1,0) # Should just rotate around the Z axis
     time.sleep(1)
-    t(np.pi/2, 0.5, 0) # Same as above (heading is now perpendicular to original)
+    t(0.5, np.pi/2, 0) # Same as above (heading is now perpendicular to original)
     time.sleep(1)
-    t(np.pi/2, 0.25, 0.25) # Should look different from above (i.e. no gimbal lock)
+    # NOTE: for the hip joint there is actually gimbal lock here, but that's ok
+    t(0.25, np.pi/2, 0.25) # Should look different from above (i.e. no gimbal lock)
     time.sleep(1)
 
 if __name__ == "__main__":
     test_pd_control()
     ROOT = [3,4,5]
-    RIGHT_HIP = [12,13,14]
-    #test_gimbal_lock(RIGHT_HIP)
+    RIGHT_HIP = [6,7,8]
+    LEFT_HIP = [12,13,14]
+    #test_gimbal_lock(LEFT_HIP)
