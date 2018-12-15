@@ -104,8 +104,10 @@ class Simbicon(PDController):
         target_dir = d.copy()
         target_dir[1] = 0.0 # Project to X-Z plane
         self.target_direction = target_dir / np.linalg.norm(target_dir)
-        # The following looks better but obviously only works when going in that direction
-        #self.target_direction = np.array([1.0, 0.0, 0.0])
+        self.target_heading = np.arccos(self.target_direction[0])
+        # Remember Z sign is flipped (TODO maybe I should switch the sign of yaw?)
+        if self.target_direction[2] > 0:
+            self.target_heading *= -1
 
         # Gives the vector in the ground plane perpendicular to the direction `d`
         # such that the cross product between those two vectors should point up-ish.
