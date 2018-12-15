@@ -89,9 +89,9 @@ def test_pd_control():
     env.render()
     # Set some weird target pose
     c = env.consts()
-    q[c.RIGHT_IDX] = 1
-    q[c.RIGHT_IDX+3] = -np.pi/2
-    q[c.LEFT_IDX] = -np.pi * 0.75
+    q[c.RIGHT_IDX + c.HIP_PITCH] = 1
+    q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
+    q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.75
     env.controller.target_q = q
     env.render()
     import time
@@ -100,16 +100,16 @@ def test_pd_control():
     for i in range(int(2 / SIMULATION_RATE)):
         env.step(60)
 
-def test_gimbal_lock():
+def test_gimbal_lock(joint):
     from pd_control import PDController
     from sdf_loader import RED, GREEN, BLUE
     env = Simple3DEnv(PDController)
-    env.sdf_loader.put_dot([1,0,0], "positive_x", color=RED)
-    env.sdf_loader.put_dot([0,1,0], "positive_y", color=GREEN)
-    env.sdf_loader.put_dot([0,0,1], "positive_z", color=BLUE)
+    env.sdf_loader.put_dot([1.5,0,0], "positive_x", color=RED)
+    env.sdf_loader.put_dot([0,1.5,0], "positive_y", color=GREEN)
+    env.sdf_loader.put_dot([0,0,1.5], "positive_z", color=BLUE)
     q = env.robot_skeleton.q.copy()
     def t(a,b,c):
-        q[3:6] = [a,b,c]; env.robot_skeleton.q = q; env.render()
+        q[joint] = [a,b,c]; env.robot_skeleton.q = q; env.render()
     import time
     t(0,0,0)
     time.sleep(1)
@@ -126,4 +126,6 @@ def test_gimbal_lock():
 
 if __name__ == "__main__":
     test_pd_control()
-    #test_gimbal_lock()
+    ROOT = [3,4,5]
+    RIGHT_HIP = [12,13,14]
+    #test_gimbal_lock(RIGHT_HIP)
