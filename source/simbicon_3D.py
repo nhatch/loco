@@ -79,16 +79,8 @@ class Simbicon3D(Simbicon):
             cv = 0
         balance_feedback = -(cd*d[Z] + cv*v[Z])
 
-        # TODO this code is WIP; doesn't do anything yet
-        k_yaw = 0.2
-        rot = self.rotmatrix(self.heading(q))
-        target_lateral_offset = np.dot(rot, self.target - self.stance_heel)[Z]
-        if self.stance_idx == RIGHT_IDX:
-            target_lateral_offset *= -1
-        target_yaw = -k_yaw*(target_lateral_offset - 0.3) # relative to current heading
-        #tq[self.stance_idx+HIP_YAW] = q[self.stance_idx+HIP_YAW]+target_yaw
-        #tq[self.swing_idx+HIP_YAW] = q[self.swing_idx+HIP_YAW]+target_yaw
-
+        stance_foot_heading = self.ik.heading(self.stance_idx)
+        tq[self.stance_idx+HIP_YAW] = -(self.target_heading - stance_foot_heading)
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
         tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
@@ -97,15 +89,6 @@ class Simbicon3D(Simbicon):
 
         self.update_doppelganger(tq)
         return tq
-
-    def post_process(self, control, q, dq):
-        control = super().post_process(control, q, dq)
-        p = self.target_heading - q[ROOT_YAW]
-        d = 0.0 - dq[ROOT_YAW]
-        kp = self.Kp[self.stance_idx+HIP_YAW]
-        kd = self.Kd[self.stance_idx+HIP_YAW]
-        control[self.stance_idx+HIP_YAW] = -(p*kp + d*kd)
-        return control
 
     def update_doppelganger(self, tq):
         if self.env.doppelganger is None:

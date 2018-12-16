@@ -275,14 +275,8 @@ class Simbicon(PDController):
         kd = self.Kd[self.stance_idx+c.HIP_PITCH]
         torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
         control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
-
-        control = self.post_process(control,q,dq)
         torques = self.env.from_features(control)
         return torques
-
-    def post_process(self, control, q, dq):
-        # Simbicon3D overrides this
-        return control
 
 def test(env, length, seed=None, runway_length=15, runway_x=0):
     env.clear_skeletons() # Necessary in order to change the runway length
