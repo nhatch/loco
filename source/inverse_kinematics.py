@@ -3,7 +3,8 @@ import numpy as np
 from sdf_loader import RED, GREEN, BLUE
 
 class InverseKinematics:
-    def __init__(self, env):
+    def __init__(self, skel, env):
+        self.robot_skeleton = skel
         self.env = env
 
     def forward_kine(self, swing_idx):
@@ -26,7 +27,7 @@ class InverseKinematics:
             swing_foot_idx = c.RIGHT_BODYNODE_IDX
         else:
             swing_foot_idx = c.LEFT_BODYNODE_IDX
-        foot = self.env.robot_skeleton.bodynodes[swing_foot_idx]
+        foot = self.robot_skeleton.bodynodes[swing_foot_idx]
         return foot
 
     def inv_kine(self, target, swing_idx, verbose=False):
@@ -50,7 +51,7 @@ class InverseKinematics:
     def transform_frame(self, target, swing_idx, verbose=False):
         c = self.env.consts()
         bodynode_idx = c.RIGHT_THIGH_IDX if swing_idx == c.RIGHT_IDX else c.LEFT_THIGH_IDX
-        thigh = self.env.robot_skeleton.bodynodes[bodynode_idx]
+        thigh = self.robot_skeleton.bodynodes[bodynode_idx]
         # Locate the hip joint
         thigh_centric_offset = np.array([0.0, 0.5*c.L_THIGH, 0.0])
         hip_location = np.dot(thigh.transform()[:3,:3], thigh_centric_offset) + thigh.com()
@@ -59,7 +60,7 @@ class InverseKinematics:
             print("CENTER JOINT:", hip_location)
         # Move the target to the coordinate system centered at the hip joint
         # facing in the same direction as the pelvis.
-        pelvis = self.env.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
+        pelvis = self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
         rot = np.linalg.inv(pelvis.transform())[:3,:3]
         egocentric_target = np.dot(rot, target - hip_location)
         # Ignore the Z coordinate for now (TODO?)
@@ -90,9 +91,8 @@ class InverseKinematics:
             time.sleep(0.05)
 
     def test_inv_kine(self, idx, planar=False):
-        self.env.clear_skeletons()
         c = self.env.consts()
-        agent = self.env.robot_skeleton
+        agent = self.robot_skeleton
         brick_pose, target = self.gen_brick_pose(planar)
 
         q, _ = self.env.get_x()
@@ -141,6 +141,6 @@ if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     #env = SteppingStonesEnv()
     env = Simple3DEnv()
-    ik = InverseKinematics(env)
+    ik = InverseKinematics(env.robot_skeleton, env)
     ik.test()
     embed()

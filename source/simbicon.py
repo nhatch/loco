@@ -26,11 +26,11 @@ class Params:
 class Simbicon(PDController):
 
     def __init__(self, skel, env):
-        self.ik = InverseKinematics(env)
         super().__init__(skel, env)
 
     def reset(self, state=None):
         c = self.env.consts()
+        self.ik = InverseKinematics(self.skel, self.env)
         self.step_started = self.time()
         self.swing_idx = c.RIGHT_IDX
         self.stance_idx = c.LEFT_IDX
@@ -289,6 +289,7 @@ class Simbicon(PDController):
         return torques
 
     def post_process(self, control, q, dq):
+        # Simbicon3D overrides this
         return control
 
 def test(env, length, seed=None, runway_length=15, runway_x=0):

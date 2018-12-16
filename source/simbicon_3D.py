@@ -2,6 +2,7 @@ import numpy as np
 from IPython import embed
 
 from simbicon import Simbicon, UP, DOWN
+from inverse_kinematics import InverseKinematics
 from state import State
 from sdf_loader import RED, GREEN, BLUE
 
@@ -111,11 +112,18 @@ class Simbicon3D(Simbicon):
             return
         c = self.env.consts()
         tq = tq.copy()
+        tq[ROOT_PITCH] = self.params[TORSO_WORLD]
+        tq[ROOT_YAW] = self.target_heading
         q = self.env.get_x()[0]
-        tq[:6] = q[:6]
-        tq[Z] += 0.5
+        tq[ROOT_ROLL] = q[ROOT_ROLL] # We don't try to control this (yet?)
         self.env.doppelganger.q = self.env.from_features(tq)
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
+        ik = InverseKinematics(self.env.doppelganger, self.env)
+        stance_heel = ik.forward_kine(self.stance_idx)
+        heel_fixing_trans = self.stance_heel - stance_heel
+        offset_trans = np.array([0.0, 0.0, 1.5])
+        tq[:3] += heel_fixing_trans + offset_trans
+        self.env.doppelganger.q = self.env.from_features(tq)
 
 def test_standardize_stance(env):
     from time import sleep
