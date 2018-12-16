@@ -11,20 +11,21 @@ import consts_armless as consts
 SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/12
 PHI = np.pi / 3
+ZOOM = 5.0
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
-        x0 = com[0]
-        # Transform the offset -[x0, 0, 0] into the camera coordinate frame.
+        x0, _, z0 = com
+        # Transform the offset -[x0, 0, z0] into the camera coordinate frame.
         # First, rotate by PHI around the Y axis.
-        x1 = x0 * np.cos(self.phi)
-        z1 = x0 * np.sin(self.phi)
+        x1 = x0 * np.cos(self.phi) - z0 * np.sin(self.phi)
+        z1 = x0 * np.sin(self.phi) + z0 * np.cos(self.phi)
         # Then, rotate by THETA around the new X axis.
         x2 = x1
         y2 = z1 * np.sin(self.theta)
         z2 = z1 * np.cos(self.theta)
-        # Move z_2 back by 5 so the camera has some distance from the agent.
-        trans = [-x2, -y2, -(z2 + 5)]
+        # Move z_2 back by `zoom` so the camera has some distance from the agent.
+        trans = [-x2, -y2, -(z2+self.zoom)]
         self.viewer.scene.tb.trans[0:3] = trans
 
     def set_rot_manual(self, phi):
@@ -45,13 +46,17 @@ class Simple3DEnv(SteppingStonesEnv):
     def init_camera(self):
         self.theta = THETA
         self.phi = PHI
+        self.zoom = ZOOM
         tb = Trackball()
         self.set_rot(tb)
         # Overwrite the drag_to method so we only change phi, not theta.
         def drag_to(x,y,dx,dy):
             self.phi += -dx/80
             self.set_rot(self.viewer.scene.tb)
+        def zoom_to(dx, dy):
+            self.zoom -= dy/20
         tb.drag_to = drag_to
+        tb.zoom_to = zoom_to
         return tb
 
     def step(self, frames_per_second=60):
