@@ -3,6 +3,7 @@ from pd_control import PDController
 import numpy as np
 from IPython import embed
 from inverse_kinematics import InverseKinematics
+from utils import heading_from_vector
 
 # The maximum time it should take to get (e.g.) the right foot off the ground
 # after the left-foot heel strike.
@@ -99,17 +100,8 @@ class Simbicon(PDController):
         swing_heel = self.ik.forward_kine(self.swing_idx)
         self.starting_swing_heel = swing_heel
         d = self.target - self.starting_swing_heel
-        # In 2D this is always in the positive X direction (+- some Y variation)
-        # but in 3D this is important to track.
-        target_dir = d.copy()
-        target_dir[1] = 0.0 # Project to X-Z plane
-        self.target_direction = target_dir / np.linalg.norm(target_dir)
-        self.target_heading = np.arccos(self.target_direction[0])
-        # Remember Z sign is flipped (TODO maybe I should switch the sign of yaw?)
-        if self.target_direction[2] > 0:
-            self.target_heading *= -1
-        # TODO adjust target_heading by multiples of 2*pi until it's close to the
-        # current heading.
+        branch = self.heading(self.env.get_x()[0]) if self.env.is_3D else 0.0
+        self.target_direction, self.target_heading = heading_from_vector(d, branch)
 
         # Gives the vector in the ground plane perpendicular to the direction `d`
         # such that the cross product between those two vectors should point up-ish.

@@ -1,6 +1,7 @@
 from IPython import embed
 import numpy as np
 from sdf_loader import RED, GREEN, BLUE
+from utils import heading_from_vector
 
 class InverseKinematics:
     def __init__(self, skel, env):
@@ -20,6 +21,16 @@ class InverseKinematics:
         # TODO is it cheating to pull foot.com() directly from the environment?
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
         return heel_location
+
+    def heading(self, swing_idx):
+        # We only ever use this in 3D
+        # The forward direction. Again, trial and error.
+        foot_centric_offset = np.array([0.0, 0.0, -1.0])
+        foot = self.get_foot(swing_idx)
+        direction = np.dot(foot.transform()[:3,:3], foot_centric_offset)
+        current_heading = self.env.controller.heading(self.env.get_x()[0])
+        _, heading = heading_from_vector(direction, current_heading)
+        return heading
 
     def get_foot(self, swing_idx):
         c = self.env.consts()
@@ -106,6 +117,7 @@ class InverseKinematics:
         q = self.inv_kine_pose(hip, knee)
         agent.q = self.env.from_features(q)
         self.env.render()
+        print("Foot heading:", self.heading(idx), "Robot heading:", brick_pose[c.ROOT_YAW])
 
     def inv_kine_pose(self, hip, knee, is_right_foot=True):
         q, _ = self.env.get_x()
@@ -139,8 +151,9 @@ class InverseKinematics:
 if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
+    from simbicon_3D import Simbicon3D
     #env = SteppingStonesEnv()
-    env = Simple3DEnv()
+    env = Simple3DEnv(Simbicon3D)
     ik = InverseKinematics(env.robot_skeleton, env)
     ik.test()
     embed()

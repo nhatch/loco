@@ -153,6 +153,7 @@ class SteppingStonesEnv:
             obs, terminated, status_string = self.simulation_step()
             if obs is not None:
                 if render:
+                    self._render()
                     self.log(status_string)
                 return obs, terminated
 
