@@ -2,8 +2,8 @@ import numpy as np
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 
 perm = [0,1,2,4,3,5, # Brick DOFs
-        12,13,14,15,16,17, # Right leg
-        6,7,8,9,10,11, # Left leg
+        14,13,12,15,16,17, # Right leg
+        8,7,6,9,10,11, # Left leg
         18,19,20] # Everything else
 
 # These are applied in standardized space

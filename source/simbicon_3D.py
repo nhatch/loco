@@ -97,6 +97,15 @@ class Simbicon3D(Simbicon):
         self.update_doppelganger(tq)
         return tq
 
+    def post_process(self, control, q, dq):
+        control = super().post_process(control, q, dq)
+        p = self.target_heading - q[ROOT_YAW]
+        d = 0.0 - dq[ROOT_YAW]
+        kp = self.Kp[self.stance_idx+HIP_YAW]
+        kd = self.Kd[self.stance_idx+HIP_YAW]
+        control[self.stance_idx+HIP_YAW] = -(p*kp + d*kd)
+        return control
+
     def update_doppelganger(self, tq):
         if self.env.doppelganger is None:
             return
@@ -143,12 +152,12 @@ def test(env, length, r=1, n=8, a=0.0):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed, random=0)
     env.reset(rotate_state(obs, a, env), random=0.0)
-    env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
+    env.sdf_loader.put_grounds([[-30.0,-0.9,0]], runway_length=40.0)
     t = env.controller.stance_heel
     for i in range(n):
         l = length*0.5 if i == 0 else length
-        t = next_target(t, a, l, env)
-        #t = next_target(t, 0.05+ 0.05*i, l, env)
+        a = 0.07*(i+1)
+        t = next_target(env.controller.stance_heel, a, l, env)
         _, terminated = env.simulate(t, render=r, put_dots=True)
         if terminated:
             break
@@ -156,7 +165,7 @@ def test(env, length, r=1, n=8, a=0.0):
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    env.sdf_loader.ground_width = 20.0
-    test(env, 0.5, a=0, n=2)
+    env.sdf_loader.ground_width = 60.0
+    test(env, 0.6, n=200, r=1)
     #test_standardize_stance(env)
     embed()

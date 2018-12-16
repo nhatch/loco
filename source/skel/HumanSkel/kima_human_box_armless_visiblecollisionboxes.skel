@@ -305,11 +305,11 @@
                 <transformation>0.0 0.0 0.0 0.0 0.0 0</transformation>
                 <parent>pelvis</parent>
                 <child>l-upperleg</child>
-                <axis_order>xyz</axis_order>
+                <axis_order>zyx</axis_order>
                 <axis>
                     <limit>
                         <lower>-1.570796</lower>
-                        <upper>1.570796</upper>
+                        <upper>0.6</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -329,7 +329,7 @@
                 <axis3>
                     <limit>
                         <lower>-1.570796</lower>
-                        <upper>0.6</upper>
+                        <upper>1.570796</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -391,10 +391,10 @@
                 <transformation>0.0 0.0 0.0 0.0 0.0 0</transformation>
                 <parent>pelvis</parent>
                 <child>r-upperleg</child>
-                <axis_order>xyz</axis_order>
+                <axis_order>zyx</axis_order>
                 <axis>
                     <limit>
-                        <lower>-1.570796</lower>
+                        <lower>-0.6</lower>
                         <upper>1.570796</upper>
                     </limit>
                     <dynamics>
@@ -414,7 +414,7 @@
                 </axis2>
                 <axis3>
                     <limit>
-                        <lower>-0.6</lower>
+                        <lower>-1.570796</lower>
                         <upper>1.570796</upper>
                     </limit>
                     <dynamics>
@@ -821,11 +821,11 @@
                 <transformation>0.0 0.0 0.0 0.0 0.0 0</transformation>
                 <parent>pelvis</parent>
                 <child>l-upperleg</child>
-                <axis_order>xyz</axis_order>
+                <axis_order>zyx</axis_order>
                 <axis>
                     <limit>
-                        <lower>-1.570796</lower>
-                        <upper>0.0</upper>
+                        <lower>0.0</lower>
+                        <upper>0.6</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -844,8 +844,8 @@
                 </axis2>
                 <axis3>
                     <limit>
-                        <lower>0.0</lower>
-                        <upper>0.6</upper>
+                        <lower>-1.570796</lower>
+                        <upper>0.0</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -907,11 +907,11 @@
                 <transformation>0.0 0.0 0.0 0.0 0.0 0</transformation>
                 <parent>pelvis</parent>
                 <child>r-upperleg</child>
-                <axis_order>xyz</axis_order>
+                <axis_order>zyx</axis_order>
                 <axis>
                     <limit>
-                        <lower>0.0</lower>
-                        <upper>1.570796</upper>
+                        <lower>-0.6</lower>
+                        <upper>0.0</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
@@ -930,8 +930,8 @@
                 </axis2>
                 <axis3>
                     <limit>
-                        <lower>-0.6</lower>
-                        <upper>0.0</upper>
+                        <lower>0.0</lower>
+                        <upper>1.570796</upper>
                     </limit>
                     <dynamics>
                         <damping>5.0</damping>
