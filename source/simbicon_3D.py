@@ -118,7 +118,7 @@ def test_standardize_stance(env):
     obs = env.current_observation()
     env.render()
     sleep(0.5)
-    env.reset(obs, random=0.0)
+    env.reset(obs)
     env.render()
 
 def next_target(start, heading, length, env):

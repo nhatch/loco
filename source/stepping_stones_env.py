@@ -92,7 +92,7 @@ class SteppingStonesEnv:
         tb.trans[2] = -5
         return tb
 
-    def reset(self, state=None, video_save_dir=None, random=0.005, seed=None):
+    def reset(self, state=None, video_save_dir=None, random=0.0, seed=None):
         if seed is None:
             seed = np.random.randint(100000)
         print("Seed:", seed)

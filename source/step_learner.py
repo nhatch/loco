@@ -17,7 +17,7 @@ class Runner:
         return score
 
     def reset(self, video_save_dir=None):
-        self.env.reset(self.start_state, random=0.0, video_save_dir=video_save_dir)
+        self.env.reset(self.start_state, video_save_dir=video_save_dir)
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets):
@@ -26,7 +26,7 @@ def collect_start_state(env, targets):
     # controller, if the next step is another short step. This is because the
     # velocity-based swing hip correction tends to overcorrect so that the robot
     # steps far past the next target.
-    env.reset(random=0.0)
+    env.reset()
     env.sdf_loader.put_grounds(targets, runway_length=20)
     env.render()
     for t in targets[1:-1]:

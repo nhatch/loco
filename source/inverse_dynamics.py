@@ -68,7 +68,7 @@ class LearnInverseDynamics:
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
-            start_state = self.env.reset()
+            start_state = self.env.reset(random=0.005)
             self.env.sdf_loader.put_grounds([start_state.swing_platform()], runway_length=15)
             # TODO should we include this first state? It will be very different from the rest.
             #start_states.append(self.env.robot_skeleton.x)
@@ -222,7 +222,7 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def evaluate(self, render=1.0, video_save_dir=None, seed=None):
-        state = self.env.reset(video_save_dir=video_save_dir, seed=seed)
+        state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005)
         total_error = 0
         max_error = 0
         total_score = 0

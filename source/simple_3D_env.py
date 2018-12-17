@@ -116,7 +116,7 @@ def test_gimbal_lock(joint):
     env.sdf_loader.put_dot([0,0,1.5], "positive_z", color=BLUE)
     q = env.current_observation()
     def t(a,b,c):
-        q.raw_state[joint] = [a,b,c]; env.reset(q, random=0); env.render()
+        q.raw_state[joint] = [a,b,c]; env.reset(q); env.render()
     import time
     t(0,0,0)
     time.sleep(1)
