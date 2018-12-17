@@ -132,35 +132,33 @@ class InverseKinematics:
         q[base+c.KNEE] = knee
         return q
 
-    def test_pointing(self):
+    # Returns the values of the 6 "brick DOFs" for which, if the rest of the DOFs
+    # remain the same, the given bodynode will have the given target transformation.
+    def get_dofs(self, target_transform, bodynode):
+        current_transform = bodynode.transform()
         c = self.env.consts()
-        basic = self.env.reset(random=0.0)
-        swing_idx = c.LEFT_IDX
-        thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
-        o1 = [0, 0.5,-0.5]
-        o2 = [0,-0.5,-0.5]
-        com = thigh.com().copy()
-        t = thigh.transform().copy()
-        d1 = np.dot(thigh.transform()[:3,:3], o1) + com
-        d2 = np.dot(thigh.transform()[:3,:3], o2) + com
+        base = self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
+        base_transform = base.transform()
+        relative_transform = np.dot(np.linalg.inv(base_transform), current_transform)
+        target_base_transform = np.dot(target_transform, np.linalg.inv(relative_transform))
+        euler = libtransform.euler_from_matrix(target_base_transform, 'ryzx')
+        translation = target_base_transform[0:3,3]
+        dofs = np.zeros(6)
+        dofs[3:6] = [euler[1], euler[0], euler[2]]
+        dofs[0:3] = translation
+        return dofs
 
+    def test_inverse_transform(self, bodynode):
+        basic = self.env.reset(random=0.4)
+        orig_transform = bodynode.transform()
         self.pause(0.5)
 
         obs = self.env.reset(random=0.4)
-        trot = np.linalg.inv(thigh.relative_transform())
-        rot = np.dot(t, trot)
-        euler = libtransform.euler_from_matrix(rot, 'ryzx')
-        obs.raw_state[3:6] = [euler[1], euler[0], euler[2]]
-        env.reset(obs, random=0)
-        obs.raw_state[0:3] += com - thigh.com()
-        env.reset(obs, random=0)
+        obs.raw_state[0:6] = self.get_dofs(orig_transform, bodynode)
 
-        d1_act = np.dot(thigh.transform()[:3,:3], o1) + thigh.com()
-        d2_act = np.dot(thigh.transform()[:3,:3], o2) + thigh.com()
-        error = np.linalg.norm(d1-d1_act) + np.linalg.norm(d2-d2_act)
-        print("Error:", error)
-
-        self.pause(1)
+        env.reset(obs, random=0)
+        print(np.allclose(orig_transform, bodynode.transform()))
+        self.pause(0.5)
 
     def gen_brick_pose(self, planar):
         # Generate a random starting pose and target.
@@ -192,5 +190,6 @@ if __name__ == "__main__":
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
-    ik.test_pointing()
+    bodynode = env.robot_skeleton.bodynodes[3]
+    ik.test_inverse_transform(bodynode)
     embed()
