@@ -186,6 +186,10 @@ class SteppingStonesEnv:
     def log(self, string):
         print(string)
 
+    def trace(self, string, every=30):
+        if self.world.frame % every == 0:
+            self.log(string)
+
     def set_state(self, state, random):
         # If random = 0.0, no randomness will be added.
         ndofs = self.robot_skeleton.ndofs

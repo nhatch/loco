@@ -15,7 +15,7 @@ ZOOM = 5.0
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
-        x0, _, z0 = com
+        x0, _, z0 = self.track_point or com
         # Transform the offset -[x0, 0, z0] into the camera coordinate frame.
         # First, rotate by PHI around the Y axis.
         x1 = x0 * np.cos(self.phi) - z0 * np.sin(self.phi)
@@ -47,6 +47,7 @@ class Simple3DEnv(SteppingStonesEnv):
         self.theta = THETA
         self.phi = PHI
         self.zoom = ZOOM
+        self.track_point = None
         tb = Trackball()
         self.set_rot(tb)
         # Overwrite the drag_to method so we only change phi, not theta.
@@ -109,6 +110,7 @@ def test_gimbal_lock(joint):
     from pd_control import PDController
     from sdf_loader import RED, GREEN, BLUE
     env = Simple3DEnv(PDController)
+    env.track_point = [0,0,0]
     env.sdf_loader.put_dot([1.5,0,0], "positive_x", color=RED)
     env.sdf_loader.put_dot([0,1.5,0], "positive_y", color=GREEN)
     env.sdf_loader.put_dot([0,0,1.5], "positive_z", color=BLUE)
@@ -131,8 +133,8 @@ def test_gimbal_lock(joint):
     time.sleep(1)
 
 if __name__ == "__main__":
-    test_pd_control()
+    #test_pd_control()
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
     LEFT_HIP = [12,13,14]
-    #test_gimbal_lock(LEFT_HIP)
+    test_gimbal_lock(LEFT_HIP)

@@ -112,6 +112,7 @@ def test_standardize_stance(env):
     from time import sleep
     env.reset(random=0.5)
     env.set_rot_manual(np.pi/2)
+    env.track_point = [0,0,0]
     c = env.controller
     c.change_stance([], [0,0,0])
     obs = env.current_observation()

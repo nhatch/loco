@@ -2,6 +2,7 @@ from IPython import embed
 import numpy as np
 from sdf_loader import RED, GREEN, BLUE
 from utils import heading_from_vector
+import pydart2.utils.transformations as libtransform
 import time
 
 class InverseKinematics:
@@ -95,14 +96,15 @@ class InverseKinematics:
         self.env.sdf_loader.put_dot(heel_loc[:3], 'heel_loc', color=BLUE)
         self.pause()
 
-    def pause(self):
+    def pause(self, sec=1.5):
         # In 3D, give the viewer some time to rotate the environment and look around.
         # TODO have some kind of background thread do rendering, to avoid this hack
         # and make 3D environments easier to explore visually.
-        n = 30 if self.env.is_3D else 1
+        FPS = 20
+        n = int(FPS*sec) if self.env.is_3D else 1
         for i in range(n):
             self.env.render()
-            time.sleep(0.05)
+            time.sleep(1/FPS)
 
     def test_inv_kine(self, idx, planar=False):
         c = self.env.consts()
@@ -137,25 +139,28 @@ class InverseKinematics:
         thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         o1 = [0, 0.5,-0.5]
         o2 = [0,-0.5,-0.5]
-        com = thigh.com()
+        com = thigh.com().copy()
+        t = thigh.transform().copy()
         d1 = np.dot(thigh.transform()[:3,:3], o1) + com
         d2 = np.dot(thigh.transform()[:3,:3], o2) + com
 
+        self.pause(0.5)
+
         obs = self.env.reset(random=0.4)
-        # TODO fix orientation as well
+        trot = np.linalg.inv(thigh.relative_transform())
+        rot = np.dot(t, trot)
+        euler = libtransform.euler_from_matrix(rot, 'ryzx')
+        obs.raw_state[3:6] = [euler[1], euler[0], euler[2]]
+        env.reset(obs, random=0)
         obs.raw_state[0:3] += com - thigh.com()
         env.reset(obs, random=0)
 
         d1_act = np.dot(thigh.transform()[:3,:3], o1) + thigh.com()
         d2_act = np.dot(thigh.transform()[:3,:3], o2) + thigh.com()
-        self.env.sdf_loader.put_dot(d1, 'd1', color=RED)
-        self.env.sdf_loader.put_dot(d2, 'd2', color=BLUE)
-        self.env.sdf_loader.put_dot(d1_act, 'd1_act', color=GREEN)
-        self.env.sdf_loader.put_dot(d2_act, 'd2_act', color=GREEN)
         error = np.linalg.norm(d1-d1_act) + np.linalg.norm(d2-d2_act)
         print("Error:", error)
 
-        self.pause()
+        self.pause(1)
 
     def gen_brick_pose(self, planar):
         # Generate a random starting pose and target.
@@ -184,6 +189,7 @@ if __name__ == "__main__":
     from simbicon_3D import Simbicon3D
     #env = SteppingStonesEnv()
     env = Simple3DEnv(Simbicon3D)
+    env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
     ik.test_pointing()
