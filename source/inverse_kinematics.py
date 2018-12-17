@@ -62,6 +62,10 @@ class InverseKinematics:
         hip = hip + theta
         return hip, knee
 
+    def root_bodynode(self):
+        c = self.env.consts()
+        return self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
+
     def transform_frame(self, target, swing_idx, verbose=False):
         c = self.env.consts()
         thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
@@ -73,8 +77,7 @@ class InverseKinematics:
             print("CENTER JOINT:", hip_location)
         # Move the target to the coordinate system centered at the hip joint
         # facing in the same direction as the pelvis.
-        pelvis = self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
-        rot = np.linalg.inv(pelvis.transform())[:3,:3]
+        rot = np.linalg.inv(self.root_bodynode.transform())[:3,:3]
         egocentric_target = np.dot(rot, target - hip_location)
         # Ignore the Z coordinate for now (TODO?)
         x, y, _ = egocentric_target
@@ -137,10 +140,9 @@ class InverseKinematics:
     def get_dofs(self, target_transform, bodynode):
         current_transform = bodynode.transform()
         c = self.env.consts()
-        base = self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
-        base_transform = base.transform()
-        relative_transform = np.dot(np.linalg.inv(base_transform), current_transform)
-        target_base_transform = np.dot(target_transform, np.linalg.inv(relative_transform))
+        base_transform = self.root_bodynode().transform()
+        relative_transform = np.linalg.inv(base_transform).dot(current_transform)
+        target_base_transform = target_transform.dot(np.linalg.inv(relative_transform))
         euler = libtransform.euler_from_matrix(target_base_transform, 'ryzx')
         translation = target_base_transform[0:3,3]
         dofs = np.zeros(6)
@@ -149,15 +151,44 @@ class InverseKinematics:
         return dofs
 
     def test_inverse_transform(self, bodynode):
-        basic = self.env.reset(random=0.4)
+        self.env.reset(random=0.4)
         orig_transform = bodynode.transform()
         self.pause(0.5)
 
         obs = self.env.reset(random=0.4)
         obs.raw_state[0:6] = self.get_dofs(orig_transform, bodynode)
+        env.reset(obs)
+        print(libtransform.is_same_transform(orig_transform, bodynode.transform()))
+        self.pause(0.5)
 
-        env.reset(obs, random=0)
-        print(np.allclose(orig_transform, bodynode.transform()))
+    def get_hip(self, orig_thigh_transform, target_root_transform):
+        target_relative_transform = np.linalg.inv(target_root_transform).dot(orig_thigh_transform)
+        c = self.env.consts()
+        target_relative_transform = np.linalg.inv(c.LEFT_THIGH_RESTING_RELATIVE_TRANSFORM).dot(target_relative_transform)
+        euler = libtransform.euler_from_matrix(target_relative_transform, 'rzyx')
+        hip_dofs = np.array([euler[2], euler[1], -euler[0]])
+        return hip_dofs
+
+    def test_inverse_hip(self):
+        self.env.reset()
+        pelvis = self.root_bodynode()
+        target_root_transform = pelvis.transform()
+        obs = self.env.reset(random=0.4)
+        c = self.env.consts()
+        thigh = self.robot_skeleton.bodynodes[c.LEFT_BODYNODE_IDX + c.THIGH_BODYNODE_OFFSET]
+        orig_thigh_transform = thigh.transform()
+        self.pause(0.5)
+
+        # Use the hip to point the pelvis in the target direction
+        hip_dofs = self.get_hip(orig_thigh_transform, target_root_transform)
+        obs.raw_state[c.LEFT_IDX:c.LEFT_IDX+3] = hip_dofs
+        env.reset(obs)
+        # Rotate the whole robot so the transform of bodynode doesn't change
+        obs.raw_state[0:6] = self.get_dofs(orig_thigh_transform, thigh)
+        env.reset(obs)
+        # We can't get the same translation (3 DOFs vs 6 DOFs), but the orientation
+        # should be correct.
+        print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3]))
         self.pause(0.5)
 
     def gen_brick_pose(self, planar):
@@ -191,5 +222,6 @@ if __name__ == "__main__":
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
     bodynode = env.robot_skeleton.bodynodes[3]
-    ik.test_inverse_transform(bodynode)
+    #ik.test_inverse_transform(bodynode)
+    ik.test_inverse_hip()
     embed()
