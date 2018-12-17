@@ -14,10 +14,10 @@ from consts_common3D import *
 CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
 PELVIS_BODYNODE_IDX = 2
-RIGHT_BODYNODE_IDX = 8 # Used for finding contacts and locating the heel
-RIGHT_THIGH_IDX = 6
-LEFT_BODYNODE_IDX = 5
-LEFT_THIGH_IDX = 3
+LEFT_BODYNODE_IDX = 3
+RIGHT_BODYNODE_IDX = 6
+THIGH_BODYNODE_OFFSET = 0
+FOOT_BODYNODE_OFFSET = 2
 
 # TODO this skel file has a lot of "transformation" values that might invalidate
 # the current IK code.

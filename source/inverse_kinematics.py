@@ -17,7 +17,7 @@ class InverseKinematics:
             # I think the reason it's different might be the axis_order setting
             # of 'zyx' in the skel file for the simple 3D model.
             foot_centric_offset = np.array([0.0, -c.FOOT_RADIUS, 0.5*c.L_FOOT])
-        foot = self.get_foot(swing_idx)
+        foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         # TODO is it cheating to pull foot.com() directly from the environment?
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
         return heel_location
@@ -26,20 +26,20 @@ class InverseKinematics:
         # We only ever use this in 3D
         # The forward direction. Again, trial and error.
         foot_centric_offset = np.array([0.0, 0.0, -1.0])
-        foot = self.get_foot(swing_idx)
+        foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         direction = np.dot(foot.transform()[:3,:3], foot_centric_offset)
         current_heading = self.env.controller.heading(self.env.get_x()[0])
         _, heading = heading_from_vector(direction, current_heading)
         return heading
 
-    def get_foot(self, swing_idx):
+    def get_bodynode(self, swing_idx, offset):
         c = self.env.consts()
         if swing_idx == c.RIGHT_IDX:
-            swing_foot_idx = c.RIGHT_BODYNODE_IDX
+            swing_side_idx = c.RIGHT_BODYNODE_IDX
         else:
-            swing_foot_idx = c.LEFT_BODYNODE_IDX
-        foot = self.robot_skeleton.bodynodes[swing_foot_idx]
-        return foot
+            swing_side_idx = c.LEFT_BODYNODE_IDX
+        bodynode = self.robot_skeleton.bodynodes[swing_side_idx+offset]
+        return bodynode
 
     def inv_kine(self, target, swing_idx, verbose=False):
         r, theta = self.transform_frame(target, swing_idx, verbose)
@@ -61,8 +61,7 @@ class InverseKinematics:
 
     def transform_frame(self, target, swing_idx, verbose=False):
         c = self.env.consts()
-        bodynode_idx = c.RIGHT_THIGH_IDX if swing_idx == c.RIGHT_IDX else c.LEFT_THIGH_IDX
-        thigh = self.robot_skeleton.bodynodes[bodynode_idx]
+        thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         # Locate the hip joint
         thigh_centric_offset = np.array([0.0, 0.5*c.L_THIGH, 0.0])
         hip_location = np.dot(thigh.transform()[:3,:3], thigh_centric_offset) + thigh.com()

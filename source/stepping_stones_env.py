@@ -115,13 +115,10 @@ class SteppingStonesEnv:
     # Returns (observation, episode_terminated, human-readable message) tuple.
     def simulation_step(self):
         c = self.consts()
-        if self.controller.swing_idx == c.RIGHT_IDX:
-            swing_foot_idx = c.RIGHT_BODYNODE_IDX
-        else:
-            swing_foot_idx = c.LEFT_BODYNODE_IDX
-        swing_foot = self.robot_skeleton.bodynodes[swing_foot_idx]
+        swing_idx = self.controller.swing_idx
+        swing_foot = self.controller.ik.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         contacts = self.find_contacts(swing_foot)
-        swing_heel = self.controller.ik.forward_kine(self.controller.swing_idx)
+        swing_heel = self.controller.ik.forward_kine(swing_idx)
         crashed = self.controller.crashed(swing_heel)
         step_complete = crashed or self.controller.swing_contact(contacts, swing_heel)
         if step_complete:
