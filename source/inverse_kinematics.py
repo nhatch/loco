@@ -161,27 +161,38 @@ class InverseKinematics:
         print(libtransform.is_same_transform(orig_transform, bodynode.transform()))
         self.pause(0.5)
 
-    def get_hip(self, orig_thigh_transform, target_root_transform):
-        target_relative_transform = np.linalg.inv(target_root_transform).dot(orig_thigh_transform)
+    # `bodynode` must be one of the thighs. Returns the Euler angles for that hip joint
+    # such that, if the transform of that thigh stays fixed, then the pelvis orientation
+    # will match the orientation of `target_root_transform`. (Note however that the
+    # translation of `target_root_transform` will not in general be achieved.)
+    def get_hip(self, bodynode, target_root_transform):
+        thigh_transform = bodynode.transform()
         c = self.env.consts()
-        target_relative_transform = np.linalg.inv(c.LEFT_THIGH_RESTING_RELATIVE_TRANSFORM).dot(target_relative_transform)
-        euler = libtransform.euler_from_matrix(target_relative_transform, 'rzyx')
+        if bodynode.id == c.LEFT_BODYNODE_IDX + c.THIGH_BODYNODE_OFFSET:
+            RRT = c.LEFT_RRT
+        else:
+            RRT = c.RIGHT_RRT
+        target_relative_transform = np.linalg.inv(target_root_transform).dot(thigh_transform)
+        target_dof_transform = RRT.dot(target_relative_transform)
+        # TODO these Euler codes are specific to one model. Should somehow put this
+        # in a consts file once we add a second 3D model.
+        euler = libtransform.euler_from_matrix(target_dof_transform, 'rzyx')
         hip_dofs = np.array([euler[2], euler[1], -euler[0]])
         return hip_dofs
 
-    def test_inverse_hip(self):
+    def test_inverse_hip(self, swing_idx):
         self.env.reset()
         pelvis = self.root_bodynode()
         target_root_transform = pelvis.transform()
         obs = self.env.reset(random=0.4)
         c = self.env.consts()
-        thigh = self.robot_skeleton.bodynodes[c.LEFT_BODYNODE_IDX + c.THIGH_BODYNODE_OFFSET]
+        thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         orig_thigh_transform = thigh.transform()
         self.pause(0.5)
 
         # Use the hip to point the pelvis in the target direction
-        hip_dofs = self.get_hip(orig_thigh_transform, target_root_transform)
-        obs.raw_state[c.LEFT_IDX:c.LEFT_IDX+3] = hip_dofs
+        hip_dofs = self.get_hip(thigh, target_root_transform)
+        obs.raw_state[swing_idx:swing_idx+3] = hip_dofs
         env.reset(obs)
         # Rotate the whole robot so the transform of bodynode doesn't change
         obs.raw_state[0:6] = self.get_dofs(orig_thigh_transform, thigh)
@@ -221,7 +232,8 @@ if __name__ == "__main__":
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
+    c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[3]
     #ik.test_inverse_transform(bodynode)
-    ik.test_inverse_hip()
+    ik.test_inverse_hip(c.RIGHT_IDX)
     embed()
