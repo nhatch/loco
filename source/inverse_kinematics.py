@@ -180,10 +180,12 @@ class InverseKinematics:
         hip_dofs = np.array([euler[2], euler[1], -euler[0]])
         return hip_dofs
 
-    def test_inverse_hip(self, swing_idx):
-        self.env.reset()
-        pelvis = self.root_bodynode()
-        target_root_transform = pelvis.transform()
+    # Gives the transform corresponding to the given heading and pitch (with zero roll)
+    def root_transform_from_angles(self, heading, pitch):
+        return libtransform.euler_matrix(0.0, heading, pitch, 'rxyz')
+
+    def test_inverse_hip(self, swing_idx, heading=0.0, pitch=0.0):
+        target_root_transform = self.root_transform_from_angles(heading, pitch)
         obs = self.env.reset(random=0.4)
         c = self.env.consts()
         thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
@@ -197,9 +199,11 @@ class InverseKinematics:
         # Rotate the whole robot so the transform of bodynode doesn't change
         obs.raw_state[0:6] = self.get_dofs(orig_thigh_transform, thigh)
         env.reset(obs)
+        pelvis = self.root_bodynode()
         # We can't get the same translation (3 DOFs vs 6 DOFs), but the orientation
         # should be correct.
-        print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3]))
+        # For some reason there seems to be some numerical error sometimes
+        print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3], atol=1e-6))
         self.pause(0.5)
 
     def gen_brick_pose(self, planar):
@@ -235,5 +239,5 @@ if __name__ == "__main__":
     c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[3]
     #ik.test_inverse_transform(bodynode)
-    ik.test_inverse_hip(c.RIGHT_IDX)
+    ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
     embed()
