@@ -35,7 +35,9 @@ trunk_kd = [20, 20, 20]
 KP_GAIN = leg_kp + leg_kp + trunk_kp
 KD_GAIN = leg_kd + leg_kd + trunk_kd
 
-ALLOWED_COLLISION_IDS = [RIGHT_BODYNODE_IDX, LEFT_BODYNODE_IDX] # The two feet
+ALLOWED_COLLISION_IDS = [
+        RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
+        LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET] # The two feet
 
 # The relative transform of the thigh when all DOFs of the joint are set to zero
 LEFT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[  3.26794897e-07,   0.00000000e+00,  -1.00000000e+00,

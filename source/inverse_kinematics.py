@@ -77,7 +77,7 @@ class InverseKinematics:
             print("CENTER JOINT:", hip_location)
         # Move the target to the coordinate system centered at the hip joint
         # facing in the same direction as the pelvis.
-        rot = np.linalg.inv(self.root_bodynode.transform())[:3,:3]
+        rot = np.linalg.inv(self.root_bodynode().transform())[:3,:3]
         egocentric_target = np.dot(rot, target - hip_location)
         # Ignore the Z coordinate for now (TODO?)
         x, y, _ = egocentric_target
