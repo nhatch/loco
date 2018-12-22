@@ -264,7 +264,11 @@ class Simbicon(PDController):
         if not USE_VIRTUAL_TORQUE:
             target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[TORSO_WORLD])
             thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
-            tq[self.stance_idx:self.stance_idx+3] = self.ik.get_hip(thigh, target_orientation)
+            hip_dofs = self.ik.get_hip(thigh, target_orientation)
+            if self.env.is_3D:
+                tq[self.stance_idx:self.stance_idx+3] = hip_dofs
+            else:
+                tq[self.stance_idx] = hip_dofs
         return tq
 
     def compute(self):
