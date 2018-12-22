@@ -97,14 +97,15 @@ class InverseKinematics:
         self.test_inv_kine(idx)
         heel_loc = self.forward_kine(idx)
         self.env.sdf_loader.put_dot(heel_loc[:3], 'heel_loc', color=BLUE)
-        self.pause()
+        if self.env.is_3D:
+            self.pause()
 
     def pause(self, sec=1.5):
-        # In 3D, give the viewer some time to rotate the environment and look around.
+        # Give the viewer some time to look around and maybe rotate the environment.
         # TODO have some kind of background thread do rendering, to avoid this hack
         # and make 3D environments easier to explore visually.
         FPS = 20
-        n = int(FPS*sec) if self.env.is_3D else 1
+        n = int(FPS*sec)
         for i in range(n):
             self.env.render()
             time.sleep(1/FPS)
@@ -139,16 +140,14 @@ class InverseKinematics:
     # remain the same, the given bodynode will have the given target transformation.
     def get_dofs(self, target_transform, bodynode):
         current_transform = bodynode.transform()
-        c = self.env.consts()
+        # TODO if the root_bodynode().transform() is not the identity when
+        # all DOFs of the robot are zero, this is wrong.
+        # For the 2D model, I've hacked around this problem using root_dofs_from_transform.
         base_transform = self.root_bodynode().transform()
         relative_transform = np.linalg.inv(base_transform).dot(current_transform)
         target_base_transform = target_transform.dot(np.linalg.inv(relative_transform))
-        euler = libtransform.euler_from_matrix(target_base_transform, 'ryzx')
-        translation = target_base_transform[0:3,3]
-        dofs = np.zeros(6)
-        dofs[3:6] = [euler[1], euler[0], euler[2]]
-        dofs[0:3] = translation
-        return dofs
+        c = self.env.consts()
+        return c.root_dofs_from_transform(target_base_transform)
 
     def test_inverse_transform(self, bodynode):
         self.env.reset(random=0.4)
@@ -156,7 +155,8 @@ class InverseKinematics:
         self.pause(0.5)
 
         obs = self.env.reset(random=0.4)
-        obs.raw_state[0:6] = self.get_dofs(orig_transform, bodynode)
+        c = self.env.consts()
+        obs.raw_state[0:c.BRICK_DOF] = self.get_dofs(orig_transform, bodynode)
         env.reset(obs)
         print(libtransform.is_same_transform(orig_transform, bodynode.transform()))
         self.pause(0.5)
@@ -174,17 +174,15 @@ class InverseKinematics:
             RRT = c.RIGHT_RRT
         target_relative_transform = np.linalg.inv(target_root_transform).dot(thigh_transform)
         target_dof_transform = RRT.dot(target_relative_transform)
-        # TODO these Euler codes are specific to one model. Should somehow put this
-        # in a consts file once we add a second 3D model.
-        euler = libtransform.euler_from_matrix(target_dof_transform, 'rzyx')
-        hip_dofs = np.array([euler[2], euler[1], -euler[0]])
-        return hip_dofs
+        return c.hip_dofs_from_transform(target_dof_transform)
 
     # Gives the transform corresponding to the given heading and pitch (with zero roll)
     def root_transform_from_angles(self, heading, pitch):
         return libtransform.euler_matrix(0.0, heading, pitch, 'rxyz')
 
     def test_inverse_hip(self, swing_idx, heading=0.0, pitch=0.0):
+        if not self.env.is_3D:
+            heading = 0.0
         target_root_transform = self.root_transform_from_angles(heading, pitch)
         obs = self.env.reset(random=0.4)
         c = self.env.consts()
@@ -194,10 +192,13 @@ class InverseKinematics:
 
         # Use the hip to point the pelvis in the target direction
         hip_dofs = self.get_hip(thigh, target_root_transform)
-        obs.raw_state[swing_idx:swing_idx+3] = hip_dofs
+        if self.env.is_3D:
+            obs.raw_state[swing_idx:swing_idx+3] = hip_dofs
+        else:
+            obs.raw_state[swing_idx] = hip_dofs
         env.reset(obs)
         # Rotate the whole robot so the transform of bodynode doesn't change
-        obs.raw_state[0:6] = self.get_dofs(orig_thigh_transform, thigh)
+        obs.raw_state[0:c.BRICK_DOF] = self.get_dofs(orig_thigh_transform, thigh)
         env.reset(obs)
         pelvis = self.root_bodynode()
         # We can't get the same translation (3 DOFs vs 6 DOFs), but the orientation
@@ -231,13 +232,13 @@ if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    #env = SteppingStonesEnv()
-    env = Simple3DEnv(Simbicon3D)
+    env = SteppingStonesEnv()
+    #env = Simple3DEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
     c = env.consts()
-    bodynode = env.robot_skeleton.bodynodes[3]
+    bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
     #ik.test_inverse_transform(bodynode)
     ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
     embed()

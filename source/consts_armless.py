@@ -1,4 +1,6 @@
 import numpy as np
+import pydart2.utils.transformations as libtransform
+
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 
 perm = [0,1,2,4,3,5, # Brick DOFs
@@ -60,3 +62,15 @@ RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[  3.26794897e-07,   0.000000
 LEFT_RRT = np.linalg.inv(LEFT_THIGH_RESTING_RELATIVE_TRANSFORM)
 RIGHT_RRT = np.linalg.inv(RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM)
 
+def hip_dofs_from_transform(transform):
+    euler = libtransform.euler_from_matrix(target_dof_transform, 'rzyx')
+    hip_dofs = np.array([euler[2], euler[1], -euler[0]])
+    return hip_dofs
+
+def root_dofs_from_transform(transform):
+    euler = libtransform.euler_from_matrix(transform, 'ryzx')
+    translation = transform[0:3,3]
+    dofs = np.zeros(6)
+    dofs[3:6] = [euler[1], euler[0], euler[2]]
+    dofs[0:3] = translation
+    return dofs

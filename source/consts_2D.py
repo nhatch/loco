@@ -1,4 +1,5 @@
 import numpy as np
+import pydart2.utils.transformations as libtransform
 
 perm = [0,1,2,3,4,5,6,7,8]
 sign_switches = []
@@ -37,3 +38,21 @@ ALLOWED_COLLISION_IDS = [5,8] # The two feet
 
 observable_features_q = np.ones(Q_DIM) == 1 # Bool array
 observable_features_t = np.array([1,1,0]) == 1
+
+# The relative transform of the thigh when all DOFs of the joint are set to zero
+LEFT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[ 1. ,  0. ,  0. ,  0. ],
+       [ 0. ,  1. ,  0. , -0.2],
+       [ 0. ,  0. ,  1. ,  0. ],
+       [ 0. ,  0. ,  0. ,  1. ]])
+LEFT_RRT = np.linalg.inv(LEFT_THIGH_RESTING_RELATIVE_TRANSFORM)
+RIGHT_RRT = LEFT_RRT
+
+def hip_dofs_from_transform(transform):
+    euler = libtransform.euler_from_matrix(transform, 'rxyz')
+    return euler[2]
+
+def root_dofs_from_transform(transform):
+    euler = libtransform.euler_from_matrix(transform, 'rxyz')
+    translation = transform[0:3,3]
+    # The -1.25 is a hack (see ik.get_dofs())
+    return np.array([translation[0], translation[1]-1.25, euler[2]])

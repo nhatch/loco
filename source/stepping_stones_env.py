@@ -90,6 +90,7 @@ class SteppingStonesEnv:
     def init_camera(self):
         tb = Trackball(theta=-45.0, phi = 0.0)
         tb.trans[2] = -5
+        self.track_point = None
         return tb
 
     def reset(self, state=None, video_save_dir=None, random=0.0, seed=None):
@@ -223,7 +224,8 @@ class SteppingStonesEnv:
             self.viewer.runSingleStep()
 
     def update_viewer(self, com):
-        self.viewer.scene.tb.trans[0] = -com[0]
+        track_point = self.track_point or com
+        self.viewer.scene.tb.trans[0] = -track_point[0]
 
     def gui(self):
         pydart.gui.viewer.launch(self.world)
