@@ -1,7 +1,7 @@
 import numpy as np
 from IPython import embed
 
-from simbicon import Simbicon, UP, DOWN
+from simbicon import Simbicon, UP, DOWN, USE_VIRTUAL_TORQUE
 from inverse_kinematics import InverseKinematics
 from state import State
 from sdf_loader import RED, GREEN, BLUE
@@ -79,10 +79,11 @@ class Simbicon3D(Simbicon):
             cv = 0
         balance_feedback = -(cd*d[Z] + cv*v[Z])
 
-        stance_foot_heading = self.ik.heading(self.stance_idx)
-        tq[self.stance_idx+HIP_YAW] = -(self.target_heading - stance_foot_heading)
+        if USE_VIRTUAL_TORQUE:
+            stance_foot_heading = self.ik.heading(self.stance_idx)
+            tq[self.stance_idx+HIP_YAW] = -(self.target_heading - stance_foot_heading)
+            tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
-        tq[self.stance_idx+HIP_ROLL] = params[STANCE_HIP_ROLL_EXTRA] + q[ROOT_ROLL]
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
@@ -142,22 +143,23 @@ def rotate_state(state, angle, env):
 
 def test(env, length, r=1, n=8, a=0.0):
     seed = np.random.randint(100000)
-    obs = env.reset(seed=seed, random=0)
-    env.reset(rotate_state(obs, a, env), random=0.0)
-    env.sdf_loader.put_grounds([[-30.0,-0.9,0]], runway_length=40.0)
+    obs = env.reset(seed=seed)
+    env.reset(rotate_state(obs, a, env), video_save_dir=None)
+    env.sdf_loader.put_grounds([[-10.0,-0.9,0]], runway_length=20.0)
     t = env.controller.stance_heel
     for i in range(n):
         l = length*0.5 if i == 0 else length
-        a = 0.07*(i+1)
-        t = next_target(env.controller.stance_heel, a, l, env)
-        _, terminated = env.simulate(t, render=r, put_dots=True)
+        #a = 0.07*(i)
+        #t = env.controller.stance_heel # Pretend that was the previous target
+        t = next_target(t, a, l, env)
+        _, terminated = env.simulate(t, target_heading=a, render=r, put_dots=True)
         if terminated:
             break
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
-    env.sdf_loader.ground_width = 60.0
-    test(env, 0.6, n=200, r=1)
+    env.sdf_loader.ground_width = 27.0
+    test(env, 0.5)
     #test_standardize_stance(env)
     embed()

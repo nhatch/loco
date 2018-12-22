@@ -136,8 +136,8 @@ class SteppingStonesEnv:
             return None, False, None
 
     # Run one footstep of simulation, returning the final state
-    def simulate(self, target, action=None, render=False, put_dots=False):
-        self.controller.set_gait_raw(raw_gait=action, target=target)
+    def simulate(self, target, target_heading=None, action=None, render=False, put_dots=False):
+        self.controller.set_gait_raw(raw_gait=action, target_heading=target_heading, target=target)
         steps_per_render = None
         if render:
             steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)

@@ -14,6 +14,8 @@ from simbicon_params import *
 UP = 'UP'
 DOWN = 'DOWN'
 
+USE_VIRTUAL_TORQUE = True
+
 class Params:
     def __init__(self, params):
         self.raw_params = params
@@ -89,7 +91,7 @@ class Simbicon(PDController):
                          0, 0, 0, 1,
                          1,1,0])
 
-    def set_gait_raw(self, target, raw_gait=None):
+    def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         params = self.base_gait()
         if raw_gait is not None:
             params += raw_gait
@@ -100,8 +102,14 @@ class Simbicon(PDController):
         swing_heel = self.ik.forward_kine(self.swing_idx)
         self.starting_swing_heel = swing_heel
         d = self.target - self.starting_swing_heel
-        branch = self.heading(self.env.get_x()[0]) if self.env.is_3D else 0.0
-        self.target_direction, self.target_heading = heading_from_vector(d, branch)
+
+        if target_heading is None:
+            branch = self.heading(self.env.get_x()[0]) if self.env.is_3D else 0.0
+            self.target_direction, self.target_heading = heading_from_vector(d, branch)
+        else:
+            self.target_heading = target_heading
+            self.target_direction = np.array(
+                    [np.cos(target_heading), 0, -np.sin(target_heading)])
 
         # Gives the vector in the ground plane perpendicular to the direction `d`
         # such that the cross product between those two vectors should point up-ish.
@@ -252,6 +260,11 @@ class Simbicon(PDController):
 
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
+
+        if not USE_VIRTUAL_TORQUE:
+            target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[TORSO_WORLD])
+            thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
+            tq[self.stance_idx:self.stance_idx+3] = self.ik.get_hip(thigh, target_orientation)
         return tq
 
     def compute(self):
@@ -268,13 +281,15 @@ class Simbicon(PDController):
         if fix_Kd:
             self.Kd[self.stance_idx+c.KNEE] /= 8
 
-        # Make modifications to control torso pitch
-        torso_actual = q[c.ROOT_PITCH]
-        torso_speed = dq[c.ROOT_PITCH]
-        kp = self.Kp[self.stance_idx+c.HIP_PITCH]
-        kd = self.Kd[self.stance_idx+c.HIP_PITCH]
-        torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
-        control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
+        if USE_VIRTUAL_TORQUE:
+            # Make modifications to control torso pitch
+            torso_actual = q[c.ROOT_PITCH]
+            torso_speed = dq[c.ROOT_PITCH]
+            kp = self.Kp[self.stance_idx+c.HIP_PITCH]
+            kd = self.Kd[self.stance_idx+c.HIP_PITCH]
+            torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
+            control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
+
         torques = self.env.from_features(control)
         return torques
 
