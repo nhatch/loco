@@ -14,8 +14,6 @@ from simbicon_params import *
 UP = 'UP'
 DOWN = 'DOWN'
 
-USE_VIRTUAL_TORQUE = True
-
 class Params:
     def __init__(self, params):
         self.raw_params = params
@@ -261,14 +259,16 @@ class Simbicon(PDController):
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
 
-        if not USE_VIRTUAL_TORQUE:
-            target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[TORSO_WORLD])
-            thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
-            hip_dofs = self.ik.get_hip(thigh, target_orientation)
-            if self.env.is_3D:
-                tq[self.stance_idx:self.stance_idx+3] = hip_dofs
-            else:
-                tq[self.stance_idx] = hip_dofs
+        # This code is only useful in 3D.
+        # The stance hip pitch torque will be overwritten in `compute` below.
+        target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[TORSO_WORLD])
+        thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
+        hip_dofs = self.ik.get_hip(thigh, target_orientation)
+        if self.env.is_3D:
+            tq[self.stance_idx:self.stance_idx+3] = hip_dofs
+        else:
+            tq[self.stance_idx] = hip_dofs
+
         return tq
 
     def compute(self):
@@ -285,14 +285,13 @@ class Simbicon(PDController):
         if fix_Kd:
             self.Kd[self.stance_idx+c.KNEE] /= 8
 
-        if USE_VIRTUAL_TORQUE:
-            # Make modifications to control torso pitch
-            torso_actual = q[c.ROOT_PITCH]
-            torso_speed = dq[c.ROOT_PITCH]
-            kp = self.Kp[self.stance_idx+c.HIP_PITCH]
-            kd = self.Kd[self.stance_idx+c.HIP_PITCH]
-            torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
-            control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
+        # Make modifications to control torso pitch
+        torso_actual = q[c.ROOT_PITCH]
+        torso_speed = dq[c.ROOT_PITCH]
+        kp = self.Kp[self.stance_idx+c.HIP_PITCH]
+        kd = self.Kd[self.stance_idx+c.HIP_PITCH]
+        torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
+        control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
 
         torques = self.env.from_features(control)
         return torques
