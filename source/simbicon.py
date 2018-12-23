@@ -269,6 +269,10 @@ class Simbicon(PDController):
         hip_dofs = self.ik.get_hip(thigh, target_orientation)
         if self.env.is_3D:
             tq[self.stance_idx:self.stance_idx+3] = hip_dofs
+            # This is a hack; the hip was dipping a little bit too much on the swing side.
+            # The proper fix: rather than just using kinematics to set the target angles,
+            # also compensate for the torques from other forces on the pelvis.
+            tq[self.stance_idx+c.HIP_ROLL] += 0.1 if self.stance_idx == c.LEFT_IDX else -0.1
         else:
             tq[self.stance_idx] = hip_dofs
 

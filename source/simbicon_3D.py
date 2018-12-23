@@ -9,6 +9,8 @@ from sdf_loader import RED, GREEN, BLUE
 from consts_common3D import *
 from simbicon_params import *
 
+ZERO_GAIN = True
+
 class Simbicon3D(Simbicon):
     def standardize_stance(self, state):
         c = self.env.consts()
@@ -32,7 +34,7 @@ class Simbicon3D(Simbicon):
                 0.4, -1.1,   0.0, -0.05,
                 -0.0, -0.00, 0.20, -0.1,
                 0,0,0,
-                0.7, 0.2, 0.0, 0.0, 0.0]
+                0.5, 0.2, 0.0, 0.0, 0.0]
         return gait
 
     def controllable_indices(self):
@@ -52,7 +54,7 @@ class Simbicon3D(Simbicon):
         return self.env.get_x()[0][ROOT_YAW]
 
     def balance_params(self, q, dq):
-        theta = self.heading(q)
+        theta = self.target_heading
         rot = self.rotmatrix(theta)
         com_displacement = np.dot(rot, q[:3] - self.stance_heel)
         heading_velocity = np.dot(rot, dq[:3])
@@ -73,7 +75,7 @@ class Simbicon3D(Simbicon):
         self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=RED)
 
         d, v = self.balance_params(q, dq)
-        if d[Z]*v[Z] < 0:
+        if ZERO_GAIN and d[Z]*v[Z] < 0:
             # If COM is moving (laterally) towards the stance heel, use no velocity gain.
             # This attempts to correct for a "sashay" issue that was causing self collisions.
             cv = 0

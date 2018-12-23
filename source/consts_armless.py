@@ -32,8 +32,8 @@ FOOT_RADIUS = 0.049 # Not really a radius; it's a box....
 leg_kp = [600, 600, 600, 200, 200, 100]
 leg_kd = [70, 70, 70, 15, 15, 10]
 # Two abdomen, one chest
-trunk_kp = [300, 300, 300]
-trunk_kd = [20, 20, 20]
+trunk_kp = [600, 600, 300]
+trunk_kd = [70, 70, 20]
 KP_GAIN = leg_kp + leg_kp + trunk_kp
 KD_GAIN = leg_kd + leg_kd + trunk_kd
 
