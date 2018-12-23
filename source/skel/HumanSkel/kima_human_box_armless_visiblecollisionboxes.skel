@@ -529,7 +529,7 @@
         </skeleton>
 
         <skeleton name="doppelganger">
-            <transformation>0 0 1 0 -1.570796 0</transformation>
+            <transformation>0 0 1.5 0 -1.570796 0</transformation>
             <body name="pelvis_aux">
                 <transformation>0.0 0.0 0.0 0 1.570796 0</transformation>
                 <inertia>
