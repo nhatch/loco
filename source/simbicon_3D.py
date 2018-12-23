@@ -42,14 +42,14 @@ class Simbicon3D(Simbicon):
                          0,0,0,
                          1, 1, 1, 0, 1])
 
-    def heading(self, q):
-        return q[ROOT_YAW]
-
     def rotmatrix(self, theta):
         # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.
         return np.array([[np.cos(theta), 0, -np.sin(theta)],
                          [            0, 1,              0],
                          [np.sin(theta), 0,  np.cos(theta)]])
+
+    def heading(self):
+        return self.env.get_x()[0][ROOT_YAW]
 
     def balance_params(self, q, dq):
         theta = self.heading(q)

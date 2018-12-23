@@ -2,8 +2,8 @@ import pydart2 as pydart
 from IPython import embed
 from enum import Enum
 import numpy as np
-import random_search
 
+import random_search
 from simbicon import Simbicon
 from pd_control import PDController
 from sdf_loader import SDFLoader, RED, GREEN, BLUE
@@ -14,6 +14,7 @@ import consts_2D
 # For rendering
 from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
+import time
 
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 10.0 # seconds
@@ -222,6 +223,16 @@ class SteppingStonesEnv:
             return data
         elif mode == 'human':
             self.viewer.runSingleStep()
+
+    def pause(self, sec=1.5):
+        # Give the viewer some time to look around and maybe rotate the environment.
+        # TODO have some kind of background thread do rendering, to avoid this hack
+        # and make 3D environments easier to explore visually.
+        FPS = 20
+        n = int(FPS*sec)
+        for i in range(n):
+            self.render()
+            time.sleep(1/FPS)
 
     def update_viewer(self, com):
         track_point = self.track_point or com

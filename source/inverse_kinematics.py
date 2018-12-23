@@ -3,7 +3,6 @@ import numpy as np
 from sdf_loader import RED, GREEN, BLUE
 from utils import heading_from_vector
 import pydart2.utils.transformations as libtransform
-import time
 
 class InverseKinematics:
     def __init__(self, skel, env):
@@ -31,7 +30,7 @@ class InverseKinematics:
         foot_centric_offset = np.array([0.0, 0.0, -1.0])
         foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         direction = np.dot(foot.transform()[:3,:3], foot_centric_offset)
-        current_heading = self.env.controller.heading(self.env.get_x()[0])
+        current_heading = self.env.controller.heading()
         _, heading = heading_from_vector(direction, current_heading)
         return heading
 
@@ -98,17 +97,7 @@ class InverseKinematics:
         heel_loc = self.forward_kine(idx)
         self.env.sdf_loader.put_dot(heel_loc[:3], 'heel_loc', color=BLUE)
         if self.env.is_3D:
-            self.pause()
-
-    def pause(self, sec=1.5):
-        # Give the viewer some time to look around and maybe rotate the environment.
-        # TODO have some kind of background thread do rendering, to avoid this hack
-        # and make 3D environments easier to explore visually.
-        FPS = 20
-        n = int(FPS*sec)
-        for i in range(n):
-            self.env.render()
-            time.sleep(1/FPS)
+            self.env.pause()
 
     def test_inv_kine(self, idx, planar=False):
         c = self.env.consts()
@@ -126,7 +115,7 @@ class InverseKinematics:
         q = self.inv_kine_pose(hip, knee)
         agent.q = self.env.from_features(q)
         self.env.render()
-        print("Foot heading:", self.heading(idx), "Robot heading:", brick_pose[c.ROOT_YAW])
+        print("Foot heading:",self.heading(idx), "Robot heading:",self.env.controller.heading())
 
     def inv_kine_pose(self, hip, knee, is_right_foot=True):
         q, _ = self.env.get_x()
@@ -152,14 +141,14 @@ class InverseKinematics:
     def test_inverse_transform(self, bodynode):
         self.env.reset(random=0.4)
         orig_transform = bodynode.transform()
-        self.pause(0.5)
+        self.env.pause(0.5)
 
         obs = self.env.reset(random=0.4)
         c = self.env.consts()
         obs.raw_state[0:c.BRICK_DOF] = self.get_dofs(orig_transform, bodynode)
         env.reset(obs)
         print(libtransform.is_same_transform(orig_transform, bodynode.transform()))
-        self.pause(0.5)
+        self.env.pause(0.5)
 
     # `bodynode` must be one of the thighs. Returns the Euler angles for that hip joint
     # such that, if the transform of that thigh stays fixed, then the pelvis orientation
@@ -188,7 +177,7 @@ class InverseKinematics:
         c = self.env.consts()
         thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         orig_thigh_transform = thigh.transform()
-        self.pause(0.5)
+        self.env.pause(0.5)
 
         # Use the hip to point the pelvis in the target direction
         hip_dofs = self.get_hip(thigh, target_root_transform)
@@ -205,7 +194,7 @@ class InverseKinematics:
         # should be correct.
         # For some reason there seems to be some numerical error sometimes
         print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3], atol=1e-6))
-        self.pause(0.5)
+        self.env.pause(0.5)
 
     def gen_brick_pose(self, planar):
         # Generate a random starting pose and target.
@@ -232,8 +221,8 @@ if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    env = SteppingStonesEnv()
-    #env = Simple3DEnv(Simbicon3D)
+    #env = SteppingStonesEnv()
+    env = Simple3DEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test()
