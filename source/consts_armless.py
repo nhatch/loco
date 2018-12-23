@@ -63,7 +63,7 @@ LEFT_RRT = np.linalg.inv(LEFT_THIGH_RESTING_RELATIVE_TRANSFORM)
 RIGHT_RRT = np.linalg.inv(RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM)
 
 def hip_dofs_from_transform(transform):
-    euler = libtransform.euler_from_matrix(target_dof_transform, 'rzyx')
+    euler = libtransform.euler_from_matrix(transform, 'rzyx')
     hip_dofs = np.array([euler[2], euler[1], -euler[0]])
     return hip_dofs
 
