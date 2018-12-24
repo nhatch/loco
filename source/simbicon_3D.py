@@ -86,6 +86,11 @@ class Simbicon3D(Simbicon):
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 
+        pd_e = tq[self.stance_idx+HIP_YAW] - q[self.stance_idx+HIP_YAW]
+        h_e = -(self.target_heading - q[ROOT_YAW])
+        r_e = q[ROOT_ROLL]
+        self.env.trace("PD error: {:.3f} Heading error: {:.3f} Roll error: {:.3f}".format(pd_e, h_e, r_e))
+
         self.update_doppelganger(tq)
         return tq
 
@@ -136,7 +141,7 @@ def rotate_state(state, angle, env):
     rotated.swing_platform()[:3] = np.dot(rot, state.swing_platform()[:3])
     return rotated
 
-def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False):
+def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=False):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed)
     env.reset(rotate_state(obs, a, env), video_save_dir=None)
@@ -145,7 +150,10 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False):
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = next_target(t, a, l, env)
-        _, terminated = env.simulate(t, target_heading=a+delta_a, render=r, put_dots=True)
+        target_heading = None
+        if provide_target_heading:
+            target_heading = a+delta_a
+        _, terminated = env.simulate(t, target_heading=target_heading, render=r, put_dots=True)
         if relative:
             t = env.controller.stance_heel # Pretend that was the previous target
         a += delta_a
@@ -156,6 +164,7 @@ if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    test(env, 0.5, n=8)
+    # TODO: Get the controller to work well even when we don't provide the target heading.
+    test(env, 0.5, delta_a=0.05, n=20, provide_target_heading=True)
     #test_standardize_stance(env)
     embed()
