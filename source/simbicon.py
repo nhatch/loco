@@ -117,6 +117,7 @@ class Simbicon(PDController):
                     self.target_heading -= adj
                 else:
                     self.target_heading += adj
+                self.target_heading += self.params[HEADING]
         else:
             self.target_heading = target_heading
         self.target_direction = np.array(

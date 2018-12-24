@@ -9,8 +9,10 @@ class Runner:
         self.start_state = start_state
         self.grounds = start_state.starting_platforms() + [target]
         self.target = target
+        self.video_save_dir = None
 
-    def run(self, action, render=None, video_save_dir=None):
+    def run(self, action, render=None):
+        video_save_dir = self.video_save_dir if render is not None else None
         self.reset(video_save_dir)
         r, _ = self.env.simulate(self.target, action=action, put_dots=True, render=render)
         score = -np.linalg.norm(r.stance_heel_location() - self.target)
@@ -66,6 +68,6 @@ def test_3D():
     learn_last_move(env, LONG_STEP_3D)
 
 if __name__ == '__main__':
-    test_2D()
+    #test_2D()
     test_3D()
     embed()

@@ -45,6 +45,6 @@ class RandomSearch:
         return None
 
     def eval(self, tol, render):
-        ret = self.runner.run(self.w_policy, render=render, video_save_dir=self.video_save_dir)
+        ret = self.runner.run(self.w_policy, render=render)
         # The best possible score is 0
         return ret > -tol
