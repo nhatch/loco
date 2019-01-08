@@ -44,6 +44,14 @@ class RandomSearch:
         print("Max iters exceeded")
         return None
 
+    def manual_search(self, *params):
+        c = self.runner.env.controller
+        action = c.base_gait() * 0.0
+        inds = c.controllable_indices_list()
+        action[inds] = params * c.controllable_indices_magnitudes()
+        print(action)
+        self.runner.run(action, render=1.0)
+
     def eval(self, tol, render):
         ret = self.runner.run(self.w_policy, render=render)
         # The best possible score is 0

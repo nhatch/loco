@@ -35,14 +35,13 @@ class Simbicon3D(Simbicon):
                 -0.0, -0.00, 0.20, -0.1,
                 0,0,0,
                 0.5, 0.2, 0.0, 0.0, 0.0]
-        return gait
+        return np.array(gait)
 
-    def controllable_indices(self):
-        return np.array([1, 0, 0, 0, 0,
-                         0, 0, 0, 0,
-                         0, 0, 0, 0,
-                         0,0,0,
-                         1, 1, 1, 0, 1])
+    def controllable_indices_list(self):
+        return [IK_GAIN, HEADING, UP_IDX+SWING_ANKLE_RELATIVE]
+
+    def controllable_indices_magnitudes(self):
+        return np.array([1.0, 1.0, 3.0])
 
     def rotmatrix(self, theta):
         # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.
@@ -85,11 +84,6 @@ class Simbicon3D(Simbicon):
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
-
-        pd_e = tq[self.stance_idx+HIP_YAW] - q[self.stance_idx+HIP_YAW]
-        h_e = -(self.target_heading - q[ROOT_YAW])
-        r_e = q[ROOT_ROLL]
-        self.env.trace("PD error: {:.3f} Heading error: {:.3f} Roll error: {:.3f}".format(pd_e, h_e, r_e))
 
         self.update_doppelganger(tq)
         return tq

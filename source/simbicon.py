@@ -81,13 +81,25 @@ class Simbicon(PDController):
                 0.4, -1.1,   0, -0.05,
                 0,    0, 0.2, -0.1,
                 0,0,0]
-        return gait
+        return np.array(gait)
+
+    def controllable_indices_list(self):
+        return [
+                IK_GAIN,
+                POSITION_BALANCE_GAIN,
+                VELOCITY_BALANCE_GAIN,
+                TORSO_WORLD,
+                STANCE_ANKLE_RELATIVE,
+                DN_IDX + STANCE_KNEE_RELATIVE
+                ]
+
+    def controllable_indices_magnitudes(self):
+        return np.ones(len(self.controllable_indices_list()))
 
     def controllable_indices(self):
-        return np.array([1, 1, 1, 1, 1,
-                         0, 0, 0, 0,
-                         0, 0, 0, 1,
-                         1,1,0])
+        inds = self.base_gait() * 0.0
+        inds[self.controllable_indices_list()] = self.controllable_indices_magnitudes()
+        return inds
 
     def heading(self):
         return 0.0
@@ -211,6 +223,9 @@ class Simbicon(PDController):
     def maybe_start_down_phase(self, contacts, swing_heel):
         c = self.env.consts()
         duration = self.time() - self.step_started
+        if duration >= 0.1:
+            # Once toe-off is complete, return to neutral ankle angle
+            self.params[SWING_ANKLE_RELATIVE+UP_IDX] = self.base_gait()[SWING_ANKLE_RELATIVE+UP_IDX]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")
