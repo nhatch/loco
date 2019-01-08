@@ -147,7 +147,9 @@ class SteppingStonesEnv:
                 self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
                 self.sdf_loader.put_dot(self.controller.prev_target, 'prev_step_target', color=GREEN)
         while True:
-            if steps_per_render and self.world.frame % steps_per_render == 0:
+            # We use %1 instead of %0 to avoid distracting jumps when resetting things like
+            # ground platforms and dots.
+            if steps_per_render and self.world.frame % steps_per_render == 1:
                 self._render()
             obs, terminated, status_string = self.simulation_step()
             if obs is not None:
@@ -228,10 +230,10 @@ class SteppingStonesEnv:
         # Give the viewer some time to look around and maybe rotate the environment.
         # TODO have some kind of background thread do rendering, to avoid this hack
         # and make 3D environments easier to explore visually.
-        FPS = 20
+        FPS = 33
         n = int(FPS*sec)
         for i in range(n):
-            self.render()
+            self._render()
             time.sleep(1/FPS)
 
     def update_viewer(self, com):
