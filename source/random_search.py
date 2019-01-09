@@ -34,23 +34,30 @@ class RandomSearch:
         return grad / np.std(rets)
 
     def random_search(self, max_iters=10, tol=0.05, render=1.0):
+        if self.eval(tol, render):
+            return self.w_policy
         for i in range(max_iters):
             # TODO: should we "give up" if we don't see fast enough progress?
-            if self.eval(tol, render):
-                return self.w_policy
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
             self.step_size *= 0.8
+            if self.eval(tol, render):
+                return self.w_policy
         print("Max iters exceeded")
         return None
 
-    def manual_search(self, *params):
+    def manual_search(self, params, next_target, next_heading, video_save_dir=None):
         c = self.runner.env.controller
         action = c.base_gait() * 0.0
         inds = c.controllable_indices_list()
         action[inds] = params * c.controllable_indices_magnitudes()
-        print(action)
-        self.runner.run(action, render=1.0)
+        action += self.w_policy
+        self.runner.reset(video_save_dir)
+        env = self.runner.env
+        render = 0.7 if video_save_dir else 1.0
+        env.simulate(self.runner.target, action=action, render=render)
+        # Simulate the next step as well to get a sense of where that step left us.
+        env.simulate(next_target, target_heading=next_heading, render=render)
 
     def eval(self, tol, render):
         ret = self.runner.run(self.w_policy, render=render)

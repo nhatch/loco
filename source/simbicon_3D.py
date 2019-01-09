@@ -34,14 +34,14 @@ class Simbicon3D(Simbicon):
                 0.4, -1.1,   0.0, -0.05,
                 -0.0, -0.00, 0.20, -0.1,
                 0,0,0,
-                0.5, 0.2, 0.0, 0.0, 0.0]
+                0.5, 0.2, 0.0, 0.0, 0.0, 0.0]
         return np.array(gait)
 
     def controllable_indices_list(self):
-        return [IK_GAIN, HEADING, UP_IDX+SWING_ANKLE_RELATIVE]
+        return [IK_GAIN, HEADING, UP_IDX+SWING_ANKLE_RELATIVE, STANCE_ANKLE_RELATIVE, STANCE_ANKLE_ROLL]
 
     def controllable_indices_magnitudes(self):
-        return np.array([1.0, 1.0, 3.0])
+        return np.array([0.2, 0.5, 3.0, 1.0, 1.0])
 
     def rotmatrix(self, theta):
         # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.
@@ -82,6 +82,7 @@ class Simbicon3D(Simbicon):
 
         tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
         tq[self.stance_idx+ANKLE_ROLL] = params[STANCE_ANKLE_ROLL]
+        tq[self.swing_idx+ANKLE_ROLL] = params[SWING_ANKLE_ROLL]
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 

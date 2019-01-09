@@ -223,9 +223,10 @@ class Simbicon(PDController):
     def maybe_start_down_phase(self, contacts, swing_heel):
         c = self.env.consts()
         duration = self.time() - self.step_started
-        if duration >= 0.1:
+        if duration >= 0.2:
             # Once toe-off is complete, return to neutral ankle angle
             self.params[SWING_ANKLE_RELATIVE+UP_IDX] = self.base_gait()[SWING_ANKLE_RELATIVE+UP_IDX]
+            self.params[SWING_ANKLE_ROLL] = self.base_gait()[SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")

@@ -48,10 +48,10 @@ def learn_last_move(env, targets, video_save_dir=None):
     # However, for now this is OK because the tests are designed so that the
     # step of interest is *not* flipped (to make them easier to evaluate visually).
     runner = Runner(env, start_state, targets[-1], video_save_dir=video_save_dir)
-    rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
+    rs = RandomSearch(runner, 5, step_size=0.4, eps=0.3)
     render = 0.7 if video_save_dir else 1.0
     rs.random_search(render=render)
-    env.clear_skeletons()
+    return rs
 
 def test_2D():
     from stepping_stones_env import SteppingStonesEnv
@@ -59,9 +59,10 @@ def test_2D():
     LONG_STEP_2D = np.array([[0, 0, 0], [0.3, 0, 0], [0.6, 0, 0], [1.4, 0, 0], [1.7, 0, 0]])
     STAIR_2D = np.array([[0, 0, 0], [0.4, 0, 0], [0.8, 0, 0], [1.2, 0.1, 0]])
     learn_last_move(env, LONG_STEP_2D)
-    learn_last_move(env, STAIR_2D)
+    env.clear_skeletons()
+    return learn_last_move(env, STAIR_2D)
 
-def test_3D():
+def test_3D(video_save_dir):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
@@ -69,10 +70,14 @@ def test_3D():
     # LONG_STEP is a little too hard, but BASIC at least should be learnable
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
     BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
-    learn_last_move(env, BASIC_3D, video_save_dir=None)
-    #learn_last_move(env, LONG_STEP_3D)
+    rs = learn_last_move(env, BASIC_3D, video_save_dir=video_save_dir)
+    rs.manual_search([0,0,0,0,0], [1.7, -.9, -.1], 0.3, video_save_dir)
+    env.clear_skeletons()
+    rs = learn_last_move(env, LONG_STEP_3D, video_save_dir=video_save_dir)
+    rs.manual_search([0,0,0,0,0], [1.7, -.9, -.1], 0.3, video_save_dir)
+    return rs
 
 if __name__ == '__main__':
-    #test_2D()
-    test_3D()
+    #rs = test_2D()
+    rs = test_3D(None)
     embed()
