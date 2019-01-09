@@ -86,9 +86,7 @@ class Simbicon(PDController):
     def controllable_indices_list(self):
         return [
                 IK_GAIN,
-                POSITION_BALANCE_GAIN,
                 VELOCITY_BALANCE_GAIN,
-                TORSO_WORLD,
                 STANCE_ANKLE_RELATIVE,
                 DN_IDX + STANCE_KNEE_RELATIVE
                 ]
@@ -226,7 +224,8 @@ class Simbicon(PDController):
         if duration >= 0.2:
             # Once toe-off is complete, return to neutral ankle angle
             self.params[SWING_ANKLE_RELATIVE+UP_IDX] = self.base_gait()[SWING_ANKLE_RELATIVE+UP_IDX]
-            self.params[SWING_ANKLE_ROLL] = self.base_gait()[SWING_ANKLE_ROLL]
+            if self.env.is_3D:
+                self.params[SWING_ANKLE_ROLL] = self.base_gait()[SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")

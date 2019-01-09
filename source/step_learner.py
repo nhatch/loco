@@ -48,7 +48,10 @@ def learn_last_move(env, targets, video_save_dir=None):
     # However, for now this is OK because the tests are designed so that the
     # step of interest is *not* flipped (to make them easier to evaluate visually).
     runner = Runner(env, start_state, targets[-1], video_save_dir=video_save_dir)
-    rs = RandomSearch(runner, 5, step_size=0.4, eps=0.3)
+    if env.is_3D:
+        rs = RandomSearch(runner, 5, step_size=0.4, eps=0.3)
+    else:
+        rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
     render = 0.7 if video_save_dir else 1.0
     rs.random_search(render=render)
     return rs
@@ -78,6 +81,6 @@ def test_3D(video_save_dir):
     return rs
 
 if __name__ == '__main__':
-    #rs = test_2D()
-    rs = test_3D(None)
+    rs = test_2D()
+    #rs = test_3D(None)
     embed()
