@@ -182,7 +182,7 @@ We make several novel modifications to SIMBICON in order to control its step len
 \subsection{Higher-level controller}
 
 The basic controller can walk and balance on flat ground, and to some extent control its step length.
-However, it cannot handle steps and inclines, and when the step distance is irregular, it cannot hit the targets with high accuracy.
+However, it cannot handle stairs and inclines, and when the step distance is irregular, it cannot hit the targets with high accuracy.
 \nhatch{Get some numbers about how big the steps/inclines have to be before problems happen, how bad the accuracy is, etc.}
 Hence, we train a higher-level controller (HLC) on top of the basic controller.
 It is queried once at the beginning of each step.
