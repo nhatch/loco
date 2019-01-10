@@ -37,10 +37,16 @@ class Simbicon3D(Simbicon):
                 0.5, 0.2, 0.0, 0.0, 0.0, 0.0]
         return np.array(gait)
 
-    def controllable_indices_list(self):
+    def set_gait_raw(self, target, target_heading=None, raw_gait=None):
+        if raw_gait is not None and self.swing_idx == LEFT_IDX:
+            sign_switches = np.array([1.0, -1.0, 1.0, 1.0, -1.0])
+            raw_gait = raw_gait * sign_switches
+        return super().set_gait_raw(target, target_heading, raw_gait)
+
+    def action_params(self):
         return [IK_GAIN, HEADING, UP_IDX+SWING_ANKLE_RELATIVE, STANCE_ANKLE_RELATIVE, STANCE_ANKLE_ROLL]
 
-    def controllable_indices_magnitudes(self):
+    def action_scale(self):
         return np.array([0.2, 0.5, 3.0, 1.0, 1.0])
 
     def rotmatrix(self, theta):

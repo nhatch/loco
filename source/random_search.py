@@ -7,7 +7,7 @@ import gym
 class RandomSearch:
     def __init__(self, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
-        self.w_policy = self.runner.env.controller.controllable_indices() * 0.0
+        self.w_policy = self.runner.env.controller.action_scale() * 0.0
 
         self.n_dirs = n_dirs
         self.eps = eps
@@ -16,7 +16,6 @@ class RandomSearch:
 
     def sample_perturbation(self):
         delta = np.random.randn(np.prod(self.w_policy.shape))
-        delta *= self.runner.env.controller.controllable_indices()
         delta /= np.linalg.norm(delta)
         return delta.reshape(self.w_policy.shape)
 
@@ -46,11 +45,7 @@ class RandomSearch:
         print("Max iters exceeded")
         return None
 
-    def manual_search(self, params, next_target, next_heading, video_save_dir=None):
-        c = self.runner.env.controller
-        action = c.base_gait() * 0.0
-        inds = c.controllable_indices_list()
-        action[inds] = params * c.controllable_indices_magnitudes()
+    def manual_search(self, action, next_target, next_heading, video_save_dir=None):
         action += self.w_policy
         self.runner.reset(video_save_dir)
         env = self.runner.env

@@ -25,14 +25,16 @@ class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
         self.env = env
         self.exp_name = exp_name
+        self.video_save_dir = None
         self.initialize_start_states()
         self.train_features, self.train_responses = [], []
-        self.n_action = len(self.env.controller.base_gait())
+        self.n_action = len(self.env.controller.action_params())
         self.n_dynamic = sum(self.env.consts().observable_features)
         # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
-        self.model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
+        #model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
+        self.model = model
         self.X_mean = np.zeros(self.n_dynamic)
         self.y_mean = np.zeros(self.n_action)
         # Maybe try varying these.
@@ -54,7 +56,7 @@ class LearnInverseDynamics:
         fname = START_STATES_FMT.format(self.exp_name)
         if not os.path.exists(fname):
             if env.is_3D:
-                states = self.collect_starting_states(n_resets=8, min_length=0.1, max_length=0.7)
+                states = self.collect_starting_states(min_length=0.1, max_length=0.7)
             else:
                 states = self.collect_starting_states()
             with open(fname, 'wb') as f:
@@ -62,7 +64,7 @@ class LearnInverseDynamics:
         with open(fname, 'rb') as f:
             self.start_states = pickle.load(f)
 
-    def collect_starting_states(self, size=8, n_resets=16, min_length=0.2, max_length=0.8):
+    def collect_starting_states(self, size=8, n_resets=8, min_length=0.2, max_length=0.8):
         self.env.log("Collecting initial starting states")
         start_states = []
         for i in range(n_resets):
@@ -131,51 +133,49 @@ class LearnInverseDynamics:
         runner = Runner(self.env, start_state, target)
         runner.video_save_dir = self.video_save_dir
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
-        render = 0.7 if self.video_save_dir else 1.0
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.05, render=render)
+        w_policy = rs.random_search(max_iters=10, tol=0.05, render=None)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
         # The train set is a set of (features, action) pairs
         # where taking `action` when the environment features are `features`
-        # will *exactly* hit the target with the swing foot.
-        # Note that the target must be part of `features` and that
-        # the `features` must capture all information necessary to reconstruct the
-        # world state to verify that this action will indeed hit the target.
-        # But it also must be reasonably low-dimensional because these are also the
-        # features used in our ML algorithm. TODO: separate these two responsibilities.
-        achieved_target = end_state.stance_heel_location()
-        # TODO: This "hindsight retargeting" doesn't exactly work. The problem is that
-        # moving the target platform to the new location actually changes end-of-step
-        # detection (e.g. the toe hits something where before there was empty space).
-        action[TX:TX+3] += target - achieved_target
-        train_state = self.extract_features(start_state, achieved_target)
+        # will hit the target with the swing foot (within 5 cm).
+        train_state = self.extract_features(start_state, target)
         self.train_features.append(train_state)
         self.train_responses.append(action)
 
     def extract_features(self, state, target):
+        # Combines state and target into a single vector, and discards some information
+        # that does not affect the dynamics (such as absolute location).
+        # That this vector is still very high dimenstional for debugging purposes.
+        # When actually training the model, many of these features are discarded.
         c = self.env.consts()
-        centered_state = np.zeros(2*c.Q_DIM + 2*3)
+        centered_state = np.zeros(2*c.Q_DIM + 3*3)
 
-        # Absolute location does not affect dynamics, so recenter all (x,y) coordinates
-        # around the location of the starting platform.
-        # TODO: also rotate so absolute yaw is 0. TODO this will also require doing the same
-        # to the action that was taken?
+        # Recenter all (x,y,z) coordinates around the location of the starting platform.
+        # TODO: also rotate so absolute yaw is 0.
         base = state.stance_platform()
-        centered_state[ 0:-6] = state.pose()
+        centered_state[ 0:-9] = state.pose()
         centered_state[ 0: 3] -= base # starting location of agent
-        centered_state[-6:-3] = state.stance_heel_location() - base
-        # We don't include state.swing_platform or state.stance_platform
-        # because they seem less important
-        # (and we are desperate to reduce problem dimension).
+        centered_state[-9:-6] = state.stance_heel_location() - base
+        centered_state[-6:-3] = state.swing_platform() - base
         centered_state[-3:  ] = target - base
+        return centered_state
 
-        return centered_state[c.observable_features]
+    def reconstruct_state(self, features):
+        # At the moment, used only for debugging.
+        raw_state = features.copy()
+        raw_state[-3:  ] = features[-6:-3]
+        raw_state[-6:-3] = [0,0,0]
+        target = features[-3:]
+        return State(raw_state), target
 
     def train_inverse_dynamics(self):
-        X = np.array(self.train_features)
+        c = self.env.consts()
+        # TODO investigate removing more features to reduce problem dimension
+        X = np.array(self.train_features)[:,c.observable_features]
         y = np.array(self.train_responses)
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
@@ -187,16 +187,14 @@ class LearnInverseDynamics:
         # `state` has been standardized, but `target` has not.
         # TODO there must be a cleaner way to handle this.
         m = np.array([1,1,-1]) if flip_z else np.array([1,1,1])
-        X = self.extract_features(state, target*m).reshape(1,-1)
+        c = self.env.consts()
+        X = self.extract_features(state, target*m).reshape(1,-1)[:,c.observable_features]
         X = (X - self.X_mean) / self.X_scale_factor
         if hasattr(self.model, 'estimator_'):
-            rescaled_action = self.model.predict(X).reshape(-1)
+            action = self.model.predict(X).reshape(-1)
         else:
-            rescaled_action = np.zeros(self.n_action)
-        rescaled_action *= self.env.controller.controllable_indices()
-        if flip_z:
-            rescaled_action[FLIP_Z] *= -1
-        return rescaled_action / self.y_scale_factor + self.y_mean
+            action = np.zeros(self.n_action)
+        return action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
         if dist_mean is None:
@@ -235,7 +233,7 @@ class LearnInverseDynamics:
             target = targets[2+i]
             flip_z = self.env.is_3D and (i % 2 == 1)
             action = self.act(state, target, flip_z=flip_z)
-            state, terminated = self.env.simulate(target, action, render=render)
+            state, terminated = self.env.simulate(target, action=action, render=render)
             if terminated:
                 break
             num_successful_steps += 1
@@ -256,33 +254,32 @@ class LearnInverseDynamics:
                 }
         return result
 
-def test_train_state_storage(env):
-    learn = LearnInverseDynamics(env)
-    start_state = np.random.choice(learn.start_states)
-    learn.collect_samples(start_state)
-    for i in range(len(learn.train_features)):
-        features = learn.train_features[i]
-        response = learn.train_responses[i]
-        target = start_state.stance_platform().copy()
-        target[0:2] += features[-2:]
-        # TODO reconstruct start_state from features (in order to see things from the
-        # perspective of the learning algorithm)
-        runner = Runner(env, start_state, target)
-        score = runner.run(response, render=1.0)
-        print("Score:", score) # This score should be exactly zero.
-        # But often it isn't; see todo in append_to_train_set
+def test_train_state_storage(learn, i=None):
+    if i is None:
+        i = np.random.randint(len(learn.train_features))
+        print("Testing index:", i)
+    features = learn.train_features[i]
+    response = learn.train_responses[i]
+    start_state, target = learn.reconstruct_state(features)
+    runner = Runner(learn.env, start_state, target)
+    score = runner.run(response, render=1.0)
+    # This score should be pretty close to zero.
+    trained_response = learn.act(start_state, target)
+    runner.run(trained_response, render=1.0)
+    # This score should also be close to zero in the absence of model bias.
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    #env = SteppingStonesEnv()
-    env = Simple3DEnv(Simbicon3D)
-    #test_train_state_storage(env)
+    env = SteppingStonesEnv()
+    #env = Simple3DEnv(Simbicon3D)
 
     name = '3D' if env.is_3D else '2D'
     learn = LearnInverseDynamics(env, name)
-    learn.video_save_dir = None
+    #learn.video_save_dir = 'monitoring'
     #learn.load_train_set()
     learn.training_iter()
+    #learn.evaluate()
+    #test_train_state_storage(learn, 63)
     embed()

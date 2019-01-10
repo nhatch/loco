@@ -26,7 +26,7 @@ class Runner:
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets, video_save_dir):
-    action = env.controller.base_gait()*0
+    action = env.controller.action_scale()*0
     # Two short steps, then a long step. This causes issues for the basic SIMBICON
     # controller, if the next step is another short step. This is because the
     # velocity-based swing hip correction tends to overcorrect so that the robot
@@ -81,6 +81,6 @@ def test_3D(video_save_dir):
     return rs
 
 if __name__ == '__main__':
-    rs = test_2D()
-    #rs = test_3D(None)
+    #rs = test_2D()
+    rs = test_3D(None)
     embed()

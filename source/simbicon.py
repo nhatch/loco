@@ -83,7 +83,7 @@ class Simbicon(PDController):
                 0,0,0]
         return np.array(gait)
 
-    def controllable_indices_list(self):
+    def action_params(self):
         return [
                 IK_GAIN,
                 VELOCITY_BALANCE_GAIN,
@@ -91,13 +91,8 @@ class Simbicon(PDController):
                 DN_IDX + STANCE_KNEE_RELATIVE
                 ]
 
-    def controllable_indices_magnitudes(self):
-        return np.ones(len(self.controllable_indices_list()))
-
-    def controllable_indices(self):
-        inds = self.base_gait() * 0.0
-        inds[self.controllable_indices_list()] = self.controllable_indices_magnitudes()
-        return inds
+    def action_scale(self):
+        return np.ones(len(self.action_params()))
 
     def heading(self):
         return 0.0
@@ -105,7 +100,8 @@ class Simbicon(PDController):
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         params = self.base_gait()
         if raw_gait is not None:
-            params += raw_gait
+            inds = self.action_params()
+            params[inds] += raw_gait * self.action_scale()
         self.set_gait(Params(params))
 
         self.target, self.prev_target = target, self.target

@@ -47,6 +47,7 @@ class SteppingStonesEnv:
                 c.observable_features_q,
                 c.observable_features_t,
                 c.observable_features_t,
+                c.observable_features_t,
                 ])
         self.is_3D = (c.BRICK_DOF == 6)
 
