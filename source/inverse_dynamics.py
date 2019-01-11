@@ -129,7 +129,7 @@ class LearnInverseDynamics:
             Runner(self.env, perturbed_start_state, perturbed_target).reset()
             end_state, terminated = self.env.simulate(perturbed_target, action=action)
             if not terminated:
-                self.append_to_train_set(perturbed_start_state, perturbed_target, action, end_state)
+                self.append_to_train_set(perturbed_start_state, perturbed_target, action)
                 self.start_states.append(end_state)
 
     def learn_action(self, start_state, target):
@@ -141,7 +141,7 @@ class LearnInverseDynamics:
         w_policy = rs.random_search(max_iters=10, tol=0.05, render=None)
         return w_policy, runner
 
-    def append_to_train_set(self, start_state, target, action, end_state):
+    def append_to_train_set(self, start_state, target, action):
         # The train set is a set of (features, action) pairs
         # where taking `action` when the environment features are `features`
         # will hit the target with the swing foot (within 5 cm).
