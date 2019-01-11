@@ -13,9 +13,7 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_ACTIONS_PER_STATE = 4
 N_STATES_PER_ITER = 64
-EXPLORATION_STD = 0.001
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
@@ -112,9 +110,6 @@ class LearnInverseDynamics:
         self.dump_train_set()
         self.env.clear_skeletons()
 
-    def perturb(self, array):
-        return array + EXPLORATION_STD * np.random.randn(len(array))
-
     def collect_samples(self, start_state):
         # We don't need to flip this target, because start_state is standardized.
         target = self.generate_targets(start_state, 1)[-1]
@@ -122,15 +117,10 @@ class LearnInverseDynamics:
         if mean_action is None:
             # Random search couldn't find a good enough action; don't use this for training.
             return
-        for _ in range(N_ACTIONS_PER_STATE):
-            perturbed_start_state = State(self.perturb(start_state.raw_state))
-            perturbed_target = self.perturb(target)
-            action = self.perturb(mean_action)
-            Runner(self.env, perturbed_start_state, perturbed_target).reset()
-            end_state, terminated = self.env.simulate(perturbed_target, action=action)
-            if not terminated:
-                self.append_to_train_set(perturbed_start_state, perturbed_target, action)
-                self.start_states.append(end_state)
+        self.append_to_train_set(start_state, target, mean_action)
+        # The following assumes env hasn't changed since the last rs.eval() run.
+        end_state = self.env.current_observation()
+        self.start_states.append(end_state)
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
