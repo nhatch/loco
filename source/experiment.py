@@ -11,14 +11,14 @@ N_EVAL_TRAJECTORIES = 8
 
 
 class Experiment:
-    def __init__(self, name, learner):
+    def __init__(self, env, name):
         self.settings = {
                 "total_score": "blue",
                 "max_error": "red",
                 "n_steps": "black",
                 }
-        self.learner = learner
         self.name = name
+        self.learner = LearnInverseDynamics(env, self.name)
         self.iter = 0
         self.results = defaultdict(lambda: [])
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
@@ -72,11 +72,16 @@ class Experiment:
         plt.savefig('{}.png'.format(self.name))
         plt.clf()
 
+def load(env, name):
+    learn = LearnInverseDynamics(env, name)
+    learn.load_train_set()
+    return learn
+
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simbicon import Simbicon
     env = SteppingStonesEnv()
-    learn = LearnInverseDynamics(env)
-    ex = Experiment("my_experiment", learn)
+    ex = Experiment(env, "my_experiment_perturbations")
     ex.run_iters(6)
+    #learn = load(env, 'my_experiment')
     embed()

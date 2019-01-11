@@ -13,9 +13,9 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_ACTIONS_PER_STATE = 1
-N_STATES_PER_ITER = 32
-EXPLORATION_STD = 0.0 # Don't do perturbations until we're sure it actually helps
+N_ACTIONS_PER_STATE = 4
+N_STATES_PER_ITER = 64
+EXPLORATION_STD = 0.001
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
@@ -49,14 +49,14 @@ class LearnInverseDynamics:
 
         # Evaluation settings
         self.dist_mean = 0.42
-        self.dist_spread = 0.0 if env.is_3D else 0.3
+        self.dist_spread = 0.3
         self.n_steps = 16
         self.runway_length = 0.4
 
     def initialize_start_states(self):
         fname = START_STATES_FMT.format(self.exp_name)
         if not os.path.exists(fname):
-            if env.is_3D:
+            if self.env.is_3D:
                 states = self.collect_starting_states(min_length=0.1, max_length=0.7)
             else:
                 states = self.collect_starting_states()
@@ -74,7 +74,7 @@ class LearnInverseDynamics:
             start_state = self.env.reset(random=0.005)
             self.env.sdf_loader.put_grounds([start_state.swing_platform()], runway_length=15)
             # TODO should we include this first state? It will be very different from the rest.
-            #start_states.append(self.env.robot_skeleton.x)
+            start_states.append(self.env.current_observation())
             targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
             for target in targets[2:]:
                 # This makes the first step half as long. TODO is this necessary/sufficient?
@@ -112,6 +112,9 @@ class LearnInverseDynamics:
         self.dump_train_set()
         self.env.clear_skeletons()
 
+    def perturb(self, array):
+        return array + EXPLORATION_STD * np.random.randn(len(array))
+
     def collect_samples(self, start_state):
         # We don't need to flip this target, because start_state is standardized.
         target = self.generate_targets(start_state, 1)[-1]
@@ -120,14 +123,13 @@ class LearnInverseDynamics:
             # Random search couldn't find a good enough action; don't use this for training.
             return
         for _ in range(N_ACTIONS_PER_STATE):
-            # TODO should we perturb the start state and target, too?
-            runner.reset()
-            # TODO test whether these perturbations actually help
-            perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
-            action = mean_action + perturbation
-            end_state, terminated = self.env.simulate(target, action=action)
+            perturbed_start_state = State(self.perturb(start_state.raw_state))
+            perturbed_target = self.perturb(target)
+            action = self.perturb(mean_action)
+            Runner(self.env, perturbed_start_state, perturbed_target).reset()
+            end_state, terminated = self.env.simulate(perturbed_target, action=action)
             if not terminated:
-                self.append_to_train_set(start_state, target, action, end_state)
+                self.append_to_train_set(perturbed_start_state, perturbed_target, action, end_state)
                 self.start_states.append(end_state)
 
     def learn_action(self, start_state, target):
@@ -136,7 +138,7 @@ class LearnInverseDynamics:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.05, render=1)
+        w_policy = rs.random_search(max_iters=10, tol=0.05, render=None)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -209,7 +211,7 @@ class LearnInverseDynamics:
         next_target = targets[-1]
         for i in range(num_steps):
             dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
-            dy = np.random.uniform() * 0.0
+            dy = np.random.uniform() * dist_spread/3
             # TODO maybe off by -1
             dz = 0.3 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
             next_target = next_target + [dx, dy, dz]
@@ -281,7 +283,7 @@ if __name__ == '__main__':
     name = '3D' if env.is_3D else '2D'
     learn = LearnInverseDynamics(env, name)
     #learn.video_save_dir = 'monitoring'
-    learn.load_train_set()
+    #learn.load_train_set()
     learn.training_iter()
     #learn.evaluate()
     #test_train_state_storage(learn)

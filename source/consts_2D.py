@@ -38,7 +38,7 @@ ALLOWED_COLLISION_IDS = [5,8] # The two feet
 
 observable_features_q = np.ones(Q_DIM) == 1 # Bool array
 observable_features_q = np.array([0,1,0,1,0,0,1,0,0]) == 1 # Bool array
-observable_features_t = np.array([1,0,0]) == 1
+observable_features_t = np.array([1,1,0]) == 1
 
 # The relative transform of the thigh when all DOFs of the joint are set to zero
 LEFT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[ 1. ,  0. ,  0. ,  0. ],
