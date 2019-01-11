@@ -13,13 +13,13 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_ACTIONS_PER_STATE = 4
+N_ACTIONS_PER_STATE = 1
 N_STATES_PER_ITER = 32
-EXPLORATION_STD = 0.1
+EXPLORATION_STD = 0.0 # Don't do perturbations until we're sure it actually helps
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
-RIDGE_ALPHA = 10.0
+RIDGE_ALPHA = 0.1
 
 class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
@@ -35,6 +35,7 @@ class LearnInverseDynamics:
         #model = make_pipeline(PolynomialFeatures(2), model) # quadratic
         #model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
         self.model = model
+        self.is_fitted = False # For some dang reason sklearn doesn't track this itself
         self.X_mean = np.zeros(self.n_dynamic)
         self.y_mean = np.zeros(self.n_action)
         # Maybe try varying these.
@@ -119,12 +120,12 @@ class LearnInverseDynamics:
             # Random search couldn't find a good enough action; don't use this for training.
             return
         for _ in range(N_ACTIONS_PER_STATE):
+            # TODO should we perturb the start state and target, too?
             runner.reset()
             # TODO test whether these perturbations actually help
             perturbation = EXPLORATION_STD * np.random.randn(len(mean_action))
-            perturbation *= self.env.controller.controllable_indices()
             action = mean_action + perturbation
-            end_state, terminated = self.env.simulate(target, action)
+            end_state, terminated = self.env.simulate(target, action=action)
             if not terminated:
                 self.append_to_train_set(start_state, target, action, end_state)
                 self.start_states.append(end_state)
@@ -135,7 +136,7 @@ class LearnInverseDynamics:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.05, render=None)
+        w_policy = rs.random_search(max_iters=10, tol=0.05, render=1)
         return w_policy, runner
 
     def append_to_train_set(self, start_state, target, action, end_state):
@@ -182,6 +183,7 @@ class LearnInverseDynamics:
         X = (X - self.X_mean) / self.X_scale_factor
         y = (y - self.y_mean) * self.y_scale_factor
         self.model.fit(X, y)
+        self.is_fitted = True
 
     def act(self, state, target, flip_z=False):
         # `state` has been standardized, but `target` has not.
@@ -190,7 +192,7 @@ class LearnInverseDynamics:
         c = self.env.consts()
         X = self.extract_features(state, target*m).reshape(1,-1)[:,c.observable_features]
         X = (X - self.X_mean) / self.X_scale_factor
-        if hasattr(self.model, 'estimator_'):
+        if self.is_fitted:
             action = self.model.predict(X).reshape(-1)
         else:
             action = np.zeros(self.n_action)
@@ -255,6 +257,7 @@ class LearnInverseDynamics:
         return result
 
 def test_train_state_storage(learn, i=None):
+    learn.env.clear_skeletons()
     if i is None:
         i = np.random.randint(len(learn.train_features))
         print("Testing index:", i)
@@ -278,8 +281,8 @@ if __name__ == '__main__':
     name = '3D' if env.is_3D else '2D'
     learn = LearnInverseDynamics(env, name)
     #learn.video_save_dir = 'monitoring'
-    #learn.load_train_set()
+    learn.load_train_set()
     learn.training_iter()
     #learn.evaluate()
-    #test_train_state_storage(learn, 63)
+    #test_train_state_storage(learn)
     embed()
