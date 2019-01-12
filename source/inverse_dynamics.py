@@ -13,7 +13,7 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_STATES_PER_ITER = 8
+N_STATES_PER_ITER = 16
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
@@ -45,10 +45,27 @@ class LearnInverseDynamics:
         self.y_scale_factor = np.ones(self.n_action)
 
         # Evaluation settings
-        self.dist_mean = 0.47
-        self.dist_spread = 0.3
-        self.n_steps = 16
-        self.runway_length = 0.4
+        self.eval_settings = {
+                'dist_mean': 0.47,
+                'dist_spread': 0.3,
+                'runway_length': 0.4,
+                'n_steps': 16,
+                'z_mean': 0.0,
+                'z_spread': 0.0,
+                'y_mean': 0.05,
+                'y_spread': 0.1,
+                }
+        if self.env.is_3D:
+            self.eval_settings = {
+                'dist_mean': 0.35,
+                'dist_spread': 0.2,
+                'runway_length': 10.0,
+                'n_steps': 16,
+                'z_mean': 0.4,
+                'z_spread': 0.1,
+                'y_mean': 0.0,
+                'y_spread': 0.0,
+                }
 
     def initialize_start_states(self):
         fname = START_STATES_FMT.format(self.exp_name)
@@ -124,12 +141,12 @@ class LearnInverseDynamics:
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
         if env.is_3D:
-            rs = RandomSearch(runner, 8, step_size=0.3, eps=0.1)
+            rs = RandomSearch(runner, 8, step_size=0.1, eps=0.1)
         else:
             rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=5, tol=0.05, render=1)
+        w_policy = rs.random_search(max_iters=5, tol=0.02, render=1)
         return w_policy
 
     def append_to_train_set(self, start_state, target, action):
@@ -192,18 +209,21 @@ class LearnInverseDynamics:
         return action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
+        s = self.eval_settings
         if dist_mean is None:
-            dist_mean = self.dist_mean
+            dist_mean = s['dist_mean']
         if dist_spread is None:
-            dist_spread = self.dist_spread
+            dist_spread = s['dist_spread']
         # Choose some random targets that are hopefully representative of what
         # we will see during testing episodes.
         targets = start_state.starting_platforms()
         next_target = targets[-1]
         for i in range(num_steps):
             dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
-            dy = 0.0 if self.env.is_3D else np.random.uniform() * dist_spread/3
-            dz = 0.4 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
+            dy = s['y_mean'] + s['y_spread'] * (np.random.uniform() - 0.5)
+            dz = s['z_mean'] + s['z_spread'] * (np.random.uniform() - 0.5)
+            if i % 2 == 1:
+                dz *= -1
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         # Return value includes the two starting platforms
@@ -214,20 +234,24 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def evaluate(self, render=1.0, video_save_dir=None, seed=None):
+        s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         total_error = 0
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
-        targets = self.generate_targets(state, self.n_steps)
-        self.env.sdf_loader.put_grounds(targets, runway_length=self.runway_length)
+        targets = self.generate_targets(state, s['n_steps'])
+        if self.env.is_3D:
+            self.env.sdf_loader.put_grounds(targets[:1], runway_length=s['runway_length'])
+        else:
+            self.env.sdf_loader.put_grounds(targets, runway_length=s['runway_length'])
         total_offset = 0
         num_successful_steps = 0
-        for i in range(self.n_steps):
+        for i in range(s['n_steps']):
             target = targets[2+i]
             flip_z = self.env.is_3D and (i % 2 == 1)
             action = self.act(state, target, flip_z=flip_z)
-            state, terminated = self.env.simulate(target, action=action)
+            state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             if terminated:
                 break
             num_successful_steps += 1
@@ -275,8 +299,8 @@ if __name__ == '__main__':
     name = '3D' if env.is_3D else '2D'
     name = 'foo'
     learn = LearnInverseDynamics(env, name)
-    #learn.load_train_set()
+    learn.load_train_set()
     learn.training_iter()
-    #learn.evaluate()
+    print(learn.evaluate())
     #test_train_state_storage(learn)
     embed()

@@ -11,7 +11,7 @@ class Runner:
         self.target = target
 
     def run(self, action):
-        r, _ = self.env.simulate(self.target, action=action, put_dots=True)
+        r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
         score = -np.linalg.norm(r.stance_heel_location() - r.stance_platform())
         if self.env.video_recorder is not None:
             self.env.pause(0.3)
@@ -31,7 +31,7 @@ def collect_start_state(env, targets, video_save_dir):
     env.sdf_loader.put_grounds(targets, runway_length=20)
     env.render()
     for t in targets[1:-1]:
-        end_state, _ = env.simulate(t, action=action, put_dots=True)
+        end_state, _ = env.simulate(t, target_heading=0.0, action=action, put_dots=True)
         env.render()
     env.clear_skeletons()
     return end_state
@@ -44,7 +44,9 @@ def learn_last_move(env, targets, video_save_dir=None):
     # step of interest is *not* flipped (to make them easier to evaluate visually).
     runner = Runner(env, start_state, targets[-1])
     if env.is_3D:
-        rs = RandomSearch(runner, 5, step_size=0.4, eps=0.3)
+        # TODO the performance of this is actually quite bad now.
+        # But it seems to work fine for the step distributions in inverse_dynamics.py.
+        rs = RandomSearch(runner, 8, step_size=0.3, eps=0.1)
     else:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
     rs.random_search(render=1, video_save_dir=video_save_dir)

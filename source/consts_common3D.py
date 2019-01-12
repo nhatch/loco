@@ -28,7 +28,7 @@ TORSO_YAW = 20
 
 observable_features_q = np.array([
         1,0,1,1,1,1,
-        0,0,0,0,0,0,
-        0,0,0,0,0,0,
+        1,0,1,0,0,0,
+        1,0,1,0,0,0,
         0,0,0]) == 1 # Bool array
 observable_features_t = np.array([1,0,1]) == 1

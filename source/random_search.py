@@ -44,14 +44,14 @@ class RandomSearch:
             self.step_size *= 0.8
             if self.eval(tol, render, video_save_dir):
                 return self.w_policy
-        print("Max iters exceeded")
+        print("MAX ITERS EXCEEDED")
         return None
 
     def manual_search(self, action, next_target, next_heading, video_save_dir=None):
         action += self.w_policy
         self.runner.reset(video_save_dir, 1.0)
         env = self.runner.env
-        env.simulate(self.runner.target, action=action)
+        env.simulate(self.runner.target, target_heading=0.0, action=action)
         # Simulate the next step as well to get a sense of where that step left us.
         env.simulate(next_target, target_heading=next_heading)
 
@@ -59,5 +59,5 @@ class RandomSearch:
         self.runner.reset(video_save_dir, render)
         ret = self.runner.run(self.w_policy)
         # The best possible score is 0
-        print("SCORE:", ret)
+        print("Score: {:.4f}".format(ret))
         return ret > -tol
