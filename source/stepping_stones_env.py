@@ -95,20 +95,22 @@ class SteppingStonesEnv:
         self.track_point = None
         return tb
 
-    def reset(self, state=None, video_save_dir=None, random=0.0, seed=None):
+    def reset(self, state=None, video_save_dir=None, render=None, random=0.0, seed=None):
         if seed is None:
             seed = np.random.randint(100000)
-        print("Seed:", seed)
         np.random.seed(seed)
 
         self.world.reset()
         self.set_state(state, random)
         if self.video_recorder:
             self.video_recorder.close()
+            self.video_recorder = None
+        self.render_rate = render
+        if render:
+            print("Seed:", seed)
         if video_save_dir:
             self.video_recorder = video_recorder(self, video_save_dir)
-        else:
-            self.video_recorder = None
+            self.render_rate = render*0.7
         return self.current_observation()
 
     def find_contacts(self, bodynode):
@@ -139,11 +141,11 @@ class SteppingStonesEnv:
             return None, False, None
 
     # Run one footstep of simulation, returning the final state
-    def simulate(self, target, target_heading=None, action=None, render=False, put_dots=True):
+    def simulate(self, target, target_heading=None, action=None, put_dots=True):
         self.controller.set_gait_raw(raw_gait=action, target_heading=target_heading, target=target)
         steps_per_render = None
-        if render:
-            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / render)
+        if self.render_rate:
+            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / self.render_rate)
             if put_dots:
                 self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
                 self.sdf_loader.put_dot(self.controller.prev_target, 'prev_step_target', color=GREEN)
@@ -154,7 +156,7 @@ class SteppingStonesEnv:
                 self._render()
             obs, terminated, status_string = self.simulation_step()
             if obs is not None:
-                if render:
+                if self.render_rate:
                     self._render()
                     self.log(status_string)
                 return obs, terminated

@@ -10,7 +10,7 @@ import consts_armless as consts
 
 SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/12
-PHI = np.pi / 3
+PHI = np.pi / 1.5
 ZOOM = 5.0
 
 class Simple3DEnv(SteppingStonesEnv):

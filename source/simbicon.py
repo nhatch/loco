@@ -327,7 +327,7 @@ class Simbicon(PDController):
 
 def test(env, length, seed=None, runway_length=15, runway_x=0):
     env.clear_skeletons() # Necessary in order to change the runway length
-    start_state = env.reset(seed=seed, random=0.005)
+    start_state = env.reset(seed=seed, random=0.005, render=1)
     env.sdf_loader.put_grounds([[runway_x,0,0]], runway_length=runway_length)
     for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
@@ -335,7 +335,7 @@ def test(env, length, seed=None, runway_length=15, runway_x=0):
         # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
         # than its heel. This makes difficult training environments for random optimization.
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
-        _, terminated = env.simulate([t,0,0], render=1, put_dots=True)
+        _, terminated = env.simulate([t,0,0], put_dots=True)
         if terminated:
             break
 

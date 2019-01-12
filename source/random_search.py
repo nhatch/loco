@@ -24,7 +24,9 @@ class RandomSearch:
         rets = []
         for j in range(self.n_dirs):
             p = self.sample_perturbation()
+            self.runner.reset()
             p_ret = self.runner.run(policy + self.eps*p)
+            self.runner.reset()
             n_ret = self.runner.run(policy - self.eps*p)
             rets.append(p_ret)
             rets.append(n_ret)
@@ -32,29 +34,30 @@ class RandomSearch:
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, max_iters=10, tol=0.05, render=1.0):
-        if self.eval(tol, render):
+    def random_search(self, max_iters=10, tol=0.05, render=1.0, video_save_dir=None):
+        if self.eval(tol, render, video_save_dir):
             return self.w_policy
         for i in range(max_iters):
             # TODO: should we "give up" if we don't see fast enough progress?
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
             self.step_size *= 0.8
-            if self.eval(tol, render):
+            if self.eval(tol, render, video_save_dir):
                 return self.w_policy
         print("Max iters exceeded")
         return None
 
     def manual_search(self, action, next_target, next_heading, video_save_dir=None):
         action += self.w_policy
-        self.runner.reset(video_save_dir)
+        self.runner.reset(video_save_dir, 1.0)
         env = self.runner.env
-        render = 0.7 if video_save_dir else 1.0
-        env.simulate(self.runner.target, action=action, render=render)
+        env.simulate(self.runner.target, action=action)
         # Simulate the next step as well to get a sense of where that step left us.
-        env.simulate(next_target, target_heading=next_heading, render=render)
+        env.simulate(next_target, target_heading=next_heading)
 
-    def eval(self, tol, render):
-        ret = self.runner.run(self.w_policy, render=render)
+    def eval(self, tol, render, video_save_dir):
+        self.runner.reset(video_save_dir, render)
+        ret = self.runner.run(self.w_policy)
         # The best possible score is 0
+        print("SCORE:", ret)
         return ret > -tol

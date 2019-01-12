@@ -145,7 +145,7 @@ def rotate_state(state, angle, env):
 def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=False):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed)
-    env.reset(rotate_state(obs, a, env), video_save_dir=None)
+    env.reset(rotate_state(obs, a, env), video_save_dir=None, render=r)
     env.sdf_loader.put_grounds([[-3.0,-0.9,0]], runway_length=12.0)
     t = env.controller.stance_heel
     for i in range(n):
@@ -154,7 +154,7 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
         target_heading = None
         if provide_target_heading:
             target_heading = a+delta_a
-        _, terminated = env.simulate(t, target_heading=target_heading, render=r, put_dots=True)
+        _, terminated = env.simulate(t, target_heading=target_heading, put_dots=True)
         if relative:
             t = env.controller.stance_heel # Pretend that was the previous target
         a += delta_a

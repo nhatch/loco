@@ -13,7 +13,7 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_STATES_PER_ITER = 64
+N_STATES_PER_ITER = 8
 START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
@@ -23,7 +23,6 @@ class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
         self.env = env
         self.exp_name = exp_name
-        self.video_save_dir = None
         self.initialize_start_states()
         self.train_features, self.train_responses = [], []
         self.n_action = len(self.env.controller.action_params())
@@ -46,7 +45,7 @@ class LearnInverseDynamics:
         self.y_scale_factor = np.ones(self.n_action)
 
         # Evaluation settings
-        self.dist_mean = 0.42
+        self.dist_mean = 0.47
         self.dist_spread = 0.3
         self.n_steps = 16
         self.runway_length = 0.4
@@ -55,7 +54,7 @@ class LearnInverseDynamics:
         fname = START_STATES_FMT.format(self.exp_name)
         if not os.path.exists(fname):
             if self.env.is_3D:
-                states = self.collect_starting_states(min_length=0.1, max_length=0.7)
+                states = self.collect_starting_states(min_length=0.1, max_length=0.5)
             else:
                 states = self.collect_starting_states()
             with open(fname, 'wb') as f:
@@ -69,7 +68,7 @@ class LearnInverseDynamics:
         for i in range(n_resets):
             length = min_length + (max_length - min_length) * (i / n_resets)
             self.env.log("Starting trajectory {}".format(i))
-            start_state = self.env.reset(random=0.005)
+            start_state = self.env.reset(render=0.1, random=0.005)
             self.env.sdf_loader.put_grounds([start_state.swing_platform()], runway_length=15)
             # TODO should we include this first state? It will be very different from the rest.
             start_states.append(self.env.current_observation())
@@ -77,7 +76,7 @@ class LearnInverseDynamics:
             for target in targets[2:]:
                 # This makes the first step half as long. TODO is this necessary/sufficient?
                 target[0] -= length*0.5
-                end_state, _ = self.env.simulate(target, render=0.1, put_dots=True)
+                end_state, _ = self.env.simulate(target, target_heading=0.0, put_dots=True)
                 # Fix end_state.starting_platforms to reflect where the swing foot
                 # actually ended up. We must do this because stance_platform and
                 # stance_heel_location might actually be quite far apart, since there's
@@ -113,7 +112,7 @@ class LearnInverseDynamics:
     def collect_samples(self, start_state):
         # We don't need to flip this target, because start_state is standardized.
         target = self.generate_targets(start_state, 1)[-1]
-        mean_action, runner = self.learn_action(start_state, target)
+        mean_action = self.learn_action(start_state, target)
         if mean_action is None:
             # Random search couldn't find a good enough action; don't use this for training.
             return
@@ -124,12 +123,14 @@ class LearnInverseDynamics:
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
-        runner.video_save_dir = self.video_save_dir
-        rs = RandomSearch(runner, 4, step_size=0.1, eps=0.05)
+        if env.is_3D:
+            rs = RandomSearch(runner, 8, step_size=0.3, eps=0.1)
+        else:
+            rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=10, tol=0.05, render=None)
-        return w_policy, runner
+        w_policy = rs.random_search(max_iters=5, tol=0.05, render=1)
+        return w_policy
 
     def append_to_train_set(self, start_state, target, action):
         # The train set is a set of (features, action) pairs
@@ -201,9 +202,8 @@ class LearnInverseDynamics:
         next_target = targets[-1]
         for i in range(num_steps):
             dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
-            dy = np.random.uniform() * dist_spread/3
-            # TODO maybe off by -1
-            dz = 0.3 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
+            dy = 0.0 if self.env.is_3D else np.random.uniform() * dist_spread/3
+            dz = 0.4 * (1 if i % 2 == 0 else -1) * (1 if self.env.is_3D else 0)
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         # Return value includes the two starting platforms
@@ -214,7 +214,7 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def evaluate(self, render=1.0, video_save_dir=None, seed=None):
-        state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005)
+        state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         total_error = 0
         max_error = 0
         total_score = 0
@@ -227,7 +227,7 @@ class LearnInverseDynamics:
             target = targets[2+i]
             flip_z = self.env.is_3D and (i % 2 == 1)
             action = self.act(state, target, flip_z=flip_z)
-            state, terminated = self.env.simulate(target, action=action, render=render)
+            state, terminated = self.env.simulate(target, action=action)
             if terminated:
                 break
             num_successful_steps += 1
@@ -257,22 +257,24 @@ def test_train_state_storage(learn, i=None):
     response = learn.train_responses[i]
     start_state, target = learn.reconstruct_state(features)
     runner = Runner(learn.env, start_state, target)
-    score = runner.run(response, render=1.0)
+    runner.reset(render=1.0)
+    runner.run(response)
     # This score should be pretty close to zero.
     trained_response = learn.act(start_state, target)
-    runner.run(trained_response, render=1.0)
+    runner.reset(render=1.0)
+    runner.run(trained_response)
     # This score should also be close to zero in the absence of model bias.
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    env = SteppingStonesEnv()
-    #env = Simple3DEnv(Simbicon3D)
+    #env = SteppingStonesEnv()
+    env = Simple3DEnv(Simbicon3D)
 
     name = '3D' if env.is_3D else '2D'
+    name = 'foo'
     learn = LearnInverseDynamics(env, name)
-    #learn.video_save_dir = 'monitoring'
     #learn.load_train_set()
     learn.training_iter()
     #learn.evaluate()
