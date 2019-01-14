@@ -12,9 +12,9 @@ from simbicon_params import *
 ZERO_GAIN = True
 
 class Simbicon3D(Simbicon):
-    def standardize_stance(self, state):
+    def mirror_state(self, state):
         c = self.env.consts()
-        state = super().standardize_stance(state)
+        state = super().mirror_state(state)
         # Rotations are absolute, not relative, so we need to multiply some angles
         # by -1 to obtain a mirrored pose.
         D = Q_DIM
@@ -110,7 +110,7 @@ class Simbicon3D(Simbicon):
         self.env.doppelganger.q = self.env.from_features(tq)
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
-def test_standardize_stance(env):
+def test_mirror_state(env):
     from time import sleep
     env.reset(random=0.5)
     env.set_rot_manual(np.pi/2)
@@ -167,5 +167,5 @@ if __name__ == "__main__":
     env.sdf_loader.ground_width = 8.0
     # TODO: Get the controller to work well even when we don't provide the target heading.
     test(env, 0.5, delta_a=0.05, n=20, provide_target_heading=True)
-    #test_standardize_stance(env)
+    #test_mirror_state(env)
     embed()

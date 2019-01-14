@@ -181,6 +181,10 @@ class LearnInverseDynamics:
         raw_state[-3:  ] = features[-6:-3]
         raw_state[-6:-3] = [0,0,0]
         target = features[-3:]
+        if self.env.is_3D:
+            c = self.env.consts()
+            raw_state[[c.Y, -2, -5, -8]] -= 0.9
+            target[c.Y] -= 0.9
         return State(raw_state), target
 
     def train_inverse_dynamics(self):
@@ -196,16 +200,17 @@ class LearnInverseDynamics:
         self.is_fitted = True
 
     def act(self, state, target, flip_z=False):
-        # `state` has been standardized, but `target` has not.
-        # TODO there must be a cleaner way to handle this.
-        m = np.array([1,1,-1]) if flip_z else np.array([1,1,1])
         c = self.env.consts()
-        X = self.extract_features(state, target*m).reshape(1,-1)[:,c.observable_features]
+        if self.env.controller.swing_idx == c.LEFT_IDX:
+            # `state` has been mirrored, but `target` has not.
+            target = target * np.array([1,1,-1])
+        X = self.extract_features(state, target).reshape(1,-1)[:,c.observable_features]
         X = (X - self.X_mean) / self.X_scale_factor
         if self.is_fitted:
             action = self.model.predict(X).reshape(-1)
         else:
             action = np.zeros(self.n_action)
+        # Simbicon3D will handle mirroring the action if necessary
         return action / self.y_scale_factor + self.y_mean
 
     def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
@@ -249,8 +254,7 @@ class LearnInverseDynamics:
         num_successful_steps = 0
         for i in range(s['n_steps']):
             target = targets[2+i]
-            flip_z = self.env.is_3D and (i % 2 == 1)
-            action = self.act(state, target, flip_z=flip_z)
+            action = self.act(state, target)
             state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             if terminated:
                 break
@@ -272,7 +276,7 @@ class LearnInverseDynamics:
                 }
         return result
 
-def test_train_state_storage(learn, i=None):
+def retrieve_index(learn, i=None):
     learn.env.clear_skeletons()
     if i is None:
         i = np.random.randint(len(learn.train_features))
@@ -280,14 +284,53 @@ def test_train_state_storage(learn, i=None):
     features = learn.train_features[i]
     response = learn.train_responses[i]
     start_state, target = learn.reconstruct_state(features)
+    return start_state, target, response
+
+def test_regression_bias(learn, i=None):
+    start_state, target, response = retrieve_index(learn, i)
+
     runner = Runner(learn.env, start_state, target)
     runner.reset(render=1.0)
-    runner.run(response)
-    # This score should be pretty close to zero.
+    print("Score:", runner.run(response)) # Should be pretty close to zero.
+
     trained_response = learn.act(start_state, target)
     runner.reset(render=1.0)
-    runner.run(trained_response)
-    # This score should also be close to zero in the absence of model bias.
+    # This score should also be close to zero, depending on model bias.
+    print("Score:", runner.run(trained_response))
+
+    ## TODO: It seems like the algorithm is almost (not completely) ignoring the target Z coord.
+    #target[2] += 0.2
+    #trained_response = learn.act(start_state, target)
+    #runner.reset(render=1.0)
+    ## This score should also be close to zero in the absence of model bias.
+    #print("Score:", runner.run(trained_response))
+
+def test_mirroring(learn, i=None):
+    start_state, target, response = retrieve_index(learn, i)
+    runner = Runner(learn.env, start_state, target)
+    trained_response = learn.act(start_state, target)
+    runner.reset(render=1.0)
+    print("Score:", runner.run(trained_response)) # Should be pretty close to zero.
+
+    mirrored_start = State(learn.env.controller.mirror_state(start_state.raw_state.copy()))
+    mirrored_target = target*[1,1,-1]
+    mirrored_runner = Runner(learn.env, mirrored_start, mirrored_target)
+    mirrored_runner.reset(render=1.0)
+    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
+    obs_after_mirror = learn.env.current_observation()
+    response_after_mirror = learn.act(obs_after_mirror, target)
+    print(np.allclose(obs_after_mirror.raw_state, start_state.raw_state))
+    print(np.allclose(response_after_mirror, trained_response))
+    # This score should be identical to the previous score (actually about 1e-6 error)
+    print("Score:", mirrored_runner.run(trained_response))
+
+    # These scores should also be identical (actually about 1e-6 error)
+    runner.reset(render=1.0)
+    print("Score:", runner.run(response))
+    mirrored_runner.reset(render=1.0)
+    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
+    print("Score:", mirrored_runner.run(response))
+
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
@@ -300,7 +343,8 @@ if __name__ == '__main__':
     name = 'foo'
     learn = LearnInverseDynamics(env, name)
     learn.load_train_set()
-    learn.training_iter()
-    print(learn.evaluate())
-    #test_train_state_storage(learn)
+    #learn.training_iter()
+    #print(learn.evaluate())
+    #test_regression_bias(learn)
+    test_mirroring(learn)
     embed()

@@ -47,5 +47,5 @@ class PDController:
     def state(self):
         return []
 
-    def standardize_stance(self, state):
+    def mirror_state(self, state):
         return state

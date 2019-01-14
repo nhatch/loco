@@ -187,7 +187,7 @@ class SteppingStonesEnv:
         obs = np.concatenate(self.get_x())
         obs = np.concatenate((obs, self.controller.state()))
         if self.controller.swing_idx == self.consts().LEFT_IDX:
-            obs = self.controller.standardize_stance(obs)
+            obs = self.controller.mirror_state(obs)
         return self.wrap_state(obs)
 
     def log(self, string):

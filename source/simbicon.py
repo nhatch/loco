@@ -61,7 +61,7 @@ class Simbicon(PDController):
         # in the State object.
         return np.concatenate((self.stance_heel, self.target, self.prev_target))
 
-    def standardize_stance(self, state):
+    def mirror_state(self, state):
         # We need to flip the left and right leg.
         c = self.env.consts()
         D = c.LEG_DOF
