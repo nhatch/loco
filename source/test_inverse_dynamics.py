@@ -33,8 +33,6 @@ SETTINGS_3D_EASY = {
     'use_stepping_stones': False,
     'dist_mean': 0.35,
     'dist_spread': 0.0,
-    'ground_length': 10.0,
-    'ground_width': 2.0,
     'n_steps': 16,
     'z_mean': 0.4,
     'z_spread': 0.0,
@@ -46,8 +44,6 @@ SETTINGS_3D_MEDIUM = {
     'use_stepping_stones': False,
     'dist_mean': 0.35,
     'dist_spread': 0.2,
-    'ground_length': 10.0,
-    'ground_width': 2.0,
     'n_steps': 16,
     'z_mean': 0.4,
     'z_spread': 0.1,
@@ -56,6 +52,17 @@ SETTINGS_3D_MEDIUM = {
     }
 
 SETTINGS_3D_HARD = {
+    'use_stepping_stones': False,
+    'dist_mean': 0.35,
+    'dist_spread': 0.5,
+    'n_steps': 16,
+    'z_mean': 0.4,
+    'z_spread': 0.2,
+    'y_mean': 0.0,
+    'y_spread': 0.0,
+    }
+
+SETTINGS_3D_HARDER = {
     'use_stepping_stones': True,
     'dist_mean': 0.35,
     'dist_spread': 0.5,
@@ -139,17 +146,16 @@ if __name__ == '__main__':
     #env = SteppingStonesEnv()
     env = Simple3DEnv(Simbicon3D)
 
-    name = 'properdagger'
+    name = 'proper_dagger'
     learn = LearnInverseDynamics(env, name)
-    learn.set_eval_settings(SETTINGS_3D_EASY)
+    learn.load_train_set()
+    #learn.set_eval_settings(SETTINGS_3D_EASY)
     learn.set_train_settings(TRAIN_SETTINGS_3D)
-    for i in range(3):
-        learn.training_iter()
-    learn.set_eval_settings(SETTINGS_3D_MEDIUM)
-    for i in range(3):
-        learn.training_iter()
-    #learn.load_train_set()
+    #learn.set_eval_settings(SETTINGS_3D_MEDIUM)
+    learn.set_eval_settings(SETTINGS_3D_HARD)
     #print('Score:', learn.evaluate()['total_score'])
+    for i in range(6):
+        learn.training_iter()
     #test_regression_bias(learn)
     #test_mirroring(learn)
     embed()

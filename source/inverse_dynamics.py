@@ -45,10 +45,10 @@ class LearnInverseDynamics:
 
     def set_eval_settings(self, settings):
         self.eval_settings = settings
-        if self.eval_settings.get('ground_width'):
+        if self.eval_settings['use_stepping_stones']:
             self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
-        if self.eval_settings.get('ground_length'):
             self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
+        self.env.clear_skeletons()
 
     def set_train_settings(self, settings):
         self.train_settings = settings
@@ -62,6 +62,17 @@ class LearnInverseDynamics:
         fname = TRAIN_FMT.format(self.exp_name)
         with open(fname, 'rb') as f:
             self.history, self.train_features, self.train_responses = pickle.load(f)
+        self.train_inverse_dynamics()
+
+    def revert_to_iteration(self, iteration, new_exp_name=None):
+        # Resets so the next iteration index will be `iteration`
+        self.history = self.history[:iteration]
+        index = self.history[iteration-1][0]
+        self.train_features = self.train_features[:index]
+        self.train_responses = self.train_responses[:index]
+        if new_exp_name is not None:
+            self.exp_name = new_exp_name
+        self.dump_train_set()
         self.train_inverse_dynamics()
 
     def training_iter(self):
