@@ -103,8 +103,7 @@ class SteppingStonesEnv:
         self.world.reset()
         self.set_state(state, random)
         if self.video_recorder:
-            self.video_recorder.close()
-            self.video_recorder = None
+            self.close_video_recorder()
         self.render_rate = render
         if render:
             print("Seed:", seed)
@@ -112,6 +111,10 @@ class SteppingStonesEnv:
             self.video_recorder = video_recorder(self, video_save_dir)
             self.render_rate = render*0.7
         return self.current_observation()
+
+    def close_video_recorder(self):
+        self.video_recorder.close()
+        self.video_recorder = None
 
     def find_contacts(self, bodynode):
         return [c for c in self.world.collision_result.contacts if (c.bodynode1 == bodynode or c.bodynode2 == bodynode)]

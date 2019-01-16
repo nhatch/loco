@@ -13,8 +13,6 @@ from state import State
 from step_learner import Runner
 from random_search import RandomSearch
 
-N_STATES_PER_ITER = 16
-START_STATES_FMT = 'data/start_states_{}.pkl'
 TRAIN_FMT = 'data/train_{}.pkl'
 
 RIDGE_ALPHA = 0.1
@@ -23,32 +21,8 @@ class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
         self.env = env
         self.exp_name = exp_name
-        # Evaluation settings
-        self.eval_settings = {
-                'use_stepping_stones': True,
-                'dist_mean': 0.47,
-                'dist_spread': 0.3,
-                'runway_length': 0.4,
-                'n_steps': 16,
-                'z_mean': 0.0,
-                'z_spread': 0.0,
-                'y_mean': 0.05,
-                'y_spread': 0.1,
-                }
-        if self.env.is_3D:
-            self.eval_settings = {
-                'use_stepping_stones': False,
-                'dist_mean': 0.35,
-                'dist_spread': 0.2,
-                'runway_length': 10.0,
-                'n_steps': 16,
-                'z_mean': 0.4,
-                'z_spread': 0.1,
-                'y_mean': 0.0,
-                'y_spread': 0.0,
-                }
-        self.initialize_start_states()
         self.train_features, self.train_responses = [], []
+        self.history = []
         self.n_action = len(self.env.controller.action_params())
         self.n_dynamic = sum(self.env.consts().observable_features)
         # TODO try some model more complicated than linear?
@@ -69,87 +43,64 @@ class LearnInverseDynamics:
         self.X_scale_factor = np.ones(self.n_dynamic)
         self.y_scale_factor = np.ones(self.n_action)
 
-    def initialize_start_states(self):
-        fname = START_STATES_FMT.format(self.exp_name)
-        if not os.path.exists(fname):
-            if self.env.is_3D:
-                states = self.collect_starting_states(min_length=0.1, max_length=0.5)
-            else:
-                states = self.collect_starting_states()
-            with open(fname, 'wb') as f:
-                pickle.dump(states, f)
-        with open(fname, 'rb') as f:
-            self.start_states = pickle.load(f)
-
-    def collect_starting_states(self, size=8, n_resets=8, min_length=0.2, max_length=0.8):
-        self.env.log("Collecting initial starting states")
-        start_states = []
-        for i in range(n_resets):
-            length = min_length + (max_length - min_length) * (i / n_resets)
-            self.env.log("Starting trajectory {}".format(i))
-            start_state = self.env.reset(render=0.1, random=0.005)
-            self.env.sdf_loader.put_grounds([start_state.swing_platform()], runway_length=15)
-            # TODO should we include this first state? It will be very different from the rest.
-            start_states.append(self.env.current_observation())
-            targets = self.generate_targets(start_state, size, dist_mean=length, dist_spread=0)
-            for target in targets[2:]:
-                # This makes the first step half as long. TODO is this necessary/sufficient?
-                target[0] -= length*0.5
-                end_state, _ = self.env.simulate(target, target_heading=0.0, put_dots=True)
-                # Fix end_state.starting_platforms to reflect where the swing foot
-                # actually ended up. We must do this because stance_platform and
-                # stance_heel_location might actually be quite far apart, since there's
-                # no optimization procedure here to guarantee otherwise.
-                # TODO should we just make this a "flat runway" part of the curriculum?
-                # Don't change the Y coordinate, since we want this all to be flat ground.
-                end_state.stance_platform()[[0,2]] = end_state.stance_heel_location()[[0,2]]
-                start_states.append(end_state)
-        self.env.clear_skeletons()
-        return start_states
+    def set_eval_settings(self, settings):
+        self.eval_settings = settings
 
     def dump_train_set(self):
         fname = TRAIN_FMT.format(self.exp_name)
         with open(fname, 'wb') as f:
-            pickle.dump((self.start_states, self.train_features, self.train_responses), f)
+            pickle.dump((self.history, self.train_features, self.train_responses), f)
 
     def load_train_set(self):
         fname = TRAIN_FMT.format(self.exp_name)
         with open(fname, 'rb') as f:
-            self.start_states, self.train_features, self.train_responses = pickle.load(f)
+            self.history, self.train_features, self.train_responses = pickle.load(f)
         self.train_inverse_dynamics()
 
-    def collect_dataset(self):
+    def training_iter(self):
+        if self.eval_settings.get('ground_width'):
+            self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
+        if self.eval_settings.get('ground_length'):
+            self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
+        states_to_label = self.run_trajectories()
+        self.label_states(states_to_label)
+        self.train_inverse_dynamics()
+
+    def run_trajectories(self):
+        states_to_label = []
+        for i in range(1):
+            r = self.evaluate()
+            states_to_label += r['failed_steps']
+        return states_to_label
+
+    def label_states(self, states_to_label):
         self.env.clear_skeletons()
-        indices = np.random.choice(range(len(self.start_states)), size=N_STATES_PER_ITER)
-        for i,j in enumerate(indices):
-            print("Exploring start state {} ({} / {})".format(j, i, len(indices)))
-            self.collect_samples(self.start_states[j])
-        print(len(self.start_states), len(self.train_features))
+        total = len(states_to_label)
+        for i, (state, target) in enumerate(states_to_label):
+            print("Finding expert label for state {}/{}".format(i, total))
+            self.label_state(state, target)
+        self.history.append((len(self.train_features), self.eval_settings))
+        print("Size of train set:", len(self.train_features))
         self.dump_train_set()
         self.env.clear_skeletons()
 
-    def collect_samples(self, start_state):
-        # We don't need to flip this target, because start_state is standardized.
-        target = self.generate_targets(start_state, 1)[-1]
+    def label_state(self, start_state, target):
         mean_action = self.learn_action(start_state, target)
         if mean_action is None:
             # Random search couldn't find a good enough action; don't use this for training.
             return
         self.append_to_train_set(start_state, target, mean_action)
-        # The following assumes env hasn't changed since the last rs.eval() run.
-        end_state = self.env.current_observation()
-        self.start_states.append(end_state)
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target)
-        if env.is_3D:
-            rs = RandomSearch(runner, 8, step_size=0.1, eps=0.1)
+        if self.env.is_3D:
+            rs = RandomSearch(runner, 8, step_size=0.2, eps=0.1)
         else:
             rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
         runner.reset()
         rs.w_policy = self.act(target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=5, tol=0.02, render=1)
+        w_policy = rs.random_search(max_iters=5, tol=0.05, render=1)
         return w_policy
 
     def append_to_train_set(self, start_state, target, action):
@@ -227,6 +178,7 @@ class LearnInverseDynamics:
         # we will see during testing episodes.
         targets = start_state.starting_platforms()
         next_target = targets[-1]
+        # TODO should we make the first step a bit shorter, since we're starting from "rest"?
         for i in range(num_steps):
             dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
             dy = s['y_mean'] + s['y_spread'] * (np.random.uniform() - 0.5)
@@ -237,10 +189,6 @@ class LearnInverseDynamics:
             targets.append(next_target)
         # Return value includes the two starting platforms
         return targets
-
-    def training_iter(self):
-        self.collect_dataset()
-        self.train_inverse_dynamics()
 
     def evaluate(self, render=1.0, video_save_dir=None, seed=None):
         s = self.eval_settings
@@ -256,115 +204,30 @@ class LearnInverseDynamics:
             self.env.sdf_loader.put_grounds(targets[:1], runway_length=s['runway_length'])
         total_offset = 0
         num_successful_steps = 0
+        failed_steps = []
         for i in range(s['n_steps']):
             target = targets[2+i]
             action = self.act(target)
+            start_state = state
             state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
-            if terminated:
-                break
-            num_successful_steps += 1
-            achieved_target = state.stance_heel_location()
-            error = np.linalg.norm(achieved_target - target)
+            error = np.linalg.norm(state.stance_heel_location() - state.stance_platform())
+            if error > 0.02:
+                failed_steps.append((start_state, state.stance_platform()*[1,1,-1]))
             if error > max_error:
                 max_error = error
             total_error += error
             if error < 1:
                 total_score += (1-error) * (DISCOUNT**i)
+            if terminated or len(failed_steps) > 2:
+                break
+            num_successful_steps += 1
         if video_save_dir:
-            self.env.reset() # This ensures the video recorder is closed properly.
+            self.env.close_video_recorder()
         result = {
                 "total_score": total_score,
                 "n_steps": num_successful_steps,
                 "max_error": max_error,
                 "total_error": total_error,
+                "failed_steps": failed_steps,
                 }
         return result
-
-def retrieve_index(learn, i=None):
-    learn.env.clear_skeletons()
-    if i is None:
-        i = np.random.randint(len(learn.train_features))
-        print("Testing index:", i)
-    features = learn.train_features[i]
-    response = learn.train_responses[i]
-    start_state, target = learn.reconstruct_state(features)
-    return start_state, target, response
-
-def demo_train_set(learn):
-    for i in range(len(learn.train_responses)):
-        start_state, target, response = retrieve_index(learn, i)
-        runner = Runner(learn.env, start_state, target)
-        runner.reset(render=1.0)
-        print("Score:", runner.run(response)) # Should be pretty close to zero.
-
-def test_regression_bias(learn, i=None):
-    start_state, target, response = retrieve_index(learn, i)
-
-    runner = Runner(learn.env, start_state, target)
-    runner.reset(render=1.0)
-    print("Score:", runner.run(response)) # Should be pretty close to zero.
-
-    runner.reset(render=1.0)
-    trained_response = learn.act(target)
-    # This score should also be close to zero, depending on model bias.
-    print("Score:", runner.run(trained_response))
-
-    # TODO: It seems like the algorithm is almost (not completely) ignoring the target Z coord.
-    target[2] += 0.2
-    runner = Runner(learn.env, start_state, target)
-    runner.reset(render=1.0)
-    trained_response = learn.act(target)
-    # This score should also be close to zero in the absence of model bias.
-    print("Score:", runner.run(trained_response))
-
-def test_mirroring(learn, i=None):
-    start_state, target, response = retrieve_index(learn, i)
-    runner = Runner(learn.env, start_state, target)
-    trained_response = learn.act(target)
-    runner.reset(render=1.0)
-    print("Score:", runner.run(trained_response)) # Should be pretty close to zero.
-
-    mirrored_start = State(learn.env.controller.mirror_state(start_state.raw_state.copy()))
-    mirrored_target = target*[1,1,-1]
-    mirrored_runner = Runner(learn.env, mirrored_start, mirrored_target)
-    mirrored_runner.reset(render=1.0)
-    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
-    obs_after_mirror = learn.env.current_observation()
-    response_after_mirror = learn.act(target)
-    print(np.allclose(obs_after_mirror.raw_state, start_state.raw_state))
-    print(np.allclose(response_after_mirror, trained_response))
-    # This score should be identical to the previous score (actually about 1e-6 error)
-    print("Score:", mirrored_runner.run(trained_response))
-
-    # These scores should also be identical (actually about 1e-6 error)
-    runner.reset(render=1.0)
-    print("Score:", runner.run(response))
-    mirrored_runner.reset(render=1.0)
-    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
-    print("Score:", mirrored_runner.run(response))
-
-def hard_mode(learn):
-    learn.eval_settings['use_stepping_stones'] = True
-    env.sdf_loader.ground_width = 0.2
-    env.sdf_loader.ground_length = 0.3
-    # The concept of a "runway" in 3D is not properly implemented anyway. TODO?
-    learn.eval_settings['runway_length'] = 0.3
-    learn.eval_settings['dist_spread'] = 0.5
-    learn.eval_settings['z_spread'] = 0.2
-
-if __name__ == '__main__':
-    from stepping_stones_env import SteppingStonesEnv
-    from simple_3D_env import Simple3DEnv
-    from simbicon_3D import Simbicon3D
-    #env = SteppingStonesEnv()
-    env = Simple3DEnv(Simbicon3D)
-
-    name = '3D' if env.is_3D else '2D'
-    name = 'foo'
-    learn = LearnInverseDynamics(env, name)
-    learn.load_train_set()
-    #learn.training_iter()
-    #print(learn.evaluate())
-    #test_regression_bias(learn)
-    test_mirroring(learn)
-    embed()
