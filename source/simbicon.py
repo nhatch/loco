@@ -328,8 +328,9 @@ class Simbicon(PDController):
 
 def test(env, length, seed=None, runway_length=15, runway_x=0):
     env.clear_skeletons() # Necessary in order to change the runway length
+    env.sdf_loader.ground_length = runway_length
     start_state = env.reset(seed=seed, random=0.005, render=1)
-    env.sdf_loader.put_grounds([[runway_x,0,0]], runway_length=runway_length)
+    env.sdf_loader.put_grounds([[runway_x,0,0]])
     for i in range(8):
         # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
         # the robot can get stuck in the UP state, balancing on one leg.

@@ -45,6 +45,13 @@ class LearnInverseDynamics:
 
     def set_eval_settings(self, settings):
         self.eval_settings = settings
+        if self.eval_settings.get('ground_width'):
+            self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
+        if self.eval_settings.get('ground_length'):
+            self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
+
+    def set_train_settings(self, settings):
+        self.train_settings = settings
 
     def dump_train_set(self):
         fname = TRAIN_FMT.format(self.exp_name)
@@ -58,18 +65,15 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def training_iter(self):
-        if self.eval_settings.get('ground_width'):
-            self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
-        if self.eval_settings.get('ground_length'):
-            self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
+        print("STARTING TRAINING ITERATION", len(self.history))
         states_to_label = self.run_trajectories()
         self.label_states(states_to_label)
         self.train_inverse_dynamics()
 
     def run_trajectories(self):
         states_to_label = []
-        for i in range(1):
-            r = self.evaluate()
+        for i in range(3):
+            r = self.evaluate(early_termination=True)
             states_to_label += r['failed_steps']
         return states_to_label
 
@@ -79,7 +83,7 @@ class LearnInverseDynamics:
         for i, (state, target) in enumerate(states_to_label):
             print("Finding expert label for state {}/{}".format(i, total))
             self.label_state(state, target)
-        self.history.append((len(self.train_features), self.eval_settings))
+        self.history.append((len(self.train_features), self.eval_settings, self.train_settings))
         print("Size of train set:", len(self.train_features))
         self.dump_train_set()
         self.env.clear_skeletons()
@@ -92,15 +96,13 @@ class LearnInverseDynamics:
         self.append_to_train_set(start_state, target, mean_action)
 
     def learn_action(self, start_state, target):
-        runner = Runner(self.env, start_state, target)
-        if self.env.is_3D:
-            rs = RandomSearch(runner, 8, step_size=0.2, eps=0.1)
-        else:
-            rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
+        runner = Runner(self.env, start_state, target, use_stepping_stones=self.eval_settings['use_stepping_stones'])
+        s = self.train_settings
+        rs = RandomSearch(runner, s['n_dirs'], step_size=s['step_size'], eps=0.1)
         runner.reset()
         rs.w_policy = self.act(target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=5, tol=0.05, render=1)
+        w_policy = rs.random_search(max_iters=5, tol=s['tol'], render=1)
         return w_policy
 
     def append_to_train_set(self, start_state, target, action):
@@ -190,7 +192,7 @@ class LearnInverseDynamics:
         # Return value includes the two starting platforms
         return targets
 
-    def evaluate(self, render=1.0, video_save_dir=None, seed=None):
+    def evaluate(self, render=1.0, video_save_dir=None, seed=None, early_termination=False):
         s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         total_error = 0
@@ -199,9 +201,9 @@ class LearnInverseDynamics:
         DISCOUNT = 0.8
         targets = self.generate_targets(state, s['n_steps'])
         if s['use_stepping_stones']:
-            self.env.sdf_loader.put_grounds(targets, runway_length=s['runway_length'])
+            self.env.sdf_loader.put_grounds(targets)
         else:
-            self.env.sdf_loader.put_grounds(targets[:1], runway_length=s['runway_length'])
+            self.env.sdf_loader.put_grounds(targets[:1])
         total_offset = 0
         num_successful_steps = 0
         failed_steps = []
@@ -211,14 +213,15 @@ class LearnInverseDynamics:
             start_state = state
             state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             error = np.linalg.norm(state.stance_heel_location() - state.stance_platform())
-            if error > 0.02:
+            if error > self.train_settings['tol']:
                 failed_steps.append((start_state, state.stance_platform()*[1,1,-1]))
+                terminated = terminated or (early_termination and len(failed_steps) > 2)
             if error > max_error:
                 max_error = error
             total_error += error
             if error < 1:
                 total_score += (1-error) * (DISCOUNT**i)
-            if terminated or len(failed_steps) > 2:
+            if terminated:
                 break
             num_successful_steps += 1
         if video_save_dir:

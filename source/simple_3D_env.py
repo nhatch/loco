@@ -79,8 +79,6 @@ class Simple3DEnv(SteppingStonesEnv):
         # The kima_human_box model actually has preset damping coeffs.
         #for dof in skel.dofs[6:]:
         #    dof.set_damping_coefficient(0.2)
-        self.sdf_loader.ground_width = 2.0
-        self.sdf_loader.ground_length = 1.0
         return world
 
     def consts(self):
@@ -90,7 +88,7 @@ def test_pd_control():
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     env.reset()
-    env.sdf_loader.put_grounds([[-10,-0.9,0]], runway_length=20)
+    env.sdf_loader.put_grounds([[-5,-0.9,0]])
     q, _ = env.get_x()
     env.render()
     # Set some weird target pose
@@ -133,7 +131,7 @@ def test_gimbal_lock(joint):
     time.sleep(1)
 
 if __name__ == "__main__":
-    #test_pd_control()
+    test_pd_control()
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
     LEFT_HIP = [12,13,14]

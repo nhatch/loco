@@ -9,9 +9,9 @@ BLUE = "0.4 0.4 1 1"
 
 class SDFLoader:
     def __init__(self):
-        self.ground_length = 0.1
+        self.ground_length = 10.0
         self.ground_offset = 0.02
-        self.ground_width = 0.5
+        self.ground_width = 2.0
 
     def reset(self, world):
         self.world = world
@@ -52,12 +52,10 @@ class SDFLoader:
         q[5] = z
         ground.q = q
 
-    def put_grounds(self, targets, runway_length=None):
+    def put_grounds(self, targets):
         for i in range(len(targets)):
             x, y, z = targets[i]
             length = self.ground_length
-            if i == 0 and runway_length is not None:
-                length = runway_length
             width = self.ground_width
             self.put_ground(x - self.ground_offset, y, z, length, width, i)
 
