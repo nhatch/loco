@@ -32,7 +32,7 @@ class SDFLoader:
         dot.q = q
 
     # Length is in meters.
-    def put_ground(self, x, y, length, width, index):
+    def put_ground(self, x, y, z, length, width, index):
         num_grounds = len(self.grounds)
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
@@ -49,6 +49,7 @@ class SDFLoader:
         # The x coordinate q[3] gives the *center* of the block.
         q[3] = x + 0.5*length
         q[4] = y
+        q[5] = z
         ground.q = q
 
     def put_grounds(self, targets, runway_length=None):
@@ -58,7 +59,7 @@ class SDFLoader:
             if i == 0 and runway_length is not None:
                 length = runway_length
             width = self.ground_width
-            self.put_ground(x - self.ground_offset, y, length, width, i)
+            self.put_ground(x - self.ground_offset, y, z, length, width, i)
 
 if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
