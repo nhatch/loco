@@ -33,16 +33,18 @@ class Simbicon(PDController):
         c = self.env.consts()
         self.ik = InverseKinematics(self.skel, self.env)
         self.step_started = self.time()
-        self.swing_idx = c.RIGHT_IDX
-        self.stance_idx = c.LEFT_IDX
         self.direction = UP
 
         if state is None:
+            self.swing_idx = c.RIGHT_IDX
+            self.stance_idx = c.LEFT_IDX
             self.stance_heel = self.ik.forward_kine(self.stance_idx)
             self.target = self.stance_heel
             swing_heel = self.ik.forward_kine(self.swing_idx)
             self.prev_target = swing_heel
         else:
+            self.swing_idx = c.LEFT_IDX if state.swing_left else c.RIGHT_IDX
+            self.stance_idx = c.RIGHT_IDX if state.swing_left else c.LEFT_IDX
             self.stance_heel = state.stance_heel_location()
             # The method `set_gait_raw` must also be called before simulation continues,
             # in order to set a new target and gait.
@@ -60,19 +62,6 @@ class Simbicon(PDController):
         # Until then, make sure that this order corresponds to the indices defined
         # in the State object.
         return np.concatenate((self.stance_heel, self.target, self.prev_target))
-
-    def mirror_state(self, state):
-        # We need to flip the left and right leg.
-        c = self.env.consts()
-        D = c.LEG_DOF
-        R = c.RIGHT_IDX
-        L = c.LEFT_IDX
-        for base in [0, c.Q_DIM]:
-            right = state[base+R : base+R+D].copy()
-            left  = state[base+L : base+L+D].copy()
-            state[base+R : base+R+D] = left
-            state[base+L : base+L+D] = right
-        return state
 
     def base_gait(self):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf

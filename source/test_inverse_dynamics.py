@@ -83,7 +83,7 @@ def retrieve_index(learn, i=None):
     # TODO: restore the evaluation settings that were used at this training index.
     features = learn.train_features[i]
     response = learn.train_responses[i]
-    start_state, target = learn.reconstruct_state(features)
+    start_state, target = learn.env.current_observation().reconstruct_state(features)
     return start_state, target, response
 
 def demo_train_set(learn):
@@ -113,31 +113,36 @@ def test_regression_bias(learn, i=None):
     # This score should also be close to zero in the absence of model bias.
     print("Score:", runner.run(trained_response))
 
-def test_mirroring(learn, i=None):
+def test_mirroring(learn, i=3):
     start_state, target, response = retrieve_index(learn, i)
     runner = Runner(learn.env, start_state, target)
-    trained_response = learn.act(target)
-    runner.reset(render=1.0)
-    print("Score:", runner.run(trained_response)) # Should be pretty close to zero.
+    trained_response = learn.act(start_state, target)
 
-    mirrored_start = State(learn.env.controller.mirror_state(start_state.raw_state.copy()))
+    # Note this will only give accurate results if `learn` has been trained
+    # on more than one datapoint (say 5 or 6 to be safe).
+    mirrored_start = start_state.copy()
+    mirrored_start.mirror()
     mirrored_target = target*[1,1,-1]
     mirrored_runner = Runner(learn.env, mirrored_start, mirrored_target)
-    mirrored_runner.reset(render=1.0)
-    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
-    obs_after_mirror = learn.env.current_observation()
-    response_after_mirror = learn.act(target)
-    print(np.allclose(obs_after_mirror.raw_state, start_state.raw_state))
-    print(np.allclose(response_after_mirror, trained_response))
-    # This score should be identical to the previous score (actually about 1e-6 error)
-    print("Score:", mirrored_runner.run(trained_response))
+    mirrored_response = learn.act(mirrored_start, mirrored_target)
 
-    # These scores should also be identical (actually about 1e-6 error)
     runner.reset(render=1.0)
-    print("Score:", runner.run(response))
+    score = runner.run(trained_response)
+    end_state = env.current_observation()
     mirrored_runner.reset(render=1.0)
-    learn.env.controller.change_stance([], mirrored_start.stance_heel_location())
-    print("Score:", mirrored_runner.run(response))
+    mirrored_score = mirrored_runner.run(mirrored_response)
+    mirrored_end = env.current_observation()
+    mirrored_end.mirror()
+
+    runner.reset(render=1.0)
+    expert_score = runner.run(response)
+    mirrored_runner.reset(render=1.0)
+    mirrored_expert_score = mirrored_runner.run(response)
+
+    print("Mirrored response:", np.allclose(trained_response, mirrored_response))
+    print("Score:            ", np.allclose(score, mirrored_score))
+    print("End state:        ", np.allclose(end_state.raw_state, mirrored_end.raw_state))
+    print("Expert score:     ", np.allclose(expert_score, mirrored_expert_score))
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv

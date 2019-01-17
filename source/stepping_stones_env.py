@@ -48,6 +48,7 @@ class SteppingStonesEnv:
                 c.observable_features_t,
                 c.observable_features_t,
                 c.observable_features_t,
+                c.observable_features_t,
                 ])
         self.is_3D = (c.BRICK_DOF == 6)
 
@@ -55,7 +56,8 @@ class SteppingStonesEnv:
         return consts_2D
 
     def wrap_state(self, raw_state):
-        return State(raw_state)
+        swing_left = self.controller.swing_idx == self.consts().LEFT_IDX
+        return State(raw_state, swing_left, self.consts())
 
     def clear_skeletons(self):
         # pydart2 has not implemented any API to remove skeletons, so we need
@@ -189,8 +191,6 @@ class SteppingStonesEnv:
     def current_observation(self):
         obs = np.concatenate(self.get_x())
         obs = np.concatenate((obs, self.controller.state()))
-        if self.controller.swing_idx == self.consts().LEFT_IDX:
-            obs = self.controller.mirror_state(obs)
         return self.wrap_state(obs)
 
     def log(self, string):

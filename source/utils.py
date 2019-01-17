@@ -17,6 +17,13 @@ def heading_from_vector(d, branch=0.0):
             heading += k*2*np.pi
         return planar_d, heading
 
+
+def rotmatrix(theta):
+    # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.
+    return np.array([[np.cos(theta), 0, -np.sin(theta)],
+                     [            0, 1,              0],
+                     [np.sin(theta), 0,  np.cos(theta)]])
+
 if __name__ == "__main__":
     _, r1 = heading_from_vector([1,0,0], 0)
     print(np.allclose(r1, 0))

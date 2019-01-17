@@ -32,3 +32,8 @@ observable_features_q = np.array([
         1,0,1,0,0,0,
         0,0,0]) == 1 # Bool array
 observable_features_t = np.array([1,0,1]) == 1
+
+absolute_rotation_indices = [Z, ROOT_YAW, ROOT_ROLL,
+        RIGHT_IDX + HIP_YAW, RIGHT_IDX + HIP_ROLL, RIGHT_IDX + ANKLE_ROLL,
+        LEFT_IDX + HIP_YAW, LEFT_IDX + HIP_ROLL, LEFT_IDX + ANKLE_ROLL,
+        TORSO_ROLL, TORSO_YAW]

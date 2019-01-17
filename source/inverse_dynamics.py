@@ -48,6 +48,9 @@ class LearnInverseDynamics:
         if self.eval_settings['use_stepping_stones']:
             self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
             self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
+        else:
+            self.env.sdf_loader.ground_width = 2.0
+            self.env.sdf_loader.ground_length = 10.0
         self.env.clear_skeletons()
 
     def set_train_settings(self, settings):
@@ -84,7 +87,7 @@ class LearnInverseDynamics:
     def run_trajectories(self):
         states_to_label = []
         for i in range(3):
-            r = self.evaluate(early_termination=True)
+            r = self.evaluate(early_termination=3)
             states_to_label += r['failed_steps']
         return states_to_label
 
@@ -111,7 +114,7 @@ class LearnInverseDynamics:
         s = self.train_settings
         rs = RandomSearch(runner, s['n_dirs'], step_size=s['step_size'], eps=0.1)
         runner.reset()
-        rs.w_policy = self.act(target) # Initialize with something reasonable
+        rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
         w_policy = rs.random_search(max_iters=5, tol=s['tol'], render=1)
         return w_policy
@@ -120,39 +123,11 @@ class LearnInverseDynamics:
         # The train set is a set of (features, action) pairs
         # where taking `action` when the environment features are `features`
         # will hit the target with the swing foot (within 5 cm).
-        train_state = self.extract_features(start_state, target)
+        train_state = start_state.extract_features(target)
         self.train_features.append(train_state)
+        # We don't need to mirror the action, because Simbicon3D already handled that
+        # during random search.
         self.train_responses.append(action)
-
-    def extract_features(self, state, target):
-        # Combines state and target into a single vector, and discards some information
-        # that does not affect the dynamics (such as absolute location).
-        # That this vector is still very high dimenstional for debugging purposes.
-        # When actually training the model, many of these features are discarded.
-        c = self.env.consts()
-        centered_state = np.zeros(2*c.Q_DIM + 3*3)
-
-        # Recenter all (x,y,z) coordinates around the location of the starting platform.
-        # TODO: also rotate so absolute yaw is 0.
-        base = state.stance_platform()
-        centered_state[ 0:-9] = state.pose()
-        centered_state[ 0: 3] -= base # starting location of agent
-        centered_state[-9:-6] = state.stance_heel_location() - base
-        centered_state[-6:-3] = state.swing_platform() - base
-        centered_state[-3:  ] = target - base
-        return centered_state
-
-    def reconstruct_state(self, features):
-        # At the moment, used only for debugging.
-        raw_state = features.copy()
-        raw_state[-3:  ] = features[-6:-3]
-        raw_state[-6:-3] = [0,0,0]
-        target = features[-3:].copy()
-        if self.env.is_3D:
-            c = self.env.consts()
-            raw_state[[c.Y, -2, -5, -8]] -= 0.9
-            target[c.Y] -= 0.9
-        return State(raw_state), target
 
     def train_inverse_dynamics(self):
         c = self.env.consts()
@@ -166,13 +141,9 @@ class LearnInverseDynamics:
         self.model.fit(X, y)
         self.is_fitted = True
 
-    def act(self, target):
+    def act(self, state, target):
         c = self.env.consts()
-        state = self.env.current_observation()
-        if self.env.controller.swing_idx == c.LEFT_IDX:
-            # `state` has been mirrored, but `target` has not.
-            target = target * np.array([1,1,-1])
-        X = self.extract_features(state, target).reshape(1,-1)[:,c.observable_features]
+        X = state.extract_features(target).reshape(1,-1)[:,c.observable_features]
         X = (X - self.X_mean) / self.X_scale_factor
         if self.is_fitted:
             action = self.model.predict(X).reshape(-1)
@@ -203,7 +174,7 @@ class LearnInverseDynamics:
         # Return value includes the two starting platforms
         return targets
 
-    def evaluate(self, render=1.0, video_save_dir=None, seed=None, early_termination=False):
+    def evaluate(self, render=1.0, video_save_dir=None, seed=None, early_termination=None):
         s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         total_error = 0
@@ -220,13 +191,13 @@ class LearnInverseDynamics:
         failed_steps = []
         for i in range(s['n_steps']):
             target = targets[2+i]
-            action = self.act(target)
-            start_state = state
-            state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
-            error = np.linalg.norm(state.stance_heel_location() - state.stance_platform())
+            action = self.act(state, target)
+            end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
+            error = np.linalg.norm(end_state.stance_heel_location() - target)
             if error > self.train_settings['tol']:
-                failed_steps.append((start_state, state.stance_platform()*[1,1,-1]))
-                terminated = terminated or (early_termination and len(failed_steps) > 2)
+                failed_steps.append((state, target))
+                terminate_early = (early_termination and len(failed_steps) >= early_termination)
+                terminated = terminated or terminate_early
             if error > max_error:
                 max_error = error
             total_error += error
@@ -234,6 +205,7 @@ class LearnInverseDynamics:
                 total_score += (1-error) * (DISCOUNT**i)
             if terminated:
                 break
+            state = end_state
             num_successful_steps += 1
         if video_save_dir:
             self.env.close_video_recorder()
