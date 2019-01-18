@@ -7,6 +7,8 @@ import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 
+from test_inverse_dynamics import TRAIN_SETTINGS_3D, TRAIN_SETTINGS_3D_PRECISE, SETTINGS_3D_EASY, SETTINGS_3D_MEDIUM, SETTINGS_3D_HARD, SETTINGS_3D_HARDER
+
 N_EVAL_TRAJECTORIES = 8
 
 
@@ -22,7 +24,7 @@ class Experiment:
         self.iter = 0
         self.results = defaultdict(lambda: [])
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
-        self.run_evaluations()
+        #self.run_evaluations()
 
     def checkpoint(self):
         # TODO add checkpointing (save model params, collected data, training curve statistics)
@@ -40,12 +42,13 @@ class Experiment:
         self.plot_results()
         self.learner.evaluate() # For human consumption
 
-    def run_iters(self, n_iters):
+    def run_iters(self, n_iters, eval_settings, train_settings):
+        self.learner.set_eval_settings(eval_settings)
+        self.learner.set_train_settings(train_settings)
         for i in range(n_iters):
-            self.iter += 1
-            print("Starting training iteration", self.iter)
-            self.learner.training_iter()
             self.run_evaluations()
+            self.learner.training_iter()
+            # TODO which eval settings should we use to run these evaluations?
 
     def plot_results(self):
         n_points = self.iter+1
@@ -79,9 +82,17 @@ def load(env, name):
 
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
-    from simbicon import Simbicon
-    env = SteppingStonesEnv()
-    ex = Experiment(env, "my_experiment_perturbations")
-    ex.run_iters(6)
+    from simple_3D_env import Simple3DEnv
+    from simbicon_3D import Simbicon3D
+    #env = SteppingStonesEnv()
+    env = Simple3DEnv(Simbicon3D)
+    ex = Experiment(env, "new_experiment")
+    ex.run_iters(2, SETTINGS_3D_EASY, TRAIN_SETTINGS_3D)
+    ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D)
+    ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D)
+    ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, SETTINGS_3D_HARDER, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_evaluations()
     #learn = load(env, 'my_experiment')
     embed()
