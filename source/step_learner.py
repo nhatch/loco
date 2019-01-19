@@ -44,14 +44,8 @@ def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
 def learn_last_move(env, targets, video_save_dir=None):
     stones = not env.is_3D
     start_state = collect_start_state(env, targets, video_save_dir, use_stepping_stones=stones)
-    # TODO perhaps we should flip the sign on the Z coordinate of the target
-    # when the state has been flipped (i.e. standardized).
-    # However, for now this is OK because the tests are designed so that the
-    # step of interest is *not* flipped (to make them easier to evaluate visually).
     runner = Runner(env, start_state, targets[-1], use_stepping_stones=stones)
     if env.is_3D:
-        # TODO the performance of this is actually quite bad now.
-        # But it seems to work fine for the step distributions in inverse_dynamics.py.
         rs = RandomSearch(runner, TRAIN_SETTINGS_3D)
     else:
         rs = RandomSearch(runner, TRAIN_SETTINGS_2D)

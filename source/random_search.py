@@ -12,7 +12,6 @@ class RandomSearch:
 
         self.n_dirs = settings['n_dirs']
         self.tol = settings['tol']
-        self.step_size = settings['step_size']
         self.eps = settings.get('eps') or 0.1
         self.max_iters = settings.get('max_iters') or 5
         self.episodes = 0

@@ -84,10 +84,8 @@ if __name__ == '__main__':
     name = 'test'
     learn = LearnInverseDynamics(env, name)
     #learn.load_train_set()
-    learn.set_eval_settings(SETTINGS_3D_EASY)
-    learn.set_train_settings(TRAIN_SETTINGS_3D)
-    #learn.set_eval_settings(SETTINGS_3D_MEDIUM)
-    #learn.set_eval_settings(SETTINGS_3D_HARDER)
+    learn.evaluator.set_eval_settings(SETTINGS_3D_TEST)
+    learn.set_train_settings(TRAIN_SETTINGS_3D_TEST)
     #print('Score:', learn.evaluate()['total_score'])
     for i in range(2):
         learn.training_iter()

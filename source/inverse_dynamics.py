@@ -11,16 +11,16 @@ from simbicon_params import *
 from state import State
 from step_learner import Runner
 from random_search import RandomSearch
+from evaluator import Evaluator
 
 TRAIN_FMT = 'data/train_{}.pkl'
 
 RIDGE_ALPHA = 0.1
-N_TRAJECTORIES = 3
-EARLY_TERMINATION = 3
 
 class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
         self.env = env
+        self.evaluator = Evaluator(env)
         self.exp_name = exp_name
         self.train_features, self.train_responses = [], []
         self.history = []
@@ -33,16 +33,6 @@ class LearnInverseDynamics:
         #model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
         self.model = model
         self.is_fitted = False # For some dang reason sklearn doesn't track this itself
-
-    def set_eval_settings(self, settings):
-        self.eval_settings = settings
-        if self.eval_settings['use_stepping_stones']:
-            self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
-            self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
-        else:
-            self.env.sdf_loader.ground_width = 2.0
-            self.env.sdf_loader.ground_length = 10.0
-        self.env.clear_skeletons()
 
     def set_train_settings(self, settings):
         if settings.get('controllable_params') is None:
@@ -80,9 +70,9 @@ class LearnInverseDynamics:
 
     def run_trajectories(self):
         states_to_label = []
-        for i in range(N_TRAJECTORIES):
-            r = self.evaluate(early_termination=EARLY_TERMINATION)
-            states_to_label += r['failed_steps']
+        for i in range(self.train_settings['n_trajectories']):
+            r = self.evaluator.evaluate(self.act)
+            states_to_label += r['intolerable_steps']
         return states_to_label
 
     def label_states(self, states_to_label):
@@ -91,7 +81,7 @@ class LearnInverseDynamics:
         for i, (state, target) in enumerate(states_to_label):
             print("Finding expert label for state {}/{}".format(i, total))
             self.label_state(state, target)
-        self.history.append((len(self.train_features), self.eval_settings, self.train_settings))
+        self.history.append((len(self.train_features), self.evaluator.eval_settings, self.train_settings))
         print("Size of train set:", len(self.train_features))
         self.dump_train_set()
         self.env.clear_skeletons()
@@ -104,7 +94,8 @@ class LearnInverseDynamics:
         self.append_to_train_set(start_state, target, mean_action)
 
     def learn_action(self, start_state, target):
-        runner = Runner(self.env, start_state, target, use_stepping_stones=self.eval_settings['use_stepping_stones'])
+        runner = Runner(self.env, start_state, target,
+                use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'])
         rs = RandomSearch(runner, self.train_settings)
         runner.reset()
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
@@ -145,69 +136,3 @@ class LearnInverseDynamics:
             action[self.env.controller.controllable_params] = prediction
             # Simbicon3D will handle mirroring the action if necessary
         return action
-
-    def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
-        s = self.eval_settings
-        if dist_mean is None:
-            dist_mean = s['dist_mean']
-        if dist_spread is None:
-            dist_spread = s['dist_spread']
-        # Choose some random targets that are hopefully representative of what
-        # we will see during testing episodes.
-        targets = start_state.starting_platforms()
-        next_target = targets[-1]
-        # TODO should we make the first step a bit shorter, since we're starting from "rest"?
-        for i in range(num_steps):
-            dx = dist_mean + dist_spread * (np.random.uniform() - 0.5)
-            dy = s['y_mean'] + s['y_spread'] * (np.random.uniform() - 0.5)
-            dz = s['z_mean'] + s['z_spread'] * (np.random.uniform() - 0.5)
-            if i % 2 == 1:
-                dz *= -1
-            next_target = next_target + [dx, dy, dz]
-            targets.append(next_target)
-        # Return value includes the two starting platforms
-        return targets
-
-    def evaluate(self, render=1.0, video_save_dir=None, seed=None, early_termination=None):
-        s = self.eval_settings
-        state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
-        total_error = 0
-        max_error = 0
-        total_score = 0
-        DISCOUNT = 0.8
-        targets = self.generate_targets(state, s['n_steps'])
-        if s['use_stepping_stones']:
-            self.env.sdf_loader.put_grounds(targets)
-        else:
-            self.env.sdf_loader.put_grounds(targets[:1])
-        total_offset = 0
-        num_successful_steps = 0
-        failed_steps = []
-        for i in range(s['n_steps']):
-            target = targets[2+i]
-            action = self.act(state, target)
-            end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
-            error = np.linalg.norm(end_state.stance_heel_location() - target)
-            if error > self.train_settings['tol']:
-                failed_steps.append((state, target))
-                terminate_early = (early_termination and len(failed_steps) >= early_termination)
-                terminated = terminated or terminate_early
-            if error > max_error:
-                max_error = error
-            total_error += error
-            if error < 1:
-                total_score += (1-error) * (DISCOUNT**i)
-            if terminated:
-                break
-            state = end_state
-            num_successful_steps += 1
-        if video_save_dir:
-            self.env.close_video_recorder()
-        result = {
-                "total_score": total_score,
-                "n_steps": num_successful_steps,
-                "max_error": max_error,
-                "total_error": total_error,
-                "failed_steps": failed_steps,
-                }
-        return result
