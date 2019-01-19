@@ -20,7 +20,7 @@ class Experiment:
                 "n_steps": "black",
                 }
         self.name = name
-        self.learner = LearnInverseDynamics(env, self.name)
+        self.learn = LearnInverseDynamics(env, self.name)
         self.iter = 0
         self.results = defaultdict(lambda: [])
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
@@ -34,21 +34,22 @@ class Experiment:
         results = defaultdict(lambda: [])
         for i in range(self.n_eval_trajectories):
             print("Starting evaluation", i)
-            result = self.learner.evaluate(render=None)
+            result = self.learn.evaluate(render=None)
             for k,v in result.items():
                 results[k].append(v)
         for k,v in results.items():
             self.results[k].append(v)
         self.plot_results()
-        self.learner.evaluate() # For human consumption
+        self.learn.evaluate() # For human consumption
 
     def run_iters(self, n_iters, eval_settings, train_settings):
-        self.learner.set_eval_settings(eval_settings)
-        self.learner.set_train_settings(train_settings)
+        self.learn.set_train_settings(train_settings)
         for i in range(n_iters):
+            # TODO should we also run evaluations for easier settings?
+            self.learn.set_eval_settings(SETTINGS_3D_HARDER)
             self.run_evaluations()
-            self.learner.training_iter()
-            # TODO which eval settings should we use to run these evaluations?
+            self.learn.set_eval_settings(eval_settings)
+            self.learn.training_iter()
 
     def plot_results(self):
         n_points = self.iter+1
