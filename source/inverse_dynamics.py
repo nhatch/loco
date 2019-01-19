@@ -7,7 +7,6 @@ from sklearn.linear_model import LinearRegression, Ridge, RANSACRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 
-from simbicon import Simbicon
 from simbicon_params import *
 from state import State
 from step_learner import Runner
@@ -16,6 +15,8 @@ from random_search import RandomSearch
 TRAIN_FMT = 'data/train_{}.pkl'
 
 RIDGE_ALPHA = 0.1
+N_TRAJECTORIES = 1
+EARLY_TERMINATION = 2
 
 class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
@@ -23,8 +24,8 @@ class LearnInverseDynamics:
         self.exp_name = exp_name
         self.train_features, self.train_responses = [], []
         self.history = []
-        self.n_action = len(self.env.controller.action_params())
-        self.n_dynamic = sum(self.env.consts().observable_features)
+        self.n_action = len(PARAM_SCALE)
+        self.n_dynamic = len(self.env.consts().observable_features)
         # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = LinearRegression(fit_intercept=False)
@@ -54,6 +55,9 @@ class LearnInverseDynamics:
         self.env.clear_skeletons()
 
     def set_train_settings(self, settings):
+        if settings.get('controllable_params') is None:
+            settings['controllable_params'] = self.env.controller.default_controllable_params()
+        self.env.controller.set_controllable_params(settings['controllable_params'])
         self.train_settings = settings
 
     def dump_train_set(self):
@@ -86,8 +90,8 @@ class LearnInverseDynamics:
 
     def run_trajectories(self):
         states_to_label = []
-        for i in range(3):
-            r = self.evaluate(early_termination=3)
+        for i in range(N_TRAJECTORIES):
+            r = self.evaluate(early_termination=EARLY_TERMINATION)
             states_to_label += r['failed_steps']
         return states_to_label
 
@@ -133,7 +137,7 @@ class LearnInverseDynamics:
         c = self.env.consts()
         # TODO investigate removing more features to reduce problem dimension
         X = np.array(self.train_features)[:,c.observable_features]
-        y = np.array(self.train_responses)
+        y = np.array(self.train_responses)[:,self.env.controller.controllable_params]
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
         X = (X - self.X_mean) / self.X_scale_factor
@@ -142,15 +146,16 @@ class LearnInverseDynamics:
         self.is_fitted = True
 
     def act(self, state, target):
-        c = self.env.consts()
-        X = state.extract_features(target).reshape(1,-1)[:,c.observable_features]
-        X = (X - self.X_mean) / self.X_scale_factor
+        action = np.zeros(self.n_action)
         if self.is_fitted:
-            action = self.model.predict(X).reshape(-1)
-        else:
-            action = np.zeros(self.n_action)
-        # Simbicon3D will handle mirroring the action if necessary
-        return action / self.y_scale_factor + self.y_mean
+            c = self.env.consts()
+            X = state.extract_features(target).reshape(1,-1)[:,c.observable_features]
+            X = (X - self.X_mean) / self.X_scale_factor
+            prediction = self.model.predict(X).reshape(-1)
+            prediction = prediction / self.y_scale_factor + self.y_mean
+            action[self.env.controller.controllable_params] = prediction
+            # Simbicon3D will handle mirroring the action if necessary
+        return action
 
     def generate_targets(self, start_state, num_steps, dist_mean=None, dist_spread=None):
         s = self.eval_settings

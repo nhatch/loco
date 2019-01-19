@@ -28,6 +28,18 @@ class Simbicon(PDController):
 
     def __init__(self, skel, env):
         super().__init__(skel, env)
+        self.set_controllable_params(self.default_controllable_params())
+
+    def default_controllable_params(self):
+        return [IK_GAIN,
+                VELOCITY_BALANCE_GAIN,
+                STANCE_ANKLE_RELATIVE,
+                DN_IDX + STANCE_KNEE_RELATIVE
+                ]
+
+    def set_controllable_params(self, indices):
+        self.controllable_params = np.zeros(len(PARAM_SCALE), dtype=np.bool_)
+        self.controllable_params[indices] = True
 
     def reset(self, state=None):
         c = self.env.consts()
@@ -68,20 +80,8 @@ class Simbicon(PDController):
         # Then modified for the new parameters format.
         gait = [0.14, 0, 0.2, 0.0, 0.2,
                 0.4, -1.1,   0, -0.05,
-                0,    0, 0.2, -0.1,
-                0,0,0]
+                0,    0, 0.2, -0.1]
         return np.array(gait)
-
-    def action_params(self):
-        return [
-                IK_GAIN,
-                VELOCITY_BALANCE_GAIN,
-                STANCE_ANKLE_RELATIVE,
-                DN_IDX + STANCE_KNEE_RELATIVE
-                ]
-
-    def action_scale(self):
-        return np.ones(len(self.action_params()))
 
     def heading(self):
         return 0.0
@@ -89,8 +89,7 @@ class Simbicon(PDController):
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         params = self.base_gait()
         if raw_gait is not None:
-            inds = self.action_params()
-            params[inds] += raw_gait * self.action_scale()
+            params += raw_gait * PARAM_SCALE
         self.set_gait(Params(params))
 
         self.target, self.prev_target = target, self.target

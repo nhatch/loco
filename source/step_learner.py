@@ -24,7 +24,6 @@ class Runner:
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
-    action = env.controller.action_scale()*0
     # Two short steps, then a long step. This causes issues for the basic SIMBICON
     # controller, if the next step is another short step. This is because the
     # velocity-based swing hip correction tends to overcorrect so that the robot
@@ -36,7 +35,7 @@ def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
         env.sdf_loader.put_grounds(targets[:1])
     env.render()
     for t in targets[1:-1]:
-        end_state, _ = env.simulate(t, target_heading=0.0, action=action, put_dots=True)
+        end_state, _ = env.simulate(t, target_heading=0.0, put_dots=True)
         env.render()
     env.clear_skeletons()
     return end_state
@@ -52,7 +51,7 @@ def learn_last_move(env, targets, video_save_dir=None):
     if env.is_3D:
         # TODO the performance of this is actually quite bad now.
         # But it seems to work fine for the step distributions in inverse_dynamics.py.
-        rs = RandomSearch(runner, 8, step_size=0.3, eps=0.1)
+        rs = RandomSearch(runner, 8, step_size=0.2, eps=0.1)
     else:
         rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
     rs.random_search(render=1, video_save_dir=video_save_dir)
@@ -77,11 +76,11 @@ def test_3D(video_save_dir):
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
     BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
     rs = learn_last_move(env, BASIC_3D, video_save_dir=video_save_dir)
-    rs.manual_search([0,0,0,0,0], [1.7, -.9, -.1], 0.3, video_save_dir)
+    rs.manual_search(0, [1.7, -.9, -.1], 0.3, video_save_dir)
     return rs
     env.clear_skeletons()
     rs = learn_last_move(env, LONG_STEP_3D, video_save_dir=video_save_dir)
-    rs.manual_search([0,0,0,0,0], [1.7, -.9, -.1], 0.3, video_save_dir)
+    rs.manual_search(0, [1.7, -.9, -.1], 0.3, video_save_dir)
     return rs
 
 if __name__ == '__main__':

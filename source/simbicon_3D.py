@@ -9,29 +9,24 @@ import utils
 from consts_common3D import *
 from simbicon_params import *
 
-ZERO_GAIN = True
+ZERO_GAIN = False
 
 class Simbicon3D(Simbicon):
+
+    def default_controllable_params(self):
+        return [IK_GAIN, UP_IDX+SWING_ANKLE_RELATIVE, HEADING, POSITION_BALANCE_GAIN_LAT]
 
     def base_gait(self):
         gait = [0.14, 0.5, 0.2, -0.1, 0.2,
                 0.4, -1.1,   0.0, -0.05,
                 -0.0, -0.00, 0.20, -0.1,
-                0,0,0,
                 0.5, 0.2, 0.0, 0.0, 0.0, 0.0]
         return np.array(gait)
 
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         if raw_gait is not None and self.swing_idx == LEFT_IDX:
-            sign_switches = np.array([1.0, -1.0, 1.0, 1.0, -1.0])
-            raw_gait = raw_gait * sign_switches
+            raw_gait = raw_gait * MIRROR_PARAMS
         return super().set_gait_raw(target, target_heading, raw_gait)
-
-    def action_params(self):
-        return [IK_GAIN, HEADING, UP_IDX+SWING_ANKLE_RELATIVE, STANCE_ANKLE_RELATIVE, STANCE_ANKLE_ROLL]
-
-    def action_scale(self):
-        return np.array([0.2, 0.5, 3.0, 1.0, 1.0])
 
     def heading(self):
         return self.env.get_x()[0][ROOT_YAW]
@@ -122,5 +117,5 @@ if __name__ == "__main__":
     env = Simple3DEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
     # TODO: Get the controller to work well even when we don't provide the target heading.
-    test(env, 0.5, delta_a=0.05, n=20, provide_target_heading=True)
+    test(env, 0.5, delta_a=0.05, n=8, provide_target_heading=True)
     embed()

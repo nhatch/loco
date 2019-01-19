@@ -3,11 +3,12 @@ from IPython import embed
 import pickle
 import time
 import gym
+from simbicon_params import PARAM_SCALE
 
 class RandomSearch:
     def __init__(self, runner, n_dirs, step_size=0.01, eps=0.05):
         self.runner = runner
-        self.w_policy = self.runner.env.controller.action_scale() * 0.0
+        self.w_policy = np.zeros(len(PARAM_SCALE))
 
         self.n_dirs = n_dirs
         self.eps = eps
@@ -16,6 +17,7 @@ class RandomSearch:
 
     def sample_perturbation(self):
         delta = np.random.randn(np.prod(self.w_policy.shape))
+        delta *= self.runner.env.controller.controllable_params
         delta /= np.linalg.norm(delta)
         return delta.reshape(self.w_policy.shape)
 
@@ -34,7 +36,7 @@ class RandomSearch:
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, max_iters=10, tol=0.05, render=1.0, video_save_dir=None):
+    def random_search(self, max_iters=5, tol=0.05, render=1.0, video_save_dir=None):
         if self.eval(tol, render, video_save_dir):
             return self.w_policy
         for i in range(max_iters):
@@ -48,10 +50,11 @@ class RandomSearch:
         return None
 
     def manual_search(self, action, next_target, next_heading, video_save_dir=None):
-        action += self.w_policy
+        a = self.w_policy.copy()
+        a[self.runner.env.controller.controllable_params] += action
         self.runner.reset(video_save_dir, 1.0)
         env = self.runner.env
-        env.simulate(self.runner.target, target_heading=0.0, action=action)
+        env.simulate(self.runner.target, target_heading=0.0, action=a)
         # Simulate the next step as well to get a sense of where that step left us.
         env.simulate(next_target, target_heading=next_heading)
 
