@@ -2,6 +2,7 @@
 import numpy as np
 from IPython import embed
 from random_search import RandomSearch
+from curriculum import *
 
 class Runner:
     def __init__(self, env, start_state, target, use_stepping_stones=True):
@@ -51,9 +52,9 @@ def learn_last_move(env, targets, video_save_dir=None):
     if env.is_3D:
         # TODO the performance of this is actually quite bad now.
         # But it seems to work fine for the step distributions in inverse_dynamics.py.
-        rs = RandomSearch(runner, 8, step_size=0.2, eps=0.1)
+        rs = RandomSearch(runner, TRAIN_SETTINGS_3D)
     else:
-        rs = RandomSearch(runner, 4, step_size=0.1, eps=0.1)
+        rs = RandomSearch(runner, TRAIN_SETTINGS_2D)
     rs.random_search(render=1, video_save_dir=video_save_dir)
     return rs
 
@@ -76,11 +77,10 @@ def test_3D(video_save_dir):
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
     BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
     rs = learn_last_move(env, BASIC_3D, video_save_dir=video_save_dir)
-    rs.manual_search(0, [1.7, -.9, -.1], 0.3, video_save_dir)
-    return rs
+    env.simulate([1.7, -.9, -.1], 0.3)
     env.clear_skeletons()
     rs = learn_last_move(env, LONG_STEP_3D, video_save_dir=video_save_dir)
-    rs.manual_search(0, [1.7, -.9, -.1], 0.3, video_save_dir)
+    env.simulate([1.7, -.9, -.1], 0.3)
     return rs
 
 if __name__ == '__main__':

@@ -80,7 +80,8 @@ class Simbicon(PDController):
         # Then modified for the new parameters format.
         gait = [0.14, 0, 0.2, 0.0, 0.2,
                 0.4, -1.1,   0, -0.05,
-                0,    0, 0.2, -0.1]
+                0,    0, 0.2, -0.1,
+                0,0,0,0,0,0] # None of these last 6 are used in 2D
         return np.array(gait)
 
     def heading(self):

@@ -15,8 +15,8 @@ from random_search import RandomSearch
 TRAIN_FMT = 'data/train_{}.pkl'
 
 RIDGE_ALPHA = 0.1
-N_TRAJECTORIES = 1
-EARLY_TERMINATION = 2
+N_TRAJECTORIES = 3
+EARLY_TERMINATION = 3
 
 class LearnInverseDynamics:
     def __init__(self, env, exp_name=''):
@@ -33,16 +33,6 @@ class LearnInverseDynamics:
         #model = RANSACRegressor(base_estimator=model, residual_threshold=2.0)
         self.model = model
         self.is_fitted = False # For some dang reason sklearn doesn't track this itself
-        self.X_mean = np.zeros(self.n_dynamic)
-        self.y_mean = np.zeros(self.n_action)
-        # Maybe try varying these.
-        # Increasing X factor increases the penalty for using that feature as a predictor.
-        # Increasing y factor increases the penalty for mispredicting that action parameter.
-        # Originally I tried scaling by the variance, but that led to very poor performance.
-        # It appears that variance in whatever arbitrary units is not a good indicator of
-        # importance in fitting a linear model of the dynamics for this environment.
-        self.X_scale_factor = np.ones(self.n_dynamic)
-        self.y_scale_factor = np.ones(self.n_action)
 
     def set_eval_settings(self, settings):
         self.eval_settings = settings
@@ -115,12 +105,11 @@ class LearnInverseDynamics:
 
     def learn_action(self, start_state, target):
         runner = Runner(self.env, start_state, target, use_stepping_stones=self.eval_settings['use_stepping_stones'])
-        s = self.train_settings
-        rs = RandomSearch(runner, s['n_dirs'], step_size=s['step_size'], eps=0.1)
+        rs = RandomSearch(runner, self.train_settings)
         runner.reset()
         rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(max_iters=5, tol=s['tol'], render=1)
+        w_policy = rs.random_search(render=1)
         return w_policy
 
     def append_to_train_set(self, start_state, target, action):
@@ -140,8 +129,8 @@ class LearnInverseDynamics:
         y = np.array(self.train_responses)[:,self.env.controller.controllable_params]
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
-        X = (X - self.X_mean) / self.X_scale_factor
-        y = (y - self.y_mean) * self.y_scale_factor
+        X = (X - self.X_mean)
+        y = (y - self.y_mean)
         self.model.fit(X, y)
         self.is_fitted = True
 
@@ -150,9 +139,9 @@ class LearnInverseDynamics:
         if self.is_fitted:
             c = self.env.consts()
             X = state.extract_features(target).reshape(1,-1)[:,c.observable_features]
-            X = (X - self.X_mean) / self.X_scale_factor
+            X = (X - self.X_mean)
             prediction = self.model.predict(X).reshape(-1)
-            prediction = prediction / self.y_scale_factor + self.y_mean
+            prediction = prediction + self.y_mean
             action[self.env.controller.controllable_params] = prediction
             # Simbicon3D will handle mirroring the action if necessary
         return action

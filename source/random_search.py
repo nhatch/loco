@@ -6,13 +6,15 @@ import gym
 from simbicon_params import PARAM_SCALE
 
 class RandomSearch:
-    def __init__(self, runner, n_dirs, step_size=0.01, eps=0.05):
+    def __init__(self, runner, settings):
         self.runner = runner
         self.w_policy = np.zeros(len(PARAM_SCALE))
 
-        self.n_dirs = n_dirs
-        self.eps = eps
-        self.step_size = step_size
+        self.n_dirs = settings['n_dirs']
+        self.tol = settings['tol']
+        self.step_size = settings['step_size']
+        self.eps = settings.get('eps') or 0.1
+        self.max_iters = settings.get('max_iters') or 5
         self.episodes = 0
 
     def sample_perturbation(self):
@@ -36,15 +38,14 @@ class RandomSearch:
         self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
-    def random_search(self, max_iters=5, tol=0.05, render=1.0, video_save_dir=None):
-        if self.eval(tol, render, video_save_dir):
+    def random_search(self, render=1.0, video_save_dir=None):
+        if self.eval(render, video_save_dir):
             return self.w_policy
-        for i in range(max_iters):
+        for i in range(self.max_iters):
             # TODO: should we "give up" if we don't see fast enough progress?
             grad = self.estimate_grad(self.w_policy)
             self.w_policy += self.step_size * grad
-            self.step_size *= 0.8
-            if self.eval(tol, render, video_save_dir):
+            if self.eval(render, video_save_dir):
                 return self.w_policy
         print("MAX ITERS EXCEEDED")
         return None
@@ -58,9 +59,13 @@ class RandomSearch:
         # Simulate the next step as well to get a sense of where that step left us.
         env.simulate(next_target, target_heading=next_heading)
 
-    def eval(self, tol, render, video_save_dir):
+    def eval(self, render, video_save_dir):
         self.runner.reset(video_save_dir, render)
         ret = self.runner.run(self.w_policy)
         # The best possible score is 0
         print("Score: {:.4f}".format(ret))
-        return ret > -tol
+        # This is a terrible hack. Might take some bizarre theory to justify it.
+        # The idea is, the closer we are to the target, the smaller our next
+        # step size should be.
+        self.step_size = -ret
+        return ret > -self.tol
