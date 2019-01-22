@@ -95,11 +95,11 @@ class State:
 
         return np.concatenate([copy.raw_state, target])
 
-    def reconstruct_state(self, features):
-        return State(features[:-3], False, self.consts), features[-3:]
-
     def copy(self):
         return State(self.raw_state, self.swing_left, self.consts)
+
+def reconstruct_state(features, consts):
+    return State(features[:-3], False, consts), features[-3:]
 
 def test_mirror_state(env):
     from time import sleep
@@ -122,7 +122,7 @@ def test_feature_extraction(env):
     env.track_point = [0,0,0]
     env.pause(0.5)
     features = obs.extract_features(target)
-    obs, target = obs.reconstruct_state(features)
+    obs, target = reconstruct_state(features, env.consts())
     env.reset(obs)
     env.sdf_loader.put_dot(target, 'target')
     env.pause(0.5)

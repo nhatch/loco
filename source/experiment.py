@@ -46,7 +46,7 @@ class Experiment:
         self.learn.set_train_settings(train_settings)
         for i in range(n_iters):
             # TODO should we also run evaluations for easier settings?
-            self.learn.evaluator.set_eval_settings(SETTINGS_3D_HARDER)
+            self.learn.evaluator.set_eval_settings(SETTINGS_3D_FINAL)
             self.run_evaluations()
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()

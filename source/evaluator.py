@@ -17,7 +17,6 @@ class Evaluator:
     def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None):
         s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
-        total_error = 0
         max_error = 0
         total_score = 0
         DISCOUNT = 0.8
@@ -28,21 +27,24 @@ class Evaluator:
             self.env.sdf_loader.put_grounds(targets[:1])
         total_offset = 0
         num_successful_steps = 0
-        intolerable_steps = []
+        num_intolerable_steps = 0
+        experience = []
         for i in range(s['n_steps']):
             target = targets[2+i]
-            action = policy(state, target)
+            features = state.extract_features(target)
+            action = policy(features)
             end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
+            reward = 1-error
+            total_score += reward
+            # In RL terms, (state,target) is the state.
+            experience.append((state.extract_features(target), action, reward))
             if error > s['early_termination_tol']:
-                intolerable_steps.append((state, target))
-                terminate_early = (len(intolerable_steps) >= s['max_intolerable_steps'])
+                num_intolerable_steps += 1
+                terminate_early = (num_intolerable_steps >= s['max_intolerable_steps'])
                 terminated = terminated or terminate_early
             if error > max_error:
                 max_error = error
-            total_error += error
-            if error < 1:
-                total_score += (1-error) * (DISCOUNT**i)
             if terminated:
                 break
             state = end_state
@@ -53,8 +55,7 @@ class Evaluator:
                 "total_score": total_score,
                 "n_steps": num_successful_steps,
                 "max_error": max_error,
-                "total_error": total_error,
-                "intolerable_steps": intolerable_steps,
+                "experience": experience,
                 }
         return result
 

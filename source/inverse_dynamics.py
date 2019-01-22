@@ -8,7 +8,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 
 from simbicon_params import *
-from state import State
+from state import reconstruct_state
 from step_learner import Runner
 from random_search import RandomSearch
 from evaluator import Evaluator
@@ -64,54 +64,51 @@ class LearnInverseDynamics:
 
     def training_iter(self):
         print("STARTING TRAINING ITERATION", len(self.history))
-        states_to_label = self.run_trajectories()
-        self.label_states(states_to_label)
+        experience = self.run_trajectories()
+        self.expert_annotate(experience)
         self.train_inverse_dynamics()
 
     def run_trajectories(self):
-        states_to_label = []
+        experience = []
         for i in range(self.train_settings['n_trajectories']):
             r = self.evaluator.evaluate(self.act)
-            states_to_label += r['intolerable_steps']
-        return states_to_label
+            experience += r['experience']
+        return experience
 
-    def label_states(self, states_to_label):
+    def expert_annotate(self, experience):
         self.env.clear_skeletons()
-        total = len(states_to_label)
-        for i, (state, target) in enumerate(states_to_label):
+        total = len(experience)
+        for i, (state, _, _) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
-            self.label_state(state, target)
+            self.label_state(state)
         self.history.append((len(self.train_features), self.evaluator.eval_settings, self.train_settings))
         print("Size of train set:", len(self.train_features))
         self.dump_train_set()
         self.env.clear_skeletons()
 
-    def label_state(self, start_state, target):
-        mean_action = self.learn_action(start_state, target)
+    def label_state(self, features):
+        mean_action = self.learn_action(features)
         if mean_action is None:
             # Random search couldn't find a good enough action; don't use this for training.
             return
-        self.append_to_train_set(start_state, target, mean_action)
+        # The train set is a set of (features, action) pairs
+        # where taking `action` when the environment features are `features`
+        # will hit the target with the swing foot (within 5 cm).
+        self.train_features.append(features)
+        # We don't need to mirror the action, because Simbicon3D already handled that
+        # during random search.
+        self.train_responses.append(mean_action)
 
-    def learn_action(self, start_state, target):
+    def learn_action(self, features):
+        start_state, target = reconstruct_state(features, self.env.consts())
         runner = Runner(self.env, start_state, target,
                 use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'])
         rs = RandomSearch(runner, self.train_settings)
         runner.reset()
-        rs.w_policy = self.act(start_state, target) # Initialize with something reasonable
+        rs.w_policy = self.act(features) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
         w_policy = rs.random_search(render=1)
         return w_policy
-
-    def append_to_train_set(self, start_state, target, action):
-        # The train set is a set of (features, action) pairs
-        # where taking `action` when the environment features are `features`
-        # will hit the target with the swing foot (within 5 cm).
-        train_state = start_state.extract_features(target)
-        self.train_features.append(train_state)
-        # We don't need to mirror the action, because Simbicon3D already handled that
-        # during random search.
-        self.train_responses.append(action)
 
     def train_inverse_dynamics(self):
         c = self.env.consts()
@@ -125,11 +122,11 @@ class LearnInverseDynamics:
         self.model.fit(X, y)
         self.is_fitted = True
 
-    def act(self, state, target):
+    def act(self, features):
         action = np.zeros(self.n_action)
         if self.is_fitted:
             c = self.env.consts()
-            X = state.extract_features(target).reshape(1,-1)[:,c.observable_features]
+            X = features.reshape(1,-1)[:,c.observable_features]
             X = (X - self.X_mean)
             prediction = self.model.predict(X).reshape(-1)
             prediction = prediction + self.y_mean
