@@ -31,7 +31,7 @@ class SteppingStonesEnv:
         self.controller = None
         self.world = None
         self.viewer = None
-        self.sdf_loader = SDFLoader()
+        self.sdf_loader = SDFLoader(self.consts().DEFAULT_GROUND_WIDTH)
         pydart.init(verbose=False)
         self.clear_skeletons()
 

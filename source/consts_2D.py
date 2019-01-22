@@ -57,3 +57,5 @@ def root_dofs_from_transform(transform):
     translation = transform[0:3,3]
     # The -1.25 is a hack (see ik.get_dofs())
     return np.array([translation[0], translation[1]-1.25, euler[2]])
+
+DEFAULT_GROUND_WIDTH = 0.5

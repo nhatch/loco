@@ -8,10 +8,10 @@ GREEN = "0.2 0.7 0.2 1"
 BLUE = "0.4 0.4 1 1"
 
 class SDFLoader:
-    def __init__(self):
+    def __init__(self, ground_width):
         self.ground_length = 10.0
         self.ground_offset = 0.02
-        self.ground_width = 2.0
+        self.ground_width = ground_width
 
     def reset(self, world):
         self.world = world

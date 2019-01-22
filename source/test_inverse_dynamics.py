@@ -6,6 +6,7 @@ from state import reconstruct_state
 
 TRAIN_SETTINGS_3D_TEST = {
     'n_trajectories': 1,
+    'max_intolerable_steps': 2,
     'n_dirs': 8,
     'tol': 0.05,
     }
@@ -14,8 +15,7 @@ SETTINGS_3D_TEST = {
     'use_stepping_stones': False,
     'dist_mean': 0.35,
     'dist_spread': 0.0,
-    'max_intolerable_steps': 2,
-    'early_termination_tol': 0.05,
+    'tol': 0.05,
     'n_steps': 16,
     'z_mean': 0.4,
     'z_spread': 0.0,
@@ -90,8 +90,7 @@ def test_mirroring(learn, i=3):
 
     print("Mirrored response:", np.allclose(trained_response, mirrored_response))
     print("Score:            ", np.allclose(score, mirrored_score))
-    print("End state:        ", np.allclose(end_state.raw_state, mirrored_end.raw_state, atol=1e-5))
-    embed()
+    print("End state:        ", np.allclose(end_state.raw_state, mirrored_end.raw_state, atol=1e-4))
     print("Expert score:     ", np.allclose(expert_score, mirrored_expert_score, atol=1e-5))
 
 if __name__ == '__main__':

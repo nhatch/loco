@@ -46,7 +46,7 @@ class Experiment:
         self.learn.set_train_settings(train_settings)
         for i in range(n_iters):
             # TODO should we also run evaluations for easier settings?
-            self.learn.evaluator.set_eval_settings(SETTINGS_3D_FINAL)
+            self.learn.evaluator.set_eval_settings(SETTINGS_3D_HARDER)
             self.run_evaluations()
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()
@@ -90,9 +90,9 @@ if __name__ == '__main__':
     ex = Experiment(env, "new_experiment")
     ex.run_iters(2, SETTINGS_3D_EASY, TRAIN_SETTINGS_3D)
     ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D)
-    ex.run_iters(6, SETTINGS_3D_MEDIUM_PRECISE, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D_PRECISE)
     ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D)
-    ex.run_iters(6, SETTINGS_3D_HARD_PRECISE, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D_PRECISE)
     ex.run_iters(6, SETTINGS_3D_HARDER, TRAIN_SETTINGS_3D_PRECISE)
     ex.run_evaluations()
     #learn = load(env, 'my_experiment')

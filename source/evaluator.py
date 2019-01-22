@@ -4,17 +4,20 @@ class Evaluator:
     def __init__(self, env):
         self.env = env
 
+    def input_dimension(self):
+        return len(self.env.consts().observable_features)
+
     def set_eval_settings(self, settings):
         self.eval_settings = settings
         if self.eval_settings['use_stepping_stones']:
             self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
             self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
         else:
-            self.env.sdf_loader.ground_width = 2.0
             self.env.sdf_loader.ground_length = 10.0
+            self.env.sdf_loader.ground_width = self.env.consts().DEFAULT_GROUND_WIDTH
         self.env.clear_skeletons()
 
-    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None):
+    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=None):
         s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         max_error = 0
@@ -39,9 +42,9 @@ class Evaluator:
             total_score += reward
             # In RL terms, (state,target) is the state.
             experience.append((state.extract_features(target), action, reward))
-            if error > s['early_termination_tol']:
+            if (max_intolerable_steps is not None) and (error > s['tol']):
                 num_intolerable_steps += 1
-                terminate_early = (num_intolerable_steps >= s['max_intolerable_steps'])
+                terminate_early = (num_intolerable_steps >= max_intolerable_steps)
                 terminated = terminated or terminate_early
             if error > max_error:
                 max_error = error
