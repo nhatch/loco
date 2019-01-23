@@ -51,6 +51,7 @@ def test(use_3D=False):
     # It has been standardized (mirrored, translated, rotated) to remove extraneous
     # information that does not affect the dynamics.
     experience = result['experience']
+    print("Total reward: {:.3f}".format(result['total_reward']))
     embed()
 
 if __name__ == '__main__':

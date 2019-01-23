@@ -18,7 +18,7 @@ class Evaluator:
         s = self.eval_settings
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         max_error = 0
-        total_score = 0
+        total_reward = 0
         DISCOUNT = 0.8
         targets = self.generate_targets(state)
         if s['use_stepping_stones']:
@@ -36,7 +36,7 @@ class Evaluator:
             end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
             reward = 1-error
-            total_score += reward
+            total_reward += reward
             # In RL terms, (state,target) is the state.
             experience.append((state.extract_features(target), action, reward))
             if (max_intolerable_steps is not None) and (error > s['tol']):
@@ -52,7 +52,7 @@ class Evaluator:
         if video_save_dir:
             self.env.close_video_recorder()
         result = {
-                "total_score": total_score,
+                "total_reward": total_reward,
                 "n_steps": num_successful_steps,
                 "max_error": max_error,
                 "experience": experience,

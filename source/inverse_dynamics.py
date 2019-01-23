@@ -74,9 +74,10 @@ class LearnInverseDynamics:
     def expert_annotate(self, experience):
         self.env.clear_skeletons()
         total = len(experience)
-        for i, (state, _, _) in enumerate(experience):
+        for i, (state, _, reward) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
-            self.label_state(state)
+            if reward < 1-self.train_settings['tol']:
+                self.label_state(state)
         self.history.append((len(self.train_features), self.evaluator.eval_settings, self.train_settings))
         print("Size of train set:", len(self.train_features))
         self.dump_train_set()

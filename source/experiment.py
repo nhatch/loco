@@ -7,10 +7,10 @@ import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 
-from test_inverse_dynamics import TRAIN_SETTINGS_3D, TRAIN_SETTINGS_3D_PRECISE, SETTINGS_3D_EASY, SETTINGS_3D_MEDIUM, SETTINGS_3D_HARD, SETTINGS_3D_HARDER
+import curriculum as cur
 
 N_EVAL_TRAJECTORIES = 8
-
+EVAL_SETTINGS = cur.SETTINGS_3D_HARDER
 
 class Experiment:
     def __init__(self, env, name):
@@ -46,7 +46,7 @@ class Experiment:
         self.learn.set_train_settings(train_settings)
         for i in range(n_iters):
             # TODO should we also run evaluations for easier settings?
-            self.learn.evaluator.set_eval_settings(SETTINGS_3D_HARDER)
+            self.learn.evaluator.set_eval_settings(EVAL_SETTINGS)
             self.run_evaluations()
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()
@@ -88,12 +88,12 @@ if __name__ == '__main__':
     #env = SteppingStonesEnv()
     env = Simple3DEnv(Simbicon3D)
     ex = Experiment(env, "new_experiment")
-    ex.run_iters(2, SETTINGS_3D_EASY, TRAIN_SETTINGS_3D)
-    ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D)
-    ex.run_iters(6, SETTINGS_3D_MEDIUM, TRAIN_SETTINGS_3D_PRECISE)
-    ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D)
-    ex.run_iters(6, SETTINGS_3D_HARD, TRAIN_SETTINGS_3D_PRECISE)
-    ex.run_iters(6, SETTINGS_3D_HARDER, TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(2, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PRECISE)
+    ex.run_iters(6, cur.SETTINGS_3D_HARDER, cur.TRAIN_SETTINGS_3D_PRECISE)
     ex.run_evaluations()
     #learn = load(env, 'my_experiment')
     embed()
