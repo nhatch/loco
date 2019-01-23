@@ -4,9 +4,6 @@ class Evaluator:
     def __init__(self, env):
         self.env = env
 
-    def input_dimension(self):
-        return len(self.env.consts().observable_features)
-
     def set_eval_settings(self, settings):
         self.eval_settings = settings
         if self.eval_settings['use_stepping_stones']:

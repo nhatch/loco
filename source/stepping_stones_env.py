@@ -42,14 +42,6 @@ class SteppingStonesEnv:
         #self.spec = None
 
         c = self.consts()
-        c.observable_features = np.concatenate([
-                c.observable_features_q,
-                c.observable_features_q,
-                c.observable_features_t,
-                c.observable_features_t,
-                c.observable_features_t,
-                c.observable_features_t,
-                ])
         self.is_3D = (c.BRICK_DOF == 6)
 
     def consts(self):

@@ -28,18 +28,6 @@ class Simbicon(PDController):
 
     def __init__(self, skel, env):
         super().__init__(skel, env)
-        self.set_controllable_params(self.default_controllable_params())
-
-    def default_controllable_params(self):
-        return [IK_GAIN,
-                VELOCITY_BALANCE_GAIN,
-                STANCE_ANKLE_RELATIVE,
-                DN_IDX + STANCE_KNEE_RELATIVE
-                ]
-
-    def set_controllable_params(self, indices):
-        self.controllable_params = np.zeros(len(PARAM_SCALE), dtype=np.bool_)
-        self.controllable_params[indices] = True
 
     def reset(self, state=None):
         c = self.env.consts()

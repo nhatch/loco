@@ -24,6 +24,11 @@ def rotmatrix(theta):
                      [            0, 1,              0],
                      [np.sin(theta), 0,  np.cos(theta)]])
 
+def build_mask(length, true_indices):
+    mask = np.zeros(length, dtype=np.bool_)
+    mask[true_indices] = True
+    return mask
+
 if __name__ == "__main__":
     _, r1 = heading_from_vector([1,0,0], 0)
     print(np.allclose(r1, 0))

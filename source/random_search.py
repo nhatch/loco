@@ -14,11 +14,12 @@ class RandomSearch:
         self.tol = settings['tol']
         self.eps = settings.get('eps') or 0.1
         self.max_iters = settings.get('max_iters') or 5
+        self.controllable_params = settings['controllable_params']
         self.episodes = 0
 
     def sample_perturbation(self):
         delta = np.random.randn(np.prod(self.w_policy.shape))
-        delta *= self.runner.env.controller.controllable_params
+        delta *= self.controllable_params
         delta /= np.linalg.norm(delta)
         return delta.reshape(self.w_policy.shape)
 
@@ -48,15 +49,6 @@ class RandomSearch:
                 return self.w_policy
         print("MAX ITERS EXCEEDED")
         return None
-
-    def manual_search(self, action, next_target, next_heading, video_save_dir=None):
-        a = self.w_policy.copy()
-        a[self.runner.env.controller.controllable_params] += action
-        self.runner.reset(video_save_dir, 1.0)
-        env = self.runner.env
-        env.simulate(self.runner.target, target_heading=0.0, action=a)
-        # Simulate the next step as well to get a sense of where that step left us.
-        env.simulate(next_target, target_heading=next_heading)
 
     def eval(self, render, video_save_dir):
         self.runner.reset(video_save_dir, render)

@@ -7,7 +7,7 @@ from sklearn.linear_model import LinearRegression, Ridge, RANSACRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 
-from simbicon_params import *
+import simbicon_params as sp
 from state import reconstruct_state
 from step_learner import Runner
 from random_search import RandomSearch
@@ -24,8 +24,6 @@ class LearnInverseDynamics:
         self.exp_name = exp_name
         self.train_features, self.train_responses = [], []
         self.history = []
-        self.n_action = len(PARAM_SCALE)
-        self.n_dynamic = len(self.env.consts().observable_features)
         # TODO try some model more complicated than linear?
         model = Ridge(alpha=RIDGE_ALPHA, fit_intercept=False)
         #model = LinearRegression(fit_intercept=False)
@@ -35,9 +33,6 @@ class LearnInverseDynamics:
         self.is_fitted = False # For some dang reason sklearn doesn't track this itself
 
     def set_train_settings(self, settings):
-        if settings.get('controllable_params') is None:
-            settings['controllable_params'] = self.env.controller.default_controllable_params()
-        self.env.controller.set_controllable_params(settings['controllable_params'])
         self.train_settings = settings
 
     def dump_train_set(self):
@@ -114,8 +109,9 @@ class LearnInverseDynamics:
     def train_inverse_dynamics(self):
         c = self.env.consts()
         # TODO investigate removing more features to reduce problem dimension
-        X = np.array(self.train_features)[:,c.observable_features]
-        y = np.array(self.train_responses)[:,self.env.controller.controllable_params]
+        s = self.train_settings
+        X = np.array(self.train_features)[:,s['observable_features']]
+        y = np.array(self.train_responses)[:,s['controllable_params']]
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
         X = (X - self.X_mean)
@@ -124,13 +120,14 @@ class LearnInverseDynamics:
         self.is_fitted = True
 
     def act(self, features):
-        action = np.zeros(self.n_action)
+        action = np.zeros(sp.N_PARAMS)
+        s = self.train_settings
         if self.is_fitted:
             c = self.env.consts()
-            X = features.reshape(1,-1)[:,c.observable_features]
+            X = features.reshape(1,-1)[:,s['observable_features']]
             X = (X - self.X_mean)
             prediction = self.model.predict(X).reshape(-1)
             prediction = prediction + self.y_mean
-            action[self.env.controller.controllable_params] = prediction
+            action[s['controllable_params']] = prediction
             # Simbicon3D will handle mirroring the action if necessary
         return action

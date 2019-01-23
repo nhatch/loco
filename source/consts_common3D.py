@@ -15,6 +15,10 @@ ROOT_ROLL = 5
 LEG_DOF = 6
 RIGHT_IDX = 6
 LEFT_IDX = 12
+# The following are accurate only after calling state.extract_features
+# to mirror the state if necessary.
+SWING_IDX = RIGHT_IDX
+STANCE_IDX = LEFT_IDX
 
 HIP_PITCH = 0
 HIP_YAW = 1
@@ -25,13 +29,6 @@ ANKLE_ROLL = 5
 
 TORSO_ROLL = 18
 TORSO_YAW = 20
-
-observable_features_q = np.array([
-        1,0,1,1,1,1,
-        1,0,1,0,0,0,
-        1,0,1,0,0,0,
-        0,0,0]) == 1 # Bool array
-observable_features_t = np.array([1,0,1]) == 1
 
 absolute_rotation_indices = [Z, ROOT_YAW, ROOT_ROLL,
         RIGHT_IDX + HIP_YAW, RIGHT_IDX + HIP_ROLL, RIGHT_IDX + ANKLE_ROLL,

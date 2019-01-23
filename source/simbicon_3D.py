@@ -13,10 +13,6 @@ ZERO_GAIN = False
 
 class Simbicon3D(Simbicon):
 
-    def default_controllable_params(self):
-        p = [IK_GAIN, UP_IDX+SWING_ANKLE_RELATIVE, STANCE_HIP_ROLL_EXTRA, UP_IDX+SWING_HIP_WORLD]
-        return p
-
     def base_gait(self):
         gait = [0.14, 0.5, 0.2, -0.1, 0.2,
                 0.4, -1.1,   0.0, -0.05,

@@ -3,24 +3,11 @@ from IPython import embed
 from inverse_dynamics import LearnInverseDynamics
 from step_learner import Runner
 from state import reconstruct_state
+import curriculum as cur
 
-TRAIN_SETTINGS_3D_TEST = {
+TRAIN_SETTINGS_3D_TEST = {**cur.TRAIN_SETTINGS_3D,
     'n_trajectories': 1,
     'max_intolerable_steps': 2,
-    'n_dirs': 8,
-    'tol': 0.05,
-    }
-
-SETTINGS_3D_TEST = {
-    'use_stepping_stones': False,
-    'dist_mean': 0.35,
-    'dist_spread': 0.0,
-    'tol': 0.05,
-    'n_steps': 16,
-    'z_mean': 0.4,
-    'z_spread': 0.0,
-    'y_mean': 0.0,
-    'y_spread': 0.0,
     }
 
 def retrieve_index(learn, i=None):
@@ -103,7 +90,7 @@ if __name__ == '__main__':
     name = 'test'
     learn = LearnInverseDynamics(env, name)
     #learn.load_train_set()
-    learn.evaluator.set_eval_settings(SETTINGS_3D_TEST)
+    learn.evaluator.set_eval_settings(cur.SETTINGS_3D_EASY)
     learn.set_train_settings(TRAIN_SETTINGS_3D_TEST)
     #print('Score:', learn.evaluate()['total_score'])
     for i in range(2):
