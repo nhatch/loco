@@ -162,6 +162,11 @@ class Simbicon(PDController):
             if not bodynode.id in c.ALLOWED_COLLISION_IDS:
                 print("HIT THE GROUND")
                 return True
+        q, dq = self.env.get_x()
+        _, v = self.balance_params(q, dq)
+        if v[c.X] < -0.1:
+            print("GOING BACKWARDS")
+            return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
         # However, setting the tolerance too large (larger than .04 or so) makes certain crashes

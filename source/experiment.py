@@ -106,7 +106,6 @@ def ex_2D():
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, "2D_experiment", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
-    embed()
     ex.run_evaluations()
     ex.run_iters(5, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(5, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)

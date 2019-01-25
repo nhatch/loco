@@ -37,15 +37,8 @@ class PDController:
     def compute(self):
         return self.env.from_features(self.compute_transformed(self.target_q))
 
-    def swing_contact(self, contacts, swing_heel):
-        # Stub to conform to Simbicon interface
-        return False
-
     def reset(self, state=None):
         self.target_q = self.env.get_x()[0]
 
     def state(self):
         return []
-
-    def mirror_state(self, state):
-        return state
