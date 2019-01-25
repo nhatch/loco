@@ -18,6 +18,10 @@ class Runner:
         self.n_runs += 1
         r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
         score = -np.linalg.norm(r.stance_heel_location() - r.stance_platform())
+        # Having the COM in front of the stance foot is bad
+        if self.env.controller.distance_to_go(r.pose()[:3]) < 0.0:
+            # TODO probably better to use stance heel for this penalty, not the target itself
+            score += self.env.controller.distance_to_go(r.pose()[:3])
         if self.env.video_recorder is not None:
             self.env.pause(0.3)
         return score

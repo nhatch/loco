@@ -15,10 +15,10 @@ o2d = np.concatenate([oq_2d, oq_2d,
                       ot_2d, ot_2d, ot_2d, ot_2d])
 
 TRAIN_SETTINGS_2D = {
-    'n_trajectories': 3,
+    'n_trajectories': 4,
     'n_dirs': 4,
     'tol': 0.02,
-    'max_intolerable_steps': 3,
+    'max_intolerable_steps': 4,
     'controllable_params':
         build_mask(sp.N_PARAMS,
             [

@@ -1,7 +1,7 @@
 from IPython import embed
 import numpy as np
 import pickle
-import os
+import os.path
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
@@ -23,24 +23,29 @@ class Experiment:
                 }
         self.name = name
         self.learn = LearnInverseDynamics(env, self.name)
-        self.results = {}
-        for settings_name in final_eval_settings:
-            d = {}
-            for k in KEYS_TO_SAVE:
-                d[k] = []
-            self.results[settings_name] = d
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
+        self.load(final_eval_settings)
 
     def save(self):
         fname = RESULTS_FMT.format(self.name)
         with open(fname, 'wb') as f:
             pickle.dump(self.results, f)
 
-    def load(self):
-        self.learn.load_train_set()
+    def load(self, final_eval_settings):
         fname = RESULTS_FMT.format(self.name)
-        with open(fname, 'rb') as f:
-            self.results = pickle.load(f)
+        if os.path.exists(fname):
+            with open(fname, 'rb') as f:
+                self.results = pickle.load(f)
+            if len(self.results[final_eval_settings[0]][KEYS_TO_SAVE[0]]) > 1:
+                self.learn.load_train_set()
+        else:
+            self.results = {}
+            for settings_name in final_eval_settings:
+                d = {}
+                for k in KEYS_TO_SAVE:
+                    d[k] = []
+                self.results[settings_name] = d
+            self.run_evaluations()
 
     def run_evaluations(self):
         for settings_name in self.results.keys():
@@ -55,6 +60,7 @@ class Experiment:
             for k,v in results.items():
                 self.results[settings_name][k].append(v)
             self.plot_results(settings_name)
+        self.save()
         self.learn.evaluator.evaluate(self.learn.act) # For human consumption
 
     def run_iters(self, n_iters, eval_settings, train_settings):
@@ -63,7 +69,6 @@ class Experiment:
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()
             self.run_evaluations()
-            self.save()
 
     def plot_results(self, settings_name):
         lines = []
@@ -106,9 +111,8 @@ def ex_2D():
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, "2D_experiment", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
-    ex.run_evaluations()
-    ex.run_iters(5, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(5, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(6, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
     embed()
 
 if __name__ == '__main__':
