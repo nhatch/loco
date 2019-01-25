@@ -15,7 +15,6 @@ class RandomSearch:
         self.eps = settings.get('eps') or 0.1
         self.max_iters = settings.get('max_iters') or 5
         self.controllable_params = settings['controllable_params']
-        self.episodes = 0
 
     def sample_perturbation(self):
         delta = np.random.randn(np.prod(self.w_policy.shape))
@@ -35,7 +34,6 @@ class RandomSearch:
             rets.append(p_ret)
             rets.append(n_ret)
             grad += (p_ret - n_ret) / self.n_dirs * p
-        self.episodes += self.n_dirs*2
         return grad / np.std(rets)
 
     def random_search(self, render=1.0, video_save_dir=None):

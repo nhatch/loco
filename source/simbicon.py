@@ -67,7 +67,7 @@ class Simbicon(PDController):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
         gait = [0.14, 0, 0.2, 0.0, 0.2,
-                0.4, -1.1,   0, -0.05,
+                0.4, -1.1,   0.1, -0.05,
                 0,    0, 0.2, -0.1,
                 0,0,0,0,0,0] # None of these last 6 are used in 2D
         return np.array(gait)
@@ -314,7 +314,7 @@ def test(env, length, seed=None, runway_length=15, runway_x=0):
         # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
         # than its heel. This makes difficult training environments for random optimization.
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
-        _, terminated = env.simulate([t,0,0], put_dots=True)
+        _, terminated = env.simulate([t,0,0])
         if terminated:
             break
 

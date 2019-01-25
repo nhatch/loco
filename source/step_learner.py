@@ -12,8 +12,10 @@ class Runner:
         if not use_stepping_stones:
             self.grounds = self.grounds[:1]
         self.target = target
+        self.n_runs = 0
 
     def run(self, action):
+        self.n_runs += 1
         r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
         score = -np.linalg.norm(r.stance_heel_location() - r.stance_platform())
         if self.env.video_recorder is not None:

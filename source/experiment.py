@@ -6,58 +6,70 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
-
 import curriculum as cur
 
+RESULTS_FMT = 'data/results_{}.pkl'
+
 N_EVAL_TRAJECTORIES = 8
-EVAL_SETTINGS = cur.SETTINGS_3D_HARDER
+KEYS_TO_SAVE = ['total_reward', 'max_error', 'n_steps', 'seed']
+KEYS_TO_PLOT = ['total_reward', 'max_error']
 
 class Experiment:
-    def __init__(self, env, name):
+    def __init__(self, env, name, final_eval_settings):
         self.settings = {
-                "total_score": "blue",
+                "total_reward": "blue",
                 "max_error": "red",
                 "n_steps": "black",
                 }
         self.name = name
         self.learn = LearnInverseDynamics(env, self.name)
-        self.iter = 0
-        self.results = defaultdict(lambda: [])
+        self.results = {}
+        for settings_name in final_eval_settings:
+            d = {}
+            for k in KEYS_TO_SAVE:
+                d[k] = []
+            self.results[settings_name] = d
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
-        #self.run_evaluations()
 
-    def checkpoint(self):
-        # TODO add checkpointing (save model params, collected data, training curve statistics)
-        pass
+    def save(self):
+        fname = RESULTS_FMT.format(self.name)
+        with open(fname, 'wb') as f:
+            pickle.dump(self.results, f)
+
+    def load(self):
+        self.learn.load_train_set()
+        fname = RESULTS_FMT.format(self.name)
+        with open(fname, 'rb') as f:
+            self.results = pickle.load(f)
 
     def run_evaluations(self):
-        results = defaultdict(lambda: [])
-        for i in range(self.n_eval_trajectories):
-            print("Starting evaluation", i)
-            result = self.learn.evaluator.evaluate(self.learn.act, render=None)
-            for k,v in result.items():
-                results[k].append(v)
-        for k,v in results.items():
-            self.results[k].append(v)
-        self.plot_results()
-        self.learn.evaluate() # For human consumption
+        for settings_name in self.results.keys():
+            settings = cur.__dict__[settings_name]
+            self.learn.evaluator.set_eval_settings(settings)
+            results = defaultdict(lambda: [])
+            for i in range(self.n_eval_trajectories):
+                print("Starting evaluation", i)
+                result = self.learn.evaluator.evaluate(self.learn.act, render=None)
+                for k in KEYS_TO_SAVE:
+                    results[k].append(result[k])
+            for k,v in results.items():
+                self.results[settings_name][k].append(v)
+            self.plot_results(settings_name)
+        self.learn.evaluator.evaluate(self.learn.act) # For human consumption
 
     def run_iters(self, n_iters, eval_settings, train_settings):
         self.learn.set_train_settings(train_settings)
         for i in range(n_iters):
-            # TODO should we also run evaluations for easier settings?
-            self.learn.evaluator.set_eval_settings(EVAL_SETTINGS)
-            self.run_evaluations()
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()
+            self.run_evaluations()
+            self.save()
 
-    def plot_results(self):
-        n_points = self.iter+1
+    def plot_results(self, settings_name):
         lines = []
         labels = []
-        keys_to_plot = ['total_score', 'max_error']
-        for k in keys_to_plot:
-            data = np.array(self.results[k])
+        for k in KEYS_TO_PLOT:
+            data = np.array(self.results[settings_name][k])
             x = range(data.shape[0])
             color = self.settings[k]
             line, = plt.plot(x, np.mean(data, 1), color=color)
@@ -65,7 +77,7 @@ class Experiment:
             labels.append(k)
             lines.append(line)
 
-        plt.title("Training curve")
+        plt.title(settings_name)
         plt.xlabel("Number of data collection iterations")
         plt.ylabel("Foot placement error")
         plt.legend(lines, labels)
@@ -73,27 +85,32 @@ class Experiment:
         sns.set_style('white')
         sns.despine()
 
-        plt.savefig('{}.png'.format(self.name))
+        plt.savefig('{}_{}.png'.format(self.name, settings_name))
         plt.clf()
 
-def load(env, name):
-    learn = LearnInverseDynamics(env, name)
-    learn.load_train_set()
-    return learn
-
-if __name__ == '__main__':
-    from stepping_stones_env import SteppingStonesEnv
+def ex_3D():
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
-    #env = SteppingStonesEnv()
     env = Simple3DEnv(Simbicon3D)
-    ex = Experiment(env, "new_experiment")
+    ex = Experiment(env, "new_experiment", ['SETTINGS_3D_HARDER'])
+    ex.run_evaluations()
     ex.run_iters(2, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D_PRECISE)
     ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PRECISE)
     ex.run_iters(6, cur.SETTINGS_3D_HARDER, cur.TRAIN_SETTINGS_3D_PRECISE)
-    ex.run_evaluations()
-    #learn = load(env, 'my_experiment')
     embed()
+
+def ex_2D():
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    ex = Experiment(env, "2D_experiment", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
+    embed()
+    ex.run_evaluations()
+    ex.run_iters(5, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(5, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    embed()
+
+if __name__ == '__main__':
+    ex_2D()
