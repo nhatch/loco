@@ -134,8 +134,8 @@ class LearnInverseDynamics:
         c = self.env.consts()
         # TODO investigate removing more features to reduce problem dimension
         s = self.train_settings
-        X = np.array(self.train_features)[:,s['observable_features']]
-        y = np.array(self.train_responses)[:,s['controllable_params']]
+        X = np.array(self.train_features) * s['observable_features']
+        y = np.array(self.train_responses) * s['controllable_params']
         self.X_mean = X.mean(0)
         self.y_mean = y.mean(0)
         X = (X - self.X_mean)
@@ -148,11 +148,10 @@ class LearnInverseDynamics:
         if self.is_fitted:
             s = self.train_settings
             c = self.env.consts()
-            X = features.reshape(1,-1)[:,s['observable_features']]
+            X = features.reshape(1,-1)
             X = (X - self.X_mean)
             prediction = self.model.predict(X).reshape(-1)
-            prediction = prediction + self.y_mean
-            action[s['controllable_params']] = prediction
+            action = prediction + self.y_mean
             # Simbicon3D will handle mirroring the action if necessary
         return action
 

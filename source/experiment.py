@@ -118,9 +118,10 @@ def ex_3D():
 def ex_2D():
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, "2D_experiment", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
+    ex = Experiment(env, "2D_cur_with_ankle", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
+    ex.revert_to_iteration(29, '2D_quadratic_after_29')
     #ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    #ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':

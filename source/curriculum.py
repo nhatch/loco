@@ -30,6 +30,15 @@ TRAIN_SETTINGS_2D = {
     'observable_features': o2d,
     }
 
+params_2Dplus = TRAIN_SETTINGS_2D['controllable_params'].copy()
+params_2Dplus[sp.STANCE_ANKLE_RELATIVE] = True
+o2d_plus = np.ones_like(o2d) # All features are observable
+
+TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
+    'controllable_params': params_2Dplus,
+    'observable_features': o2d_plus,
+    }
+
 SETTINGS_2D_EASY = {
     'use_stepping_stones': False,
     'dist_mean': 0.42,
