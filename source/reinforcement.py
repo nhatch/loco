@@ -50,7 +50,7 @@ def test(use_3D=False):
     # stance heel.
     # It has been standardized (mirrored, translated, rotated) to remove extraneous
     # information that does not affect the dynamics.
-    experience = result['experience']
+    experience = evaluator.experience
     print("Total reward: {:.3f}".format(result['total_reward']))
     embed()
 

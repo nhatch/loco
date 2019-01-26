@@ -57,8 +57,10 @@ class Evaluator:
                 "n_steps": num_successful_steps,
                 "max_error": max_error,
                 "seed": seed,
-                "experience": experience,
                 }
+        # We don't want to return this because it clutters up the output when
+        # run in the interpreter. Access it via evaluator.experience.
+        self.experience = experience
         return result
 
     def generate_targets(self, start_state):

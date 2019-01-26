@@ -19,10 +19,10 @@ TRAIN_FMT = 'data/train_{}.pkl'
 RIDGE_ALPHA = 0.1
 
 class LearnInverseDynamics:
-    def __init__(self, env, exp_name=''):
+    def __init__(self, env, name=''):
         self.env = env
         self.evaluator = Evaluator(env)
-        self.exp_name = exp_name
+        self.name = name
         self.train_features, self.train_responses = [], []
         self.history = []
         # TODO try some model more complicated than linear?
@@ -40,17 +40,17 @@ class LearnInverseDynamics:
         self.train_settings = settings
 
     def dump_train_set(self):
-        fname = TRAIN_FMT.format(self.exp_name)
+        fname = TRAIN_FMT.format(self.name)
         with open(fname, 'wb') as f:
             pickle.dump((self.history, self.train_features, self.train_responses), f)
 
     def load_train_set(self):
-        fname = TRAIN_FMT.format(self.exp_name)
+        fname = TRAIN_FMT.format(self.name)
         with open(fname, 'rb') as f:
             self.history, self.train_features, self.train_responses = pickle.load(f)
-        self.revert_to_iteration(len(self.history))
+        self.revert_to_iteration(len(self.history), self.name)
 
-    def revert_to_iteration(self, iteration, new_exp_name=None):
+    def revert_to_iteration(self, iteration, new_name):
         # Resets so the next iteration index will be `iteration`
         self.history = self.history[:iteration]
         h = self.history[-1]
@@ -60,8 +60,8 @@ class LearnInverseDynamics:
         self.total_steps = h[1]
         self.total_failed_annotations = h[2]
         self.total_train_time = h[3]
-        if new_exp_name is not None:
-            self.exp_name = new_exp_name
+        if new_name is not None:
+            self.name = new_name
         self.dump_train_set()
         self.evaluator.set_eval_settings(h[4])
         self.set_train_settings(h[5])
@@ -90,8 +90,8 @@ class LearnInverseDynamics:
         experience = []
         s = self.train_settings
         for i in range(s['n_trajectories']):
-            r = self.evaluator.evaluate(self.act, max_intolerable_steps=s['max_intolerable_steps'])
-            experience += r['experience']
+            r = self.evaluate(max_intolerable_steps=s['max_intolerable_steps'])
+            experience += self.evaluator.experience
             self.total_steps += r['n_steps']
         return experience
 
@@ -155,3 +155,6 @@ class LearnInverseDynamics:
             action[s['controllable_params']] = prediction
             # Simbicon3D will handle mirroring the action if necessary
         return action
+
+    def evaluate(self, **kwargs):
+        return self.evaluator.evaluate(self.act, **kwargs)
