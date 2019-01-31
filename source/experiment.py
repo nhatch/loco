@@ -69,7 +69,7 @@ class Experiment:
                 self.results[settings_name][k].append(v)
             self.plot_results(settings_name)
         self.save()
-        self.learn.evaluate() # For human consumption
+        #self.learn.evaluate() # For human consumption
 
     def run_iters(self, n_iters, eval_settings, train_settings):
         self.learn.set_train_settings(train_settings)
@@ -85,7 +85,9 @@ class Experiment:
             data = np.array(self.results[settings_name][k])
             x = range(data.shape[0])
             color = self.settings[k]
-            line, = plt.plot(x, np.mean(data, 1), color=color)
+            mean = np.mean(data, 1)
+            line, = plt.plot(x, mean, color=color)
+            #plt.fill_between(x, mean-std, mean+std, color=color, alpha=0.2)
             plt.fill_between(x, np.min(data, 1), np.max(data, 1), color=color, alpha=0.2)
             labels.append(k)
             lines.append(line)
@@ -118,10 +120,9 @@ def ex_3D():
 def ex_2D():
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, "2D_cur_with_ankle", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
-    ex.revert_to_iteration(29, '2D_quadratic_after_29')
+    ex = Experiment(env, "2D_quadratic_after_29", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
     #ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    #ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':

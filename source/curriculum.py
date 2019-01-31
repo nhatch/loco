@@ -41,7 +41,7 @@ TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
 
 SETTINGS_2D_EASY = {
     'use_stepping_stones': False,
-    'dist_mean': 0.42,
+    'dist_mean': 0.45,
     'dist_spread': 0.3,
     'n_steps': 16,
     'tol': 0.02,

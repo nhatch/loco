@@ -90,7 +90,7 @@ class LearnInverseDynamics:
         experience = []
         s = self.train_settings
         for i in range(s['n_trajectories']):
-            r = self.evaluate(max_intolerable_steps=s['max_intolerable_steps'])
+            r = self.evaluate(max_intolerable_steps=s['max_intolerable_steps'], render=None)
             experience += self.evaluator.experience
             self.total_steps += r['n_steps']
         return experience
@@ -126,7 +126,7 @@ class LearnInverseDynamics:
         runner.reset()
         rs.w_policy = self.act(features) # Initialize with something reasonable
         # TODO put max_iters and tol in the object initialization params instead
-        w_policy = rs.random_search(render=1)
+        w_policy = rs.random_search(render=None)
         self.total_steps += runner.n_runs
         return w_policy
 

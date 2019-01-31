@@ -206,8 +206,8 @@ class Simbicon(PDController):
             if self.env.is_3D:
                 self.params[SWING_ANKLE_ROLL] = self.base_gait()[SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
-        if early_strike:
-            print("Early strike!")
+        #if early_strike:
+        #    print("Early strike!")
         q, dq = self.env.get_x()
         target_diff = self.params[IK_GAIN] * self.speed(dq)
         heel_close = self.distance_to_go(swing_heel) < target_diff
