@@ -67,8 +67,8 @@ class Simbicon(PDController):
         # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
         # Then modified for the new parameters format.
         gait = [0.14, 0, 0.2, 0.0, 0.2,
-                0.4, -1.1,   0.1, -0.05,
-                0,    0, 0.2, -0.1,
+                0.4, -1.1,   0.0, -0.05,
+                0,    0, 0.05, -0.1,
                 0,0,0,0,0,0] # None of these last 6 are used in 2D
         return np.array(gait)
 
@@ -246,12 +246,13 @@ class Simbicon(PDController):
         target_swing_knee = params[sp.SWING_KNEE_RELATIVE+DIR_IDX]
         tq[self.swing_idx+c.KNEE] = target_swing_knee
 
-        # The following line sets the swing ankle to be flat relative to the ground.
-        tq[self.swing_idx+c.ANKLE] = -(target_swing_angle + target_swing_knee)
-        tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
-
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
+
+        shin_actual = torso_actual + q[self.swing_idx+c.KNEE] + q[self.swing_idx+c.HIP_PITCH]
+        # The following line sets the swing ankle to be flat relative to the ground.
+        tq[self.swing_idx+c.ANKLE] = -shin_actual
+        tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
 
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
