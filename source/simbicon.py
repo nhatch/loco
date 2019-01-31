@@ -9,7 +9,7 @@ from utils import heading_from_vector
 # after the left-foot heel strike.
 LIFTOFF_DURATION = 0.3
 
-from simbicon_params import *
+import simbicon_params as sp
 
 UP = 'UP'
 DOWN = 'DOWN'
@@ -78,7 +78,7 @@ class Simbicon(PDController):
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         params = self.base_gait()
         if raw_gait is not None:
-            params += raw_gait * PARAM_SCALE
+            params += raw_gait * sp.PARAM_SCALE
         self.set_gait(Params(params))
 
         self.target, self.prev_target = target, self.target
@@ -103,7 +103,7 @@ class Simbicon(PDController):
         else:
             self.target_heading = target_heading
         if self.env.is_3D:
-            self.target_heading += self.params[HEADING]
+            self.target_heading += self.params[sp.HEADING]
         self.target_direction = np.array(
                 [np.cos(self.target_heading), 0, -np.sin(self.target_heading)])
 
@@ -134,11 +134,11 @@ class Simbicon(PDController):
         # fiddling around manually.
         params = self.params # This should work like np.array
         step_dist_diff = self.distance_to_go(self.stance_heel) - 0.4
-        params[STANCE_KNEE_RELATIVE+UP_IDX]  += - step_dist_diff * 0.2
-        params[SWING_HIP_WORLD+UP_IDX]       += + step_dist_diff * 0.4
-        params[SWING_KNEE_RELATIVE+UP_IDX]   += - step_dist_diff * 0.8
-        params[STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
-        params[TORSO_WORLD]           += - step_dist_diff * 0.5
+        params[sp.STANCE_KNEE_RELATIVE+sp.UP_IDX]  += - step_dist_diff * 0.2
+        params[sp.SWING_HIP_WORLD+sp.UP_IDX]       += + step_dist_diff * 0.4
+        params[sp.SWING_KNEE_RELATIVE+sp.UP_IDX]   += - step_dist_diff * 0.8
+        params[sp.STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
+        params[sp.TORSO_WORLD]           += - step_dist_diff * 0.5
 
     def set_gait(self, params):
         self.params = params
@@ -164,7 +164,7 @@ class Simbicon(PDController):
                 return True
         q, dq = self.env.get_x()
         _, v = self.balance_params(q, dq)
-        if v[c.X] < -0.1:
+        if v[c.X] < -0.2:
             print("GOING BACKWARDS")
             return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
@@ -202,14 +202,14 @@ class Simbicon(PDController):
         duration = self.time() - self.step_started
         if duration >= 0.2:
             # Once toe-off is complete, return to neutral ankle angle
-            self.params[SWING_ANKLE_RELATIVE+UP_IDX] = self.base_gait()[SWING_ANKLE_RELATIVE+UP_IDX]
+            self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = self.base_gait()[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
             if self.env.is_3D:
-                self.params[SWING_ANKLE_ROLL] = self.base_gait()[SWING_ANKLE_ROLL]
+                self.params[sp.SWING_ANKLE_ROLL] = self.base_gait()[sp.SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         #if early_strike:
         #    print("Early strike!")
         q, dq = self.env.get_x()
-        target_diff = self.params[IK_GAIN] * self.speed(dq)
+        target_diff = self.params[sp.IK_GAIN] * self.speed(dq)
         heel_close = self.distance_to_go(swing_heel) < target_diff
         com_close = self.distance_to_go(q[:3]) < target_diff
         if (heel_close and com_close) or early_strike:
@@ -232,13 +232,13 @@ class Simbicon(PDController):
         q, dq = self.env.get_x()
         # Upon starting the DOWN part of the step, choose target swing leg angles
         # based on the location of the target.
-        dx = self.params[IK_GAIN] * self.speed(dq)
+        dx = self.params[sp.IK_GAIN] * self.speed(dq)
         # TODO use target set by params[TX:TX+3], not self.target
         adjusted_target = self.target - np.array([0,0.1,0]) - dx*self.target_direction
         relative_hip, knee = self.ik.inv_kine(adjusted_target, self.swing_idx)
         # TODO this completely overrides the base_gait and set_gait settings. Make this clearer
-        self.params[SWING_HIP_WORLD+DN_IDX] = relative_hip + q[c.ROOT_PITCH]
-        self.params[SWING_KNEE_RELATIVE+DN_IDX] = knee
+        self.params[sp.SWING_HIP_WORLD+sp.DN_IDX] = relative_hip + q[c.ROOT_PITCH]
+        self.params[sp.SWING_KNEE_RELATIVE+sp.DN_IDX] = knee
 
     def balance_params(self, q, dq):
         return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X coordinate
@@ -246,30 +246,30 @@ class Simbicon(PDController):
     def compute_target_q(self, q, dq):
         c = self.env.consts()
         params = self.params
-        DIR_IDX = UP_IDX if self.direction == UP else DN_IDX
+        DIR_IDX = sp.UP_IDX if self.direction == UP else sp.DN_IDX
         tq = np.zeros(c.Q_DIM)
-        tq[self.stance_idx+c.KNEE] = params[STANCE_KNEE_RELATIVE+DIR_IDX]
-        tq[self.stance_idx+c.ANKLE] = params[STANCE_ANKLE_RELATIVE]
+        tq[self.stance_idx+c.KNEE] = params[sp.STANCE_KNEE_RELATIVE+DIR_IDX]
+        tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
 
-        cd = params[POSITION_BALANCE_GAIN]
-        cv = params[VELOCITY_BALANCE_GAIN]
+        cd = params[sp.POSITION_BALANCE_GAIN]
+        cv = params[sp.VELOCITY_BALANCE_GAIN]
         d, v = self.balance_params(q, dq)
         balance_feedback = cd*d[c.X] + cv*v[c.X]
 
-        target_swing_angle = params[SWING_HIP_WORLD+DIR_IDX] + balance_feedback
-        target_swing_knee = params[SWING_KNEE_RELATIVE+DIR_IDX]
+        target_swing_angle = params[sp.SWING_HIP_WORLD+DIR_IDX] + balance_feedback
+        target_swing_knee = params[sp.SWING_KNEE_RELATIVE+DIR_IDX]
         tq[self.swing_idx+c.KNEE] = target_swing_knee
 
         # The following line sets the swing ankle to be flat relative to the ground.
         tq[self.swing_idx+c.ANKLE] = -(target_swing_angle + target_swing_knee)
-        tq[self.swing_idx+c.ANKLE] += params[SWING_ANKLE_RELATIVE+DIR_IDX]
+        tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
 
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
 
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
-        target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[TORSO_WORLD])
+        target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
         thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
         hip_dofs = self.ik.get_hip(thigh, target_orientation)
         if self.env.is_3D:
@@ -302,7 +302,7 @@ class Simbicon(PDController):
         torso_speed = dq[c.ROOT_PITCH]
         kp = self.Kp[self.stance_idx+c.HIP_PITCH]
         kd = self.Kd[self.stance_idx+c.HIP_PITCH]
-        torso_torque = - kp * (torso_actual - params[TORSO_WORLD]) - kd * torso_speed
+        torso_torque = - kp * (torso_actual - params[sp.TORSO_WORLD]) - kd * torso_speed
         control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
 
         torques = self.env.from_features(control)
@@ -341,6 +341,6 @@ def reproduce_bug(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    test(env, 0.6)
+    test(env, 0.2)
     #reproduce_bug(env)
     embed()

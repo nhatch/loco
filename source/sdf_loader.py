@@ -4,7 +4,7 @@ import sys
 
 # Otherwise if running multiple experiments simultaneously,
 # they might overwrite each other's SDF files.
-UQ_ID = sys.argv[1]
+UQ_ID = sys.argv[1] if len(sys.argv) > 1 else ''
 
 # SDF color format is space-separated RGBA
 # Here are some suggested settings

@@ -31,13 +31,9 @@ TRAIN_SETTINGS_2D = {
     'model_class': 'linear',
     }
 
-params_2Dplus = TRAIN_SETTINGS_2D['controllable_params'].copy()
-params_2Dplus[sp.STANCE_ANKLE_RELATIVE] = True
 o2d_plus = np.ones_like(o2d) # All features are observable
 
 TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
-    'controllable_params': params_2Dplus,
-    'observable_features': o2d_plus,
     'model_class': 'quadratic',
     }
 
