@@ -215,7 +215,6 @@ class Simbicon(PDController):
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
             self.direction = DOWN
-            self.calc_down_ik()
 
     def change_stance(self, contacts, swing_heel):
         self.step_started = self.time()
@@ -226,19 +225,6 @@ class Simbicon(PDController):
         dx, dy, dz = self.stance_heel - self.target
         res = "({:.2f}, {:.2f}, {:.2f}) ({:+.2f}, {:+.2f}, {:.2f})".format(hx, hy, hz, dx, dy, dz)
         return "{:.3f}: Ended step at {}".format(self.time(), res)
-
-    def calc_down_ik(self):
-        c = self.env.consts()
-        q, dq = self.env.get_x()
-        # Upon starting the DOWN part of the step, choose target swing leg angles
-        # based on the location of the target.
-        dx = self.params[sp.IK_GAIN] * self.speed(dq)
-        # TODO use target set by params[TX:TX+3], not self.target
-        adjusted_target = self.target - np.array([0,0.1,0]) - dx*self.target_direction
-        relative_hip, knee = self.ik.inv_kine(adjusted_target, self.swing_idx)
-        # TODO this completely overrides the base_gait and set_gait settings. Make this clearer
-        self.params[sp.SWING_HIP_WORLD+sp.DN_IDX] = relative_hip + q[c.ROOT_PITCH]
-        self.params[sp.SWING_KNEE_RELATIVE+sp.DN_IDX] = knee
 
     def balance_params(self, q, dq):
         return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X coordinate
