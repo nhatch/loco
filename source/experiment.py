@@ -122,8 +122,8 @@ def ex_2D(uq_id):
     env = SteppingStonesEnv()
     ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
     ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(9, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(9, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    ex.run_iters(15, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    #ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':

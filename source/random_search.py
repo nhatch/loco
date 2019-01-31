@@ -55,6 +55,7 @@ class RandomSearch:
         print("Score: {:.4f}".format(ret))
         # This is a terrible hack. Might take some bizarre theory to justify it.
         # The idea is, the closer we are to the target, the smaller our next
-        # step size should be.
-        self.step_size = -ret
+        # step size should be. (But when we are very far from the target, we should
+        # still use a reasonably small step size to avoid divergence.)
+        self.step_size = min(-ret, 0.3)
         return ret > -self.tol

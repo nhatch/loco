@@ -7,7 +7,7 @@ from utils import build_mask
 
 # This defines a mask for the environment features which will be used to limit
 # the dimensionality of training.
-oq_2d = build_mask(c2d.Q_DIM, [c2d.X, c2d.Y, c2d.SWING_IDX+c2d.HIP_PITCH, c2d.STANCE_IDX+c2d.HIP_PITCH, c2d.STANCE_IDX+c2d.ANKLE])
+oq_2d = build_mask(c2d.Q_DIM, [c2d.X, c2d.Y, c2d.SWING_IDX+c2d.HIP_PITCH, c2d.STANCE_IDX+c2d.HIP_PITCH, c2d.STANCE_IDX+c2d.KNEE])
 ot_2d = build_mask(3, [c2d.X, c2d.Y])
 # Robot DOF state and velocity; stance heel location, previous target, target before that,
 # then current target.
@@ -23,9 +23,11 @@ TRAIN_SETTINGS_2D = {
         build_mask(sp.N_PARAMS,
             [
             sp.IK_GAIN,
-            sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
+            #sp.STANCE_ANKLE_RELATIVE,
+            #sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
             sp.UP_IDX+sp.SWING_HIP_WORLD,
             sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
+            sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
             ]),
     'observable_features': o2d,
     'model_class': 'linear',
