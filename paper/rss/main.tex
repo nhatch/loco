@@ -1,73 +1,77 @@
-\documentclass[a4paper]{article}
+\documentclass[conference]{IEEEtran}
+\usepackage{times}
 
-%% Language and font encodings
-\usepackage[english]{babel}
-\usepackage[utf8x]{inputenc}
-\usepackage[T1]{fontenc}
-
-%% Sets page size and margins
-\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
-
-%% Useful packages
-\usepackage{amsmath}
-\usepackage{verbatim}
-\usepackage{amsfonts}
-\usepackage{enumitem}
+% numbers option provides compact numerical references in the text. 
+\usepackage[numbers]{natbib}
+\usepackage{multicol}
+\usepackage[bookmarks=true]{hyperref}
+\usepackage{xcolor}
 \usepackage{graphicx}
-\usepackage{listings}
-\usepackage[colorinlistoftodos]{todonotes}
-\usepackage[colorlinks=true, allcolors=blue]{hyperref}
-\usepackage{algorithm}
-\usepackage[noend]{algpseudocode}
-\usepackage{mathtools}
-\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
-\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
 
-\usepackage[round]{natbib}
-
-\makeatletter
-\def\BState{\State\hskip-\ALG@thistlm}
-\makeatother
-
-\DeclareMathOperator{\Tr}{Tr}
-\DeclareMathOperator{\sep}{sep}
-\lstset{frame=tb,
-  language=Python,
-  aboveskip=3mm,
-  belowskip=3mm,
-  showstringspaces=false,
-  columns=flexible,
-  basicstyle={\small\ttfamily},
-  numbers=none,
-  numberstyle=\tiny\color{gray},
-  keywordstyle=\color{blue},
-  commentstyle=\color{red},
-  stringstyle=\color{red},
-  breaklines=true,
-  breakatwhitespace=true,
-  tabsize=3
+\pdfinfo{
+   /Author (Homer Simpson)
+   /Title  (Robots: Our new overlords)
+   /CreationDate (D:20101201120000)
+   /Subject (Robots)
+   /Keywords (Robots;Overlords)
 }
-
-\newcommand{\norm}[1]{\lVert #1 \rVert}
-\newcommand{\fig}[1]{\includegraphics[width=0.48\textwidth]{#1}}
-\newcommand{\figb}[1]{\includegraphics[width=0.95\textwidth]{#1}}
-\newcommand{\figz}[1]{\includegraphics[width=0.23\textwidth]{#1.png}}
-\newcommand{\m}[1]{\mathbf{#1}}
-\newcommand{\EE}{\mathbb{E}}
-\newcommand{\RR}{\mathbb{R}}
-\newcommand{\TT}{\mathcal{T}}
-
 \newcommand{\nhatch}[1]{{\leavevmode\color{magenta} Nathan: #1}}
-
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-
-\title{Curriculum and Imitation Learning for Biped Locomotion on Rough Terrain}
-\author{TBD}
 
 \begin{document}
 
+\title{Curriculum and Imitation Learning for Biped Locomotion on Rough Terrain}
+
+% You will get a Paper-ID when submitting a pdf file to the conference system
+\author{Author Names Omitted for Anonymous Review.}
+
+%\author{\authorblockN{Michael Shell}
+%\authorblockA{School of Electrical and\\Computer Engineering\\
+%Georgia Institute of Technology\\
+%Atlanta, Georgia 30332--0250\\
+%Email: mshell@ece.gatech.edu}
+%\and
+%\authorblockN{Homer Simpson}
+%\authorblockA{Twentieth Century Fox\\
+%Springfield, USA\\
+%Email: homer@thesimpsons.com}
+%\and
+%\authorblockN{James Kirk\\ and Montgomery Scott}
+%\authorblockA{Starfleet Academy\\
+%San Francisco, California 96678-2391\\
+%Telephone: (800) 555--1212\\
+%Fax: (888) 555--1212}}
+
+
+% avoiding spaces at the end of the author lines is not a problem with
+% conference papers because we don't use \thanks or \IEEEmembership
+
+
+% for over three affiliations, or if they all won't fit within the width
+% of the page, use this alternative format:
+% 
+%\author{\authorblockN{Michael Shell\authorrefmark{1},
+%Homer Simpson\authorrefmark{2},
+%James Kirk\authorrefmark{3}, 
+%Montgomery Scott\authorrefmark{3} and
+%Eldon Tyrell\authorrefmark{4}}
+%\authorblockA{\authorrefmark{1}School of Electrical and Computer Engineering\\
+%Georgia Institute of Technology,
+%Atlanta, Georgia 30332--0250\\ Email: mshell@ece.gatech.edu}
+%\authorblockA{\authorrefmark{2}Twentieth Century Fox, Springfield, USA\\
+%Email: homer@thesimpsons.com}
+%\authorblockA{\authorrefmark{3}Starfleet Academy, San Francisco, California 96678-2391\\
+%Telephone: (800) 555--1212, Fax: (888) 555--1212}
+%\authorblockA{\authorrefmark{4}Tyrell Inc., 123 Replicant Street, Los Angeles, California 90210--4321}}
+
+
 \maketitle
+
+\begin{abstract}
+The abstract goes here.
+\end{abstract}
+
+\IEEEpeerreviewmaketitle
+
 
 \section{Introduction} \label{sec:intro}
 
@@ -200,7 +204,7 @@ For more details, see Appendix \ref{app:simbicon}.}
     The parameters \texttt{swing\_hip} and \texttt{swing\_knee} can be used to fine-tune these automatic adjustments.
 \end{enumerate}
 
-\begin{table}
+\begin{table*}
   \caption{Parameters of the trajectory generator.
   Note that \texttt{stance\_hip\_roll} is used only in 3D, and \texttt{swing\_knee} is used only in 2D (since in 3D we don't attempt environments with stairs).}
   \label{table:params}
@@ -213,7 +217,7 @@ For more details, see Appendix \ref{app:simbicon}.}
     \texttt{stance\_hip\_roll} & Angle for stance hip during all three states (coronal plane). \\
   \end{tabular}
   \hrule
-\end{table}
+\end{table*}
 
 See Table \ref{table:params} for a summary of the parameters of the TG.
 These parameters are \emph{residual} in the sense that setting all of them to zero will produce the default behavior of the TG.
@@ -289,8 +293,8 @@ After iteration 9, we change the environment such that the ground is no longer a
 \section{Experiments}
 
 \begin{figure}
-  \includegraphics[width=0.48\textwidth]{2D_ep.png}
-  \includegraphics[width=0.48\textwidth]{3D_ep.png}
+  \includegraphics[width=0.48\textwidth]{../figures/2D_ep.png}
+  \includegraphics[width=0.48\textwidth]{../figures/3D_ep.png}
   \caption{Screenshots of example episodes.\label{fig:example episodes}}
 \end{figure}
 
@@ -348,8 +352,10 @@ Finally, we note that a significant portion of the effort for this project went 
 It might be possible to avoid this by training a trajectory generator using motion capture.
 This would reduce the need for expert engineering and make it easier to test CIM on other robotic motion problems, such as manipulation.
 
+%\section*{Acknowledgments}
+
 \bibliographystyle{plainnat}
-\bibliography{bib}
+\bibliography{../bib}
 
 \appendix
 
