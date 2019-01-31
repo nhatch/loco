@@ -69,11 +69,11 @@
 
 \maketitle
 
-\section{Introduction}
+\section{Introduction} \label{sec:intro}
 
 Locomotion is a difficult, underactuated control problem.
 \emph{Biped} locomotion is more difficult because the support polygon is small and the center of mass is relatively high.
-Biped locomotion on \emph{rough terrain} is more difficult still, because large, frequent obstacles make even small mistakes catastrophic.
+Biped locomotion on \emph{rough terrain} is more difficult still, because frequent large obstacles make even small mistakes catastrophic.
 
 One way to handle these challenges is with detailed models and extensive optimization.
 For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}.
@@ -95,14 +95,14 @@ The TG allows us to take advantage of prior knowledge, while the learned policy 
 As shown in \citet{iscen2018pmtg}, this environmental simplification makes it feasible to learn a policy that can control walking speed for a quadruped robot.
 
 In this manuscript, we propose several additional ways to simplify robotic learning tasks by taking advantage of prior knowledge.
-We then show that these simplifications, taken together, make it feasible to use machine learning for (simulated) biped locomotion over rough terrain.
+Our experiments then demonstrate that these simplifications, taken together, make it feasible to use machine learning for simulated biped locomotion over rough terrain.
 In contrast to prior work in footstep planning, our approach learns a dynamic policy that requires no optimization at execution time.
 In contrast to prior work in learning-based locomotion, our learned policy \emph{controls its footstep locations}, which allows it to handle larger and more frequent obstacles.
 Our main contributions are as follows:
 \begin{itemize}
   \item a trajectory generator for controllable biped locomotion, based on SIMBICON \citep{yin2007simbicon} but with several modifications to enhance controllability;
   \item a policy architecture similar to PMTG but with a simpler HLP interface;
-  \item an efficient learning algorithm for this architecture, which takes advantage of reward shaping and curriculum learning; and
+  \item an efficient learning algorithm for this architecture, which takes advantage of imitation and curriculum learning; and
   \item simulated experiments evaluating the necessity and sufficiency of this approach for dynamic biped locomotion over rough terrain.
 \end{itemize}
 
@@ -123,7 +123,7 @@ They also require significant domain knowledge and manual tuning in order to eng
 For now, they are the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
 However, we are interested in exploring alternative possibilities that can exploit the dynamics of the system to achieve faster and more energy-efficient gaits.
 
-\nhatch{I think Honda does a lot with dynamic gaits, but I don't really understand how it works. I need to find and read some papers. To what extent can they plan step locations and handle rough terrain?}
+\nhatch{Honda and Boston Dynamics do a lot with dynamic gaits, but I don't really understand how it works. To what extent can they plan step locations and handle rough terrain?}
 
 There are a few prior works that use learning-based approaches to do step planning for simulated systems.
 \cite{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
@@ -132,30 +132,30 @@ The path that the agent follows is perfectly flat; on rough terrain, such inaccu
 \cite{karpathy2012curriculum} use curriculum learning for a simple planar biped to collect a set of (state, action, resulting step distance) tuples.
 The final policy is based on nearest-neighbor search among this set of collected experience.
 However, the curse of dimensionality for nearest-neighbor search
-makes it challenging to apply this approach to a more complicated model.
+makes it infeasible to apply this approach to a more complicated model.
 
 \subsection{Learning-based locomotion}
 
 Most of the prior work on deep RL for biped locomotion on rough terrain does not explicitly plan individual footstep locations.
 Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
-However, they have not been proven to work in situations with dense or large obstacles where small missteps can be catastrophic.
+However, they have not been shown to work in situations with dense or large obstacles where small missteps can be catastrophic.
 Such environments require accurate predictive planning at the level of individual contacts.
 
 Perhaps the most closely related prior work is \citet{iscen2018pmtg}.
-As described in the introduction, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
-This allows the hypothesis class of the HLP to be very simple (e.g. linear) and the learning algorithm for the HLP to be very simple as well (e.g. ARS \citep{mania2018simple}).
-However, this has been applied only to control walking speed for a quadruped on flat ground.
-The policy architecture in our paper is similar to a PMTG in that we learn a high-level policy that modulates a TG.
+As described in section \ref{sec:intro}, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
+This allows the HLP to use a very simple hypothesis class (e.g. linear) and a very simple learning algorithm (e.g. ARS \citep{mania2018simple}).
+However, PMTG has been applied only to control walking speed for a quadruped on flat ground.
+The policy architecture in our paper is similar to PMTG in that we learn a high-level policy that modulates a TG.
 However, one important difference is that in our paper, the HLP and the TG run at different frequencies.
 We will give a detailed description of these differences in the next section.
 
 
 \section{Our approach} \label{sec:approach}
 
-Our approach is a combination of several techniques, all of which are designed to simplify the policy learning problem as much as possible.
-It applies specifically to periodic control problems such as locomotion.
-For the sake of convenience, let us refer to this bundle of techniques as ``curricular imitative modulation'' (CIM).
-It consists of four components: a trajectory generator, a high-level policy, an expert that suggests good actions for the high-level policy, and a curriculum of environments of increasing difficulty.
+Our approach is called ``curricular imitative modulation'' (CIM).
+It applies to any periodic control problem (such as locomotion) and is
+designed to take advantage of prior knowledge to simplify the policy learning problem as much as possible.
+It consists of four components: a trajectory generator, a high-level policy, an expert for the high-level policy, and a curriculum of environments of increasing difficulty.
 
 %First, we use prior knowledge to design a good trajectory generator for the problem we are trying to solve.
 %This TG should have a set of interpretable \emph{parameters} which can be set at the beginning of a period and will affect the output of the TG until the end of that period.
@@ -169,13 +169,13 @@ It consists of four components: a trajectory generator, a high-level policy, an 
 Our concept of a trajectory generator is essentially identical to \citet{iscen2018pmtg}, except that the parameters of the TG are chosen only \emph{once per period}.
 Whereas in PMTG the high-level policy continuously modulates the output of the TG, in our approach the HLP runs much less frequently.
 It sets the TG parameters at the beginning of the period, and it does not observe the environment again until the beginning of the next period.
-Hence, our TG abstracts not only the \emph{actions} of the HLP, but also \emph{how frequently} it executes them.
+Hence, our TG abstracts not only the \emph{actions} of the HLP, but also \emph{how frequently} they are executed.
 One consequence of this abstraction is that it does not make sense for the HLP to learn a correctional term for the low-level actions (motor torques) produced by the TG.
 The only output of the HLP is the parameter settings for the TG.
 %Assuming that the low-level environment dynamics between calls to the HLP are fairly predictable (or that the TG can moderate any stochasticity that does arise), this further simplifies the environment from the point of view of the HLP.
 
 In subsequent subsections, it will be helpful to have in mind a concrete example of this kind of TG.
-Our TG for biped locomotion is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
+For biped locomotion, our TG is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
 SIMBICON uses a finite state machine (FSM) with two states: an UP state that ends after 0.3 seconds, and a DOWN state that ends on swing foot contact.
 During each state, proportional derivative (PD) controllers attempt to reach the corresponding set of target joint angles.
 Balance feedback is achieved by adjusting the target swing hip angles based on the distance and velocity of the agent's CoM relative to its stance foot contact location.
@@ -186,10 +186,10 @@ For more details, see Appendix \ref{app:simbicon}.}
   \item Insert a new TOE-OFF state at the beginning of each step.
     This state transitions to the UP state after 0.2s.
     It is identical to the UP state except that the target swing ankle angle can be modified by the parameter \texttt{toe\_off\_ankle}.
-    This allows the HLP to use the swing ankle to influence the robot's initial acceleration while still returing to a more neutral ankle angle before heel-strike.
+    This allows the HLP to use the swing ankle to influence the robot's initial acceleration while still returing to a more neutral angle before heel-strike.
 
-  \item Instead of a 0.3s delay, start the DOWN state when both the swing heel and the CoM are within a certain \emph{distance} of the target step location.\footnote{
-    If the swing heel hits the ground early, the step immediately ends.}
+  \item Instead of a 0.3s delay, start the DOWN state when both the swing heel and the CoM are within a certain \emph{distance} of the target heel-strike location.\footnote{
+    If the swing foot hits the ground early, the step immediately ends.}
     This distance is proportional to the CoM speed, where the proportionality constant (gain) is controlled by the parameter \texttt{down\_gain}.
     Getting the swing heel close enough to the target is important to ensure that the DOWN state accurately hits the target.
     Getting the CoM close enough is important to ensure that the heel strike will propel the robot forward rather than backward.
@@ -220,22 +220,22 @@ These parameters are \emph{residual} in the sense that setting all of them to ze
 Examples of this default behavior can be seen in the supplemental video.
 On its own, the TG can walk forward, walk in a circle, and to some extent control the length of its steps.
 However, it cannot hit footstep targets with high accuracy, and it usually falls when climbing stairs.
-Now that we have incorporated as much prior knowledge as possible into the design of the TG, we turn our attention to the learning aspects of our approach.
+Now that we have incorporated significant prior knowledge into the design of the TG, we turn our attention to the learning aspects of our approach.
 
 \subsection{High-level policy}
 
-Curricular imitative modulation (CIM) uses a high-level policy, queried once per period, to modulate the behavior of the TG.
-Its input is the robot/environment state plus any control input to indicate what we would like to happen during the subsequent period, and
-its output is a set of TG parameters.
-With a strong TG, the policy class for the HLP can be very simple.
+CIM uses a high-level policy, queried once per period, to modulate the behavior of the TG.
+Its input is the robot and environment state plus any control input to indicate what should happen during the subsequent period.
+Its output is a set of TG parameters.
+With a well-designed TG, the policy class for the HLP can be very simple.
 For example, in the locomotion experiments below, the control input is the location of the next footstep target,
 and we use a linear hypothesis class for the HLP.
 
-Assuming we have invented a reward function that usefully describes our learning objective, the next question is how to train this policy.
+Assuming we have specified a reward function that usefully describes our learning objective, the next question is how to train this policy.
 One option would be to use the same algorithms as \citet{iscen2018pmtg}: reinforcement learning algorithms or evolutionary strategies.
-Given the simplicity of the policy class, such algorithms might be reasonable despite their sample complexity.
+Given the simplicity of the policy class, such algorithms might be reasonable despite their sample inefficiency.
 Indeed, we compare against this approach in the experiments.
-However, CIM finds another way to simplify the learning problem: create an expert.
+However, for CIM we find another way to simplify the learning problem: create an expert.
 
 \subsection{Expert} \label{sec:expert}
 
@@ -246,25 +246,23 @@ a standard IL algorithm such as DAgger \citep{ross2011reduction} to generalize t
 Due to the unusual policy architecture of CIM, it is unlikely that preexisting experts exist,
 so CIM designs its own.
 For general RL problems, this would be difficult because of the infamous \emph{credit assignment problem}:
-sometimes, an action during one period of the episode can leave the robot in a bad state to achieve the desired result for the next period.
+sometimes, an action during one period of the episode can leave the robot in a bad position to achieve the desired result for the next period.
 %Such an action is in fact a bad action, even if the robot does achieve the desired result during the earlier period.
 For example, in our locomotion experiments below, it is not enough just to hit the footstep targets; the robot must also maintain its balance.
 
 Fortunately, in locomotion and in many other cases of interest, there is an easy way to mitigate this problem: penalize actions that leave the robot in a bad state.
 If the penalty is well designed, we can ensure that a high-reward action for any given period will leave the robot in a good position to find high-reward actions for all future periods.
 Such \emph{reward shaping} effectively eliminates the credit assignment problem and drastically reduces the search horizon needed to find an expert action.
-In turn, this makes imitation learning a feasible way to simplify the HLP learning problem.\footnote{
+This makes imitation learning a feasible way to simplify the HLP learning problem.\footnote{
 In principle, one could use a shaped reward function without also using imitation learning; we compare against this approach in the experiments.}
 
-For example, in the case of the locomotion experiments below, our expert is designed as follows.
-Given a starting state and a target footstep location, we set up an optimization problem
-over the parameters of the TG.
-We define the achieved step location as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
-\nhatch{TODO: describe this reward more carefully. In particular, it is one minus the penalties described below.}
+For example, in the case of the locomotion experiments below, our expert is defined by the following optimization problem.
+Given a starting state and a target footstep location, we define the \emph{achieved step location} for an action as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
 The objective is the Euclidean distance between the target and achieved step locations,
 plus a hinge loss penalty if the CoM ends up too far \emph{past} the target (projected along the direction of travel).
+\nhatch{TODO: describe this reward more carefully. In particular, it is one minus the penalties described above.}
 At each iteration, we estimate gradients for this objective as a weighted average of $Q$ random directions according to ARS \citep{mania2018simple}.
-We end the optimization once the accuracy reaches two centimeters, or once a certain maximum number of iterations (in our case, five) is reached.
+We stop iterating once the accuracy reaches two centimeters, or once a certain maximum number of iterations (in our case, five) is reached.
 The hinge loss penalty protects the robot's balance, ensuring that if the expert finds a successful action, it will actually be a \emph{good} action to use to train the HLP.
 
 
@@ -272,10 +270,10 @@ The hinge loss penalty protects the robot's balance, ensuring that if the expert
 
 Finally, CIM incorporates an element of curriculum learning into the training process.
 Rather than immediately training the HLP on the most difficult version of the problem,
-it uses prior knowledge to design a series of environments of gradually increasing difficulty.
+we use prior knowledge to design a series of environments of gradually increasing difficulty.
 One rationale for this approach lies in the design of the CIM expert.
 The initial point of the expert optimization problem is the action suggested by the current HLP.
-The problem is usually nonconvex, so this initialization point matters a lot.
+Since the problem is usually nonconvex, this initialization point matters a lot.
 With better initialization, the solution found by the expert is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
 Hence, it makes sense to scale the difficulty of the expert optimization problem roughly proportionally to the current capabilities of the HLP.
 This is similar to other slow-expert/fast-learner approaches such as ExIt \citep{anthony2017thinking} and AlphaGo Zero \citep{silver2017mastering}.
@@ -283,6 +281,7 @@ This is similar to other slow-expert/fast-learner approaches such as ExIt \citep
 For instance, in our locomotion experiments, the footstep targets are at first all chosen to lie in the ground plane, and the variance in their distance from one another is relatively small.
 After iteration 3, the variance is increased.
 After iteration 9, we change the environment such that the ground is no longer a single flat sheet, but rather a series of irregularly spaced stairs.
+\nhatch{TODO: fix these iteration numbers, and maybe put a more detailed description of the curriculum in an appendix}
 
 %The overall thrust of these differences from PMTG is to simplify the high-level environment dynamics as much as possible.
 %This makes CIM suitable for highly challenging environments, such as biped locomotion over rough terrain, where pure RL or random search algorithms are unlikely to succeed.
@@ -296,7 +295,7 @@ After iteration 9, we change the environment such that the ground is no longer a
 \end{figure}
 
 We evaluate CIM on the problem of dynamic biped locomotion over rough terrain.
-Using the DART simulator \citep{lee2018dart}, we design two RL problems as illustrated in Fig. \ref{fig:example episodes}.
+Using the DART simulator \citep{lee2018dart}, we implement two RL problems as illustrated in Fig. \ref{fig:example episodes}.
 In both environments, the goal is to walk across 16 stepping stones while maximizing the reward per step as defined in section \ref{sec:expert}.
 Crashing terminates the episode early;
 thus, the maximum reward per episode is 16.
@@ -304,7 +303,7 @@ The distribution of offsets between stepping stones is uniformly random.
 In 2D, the offset in the X direction (the forward direction) is between 30 and 60 cm, while the Y offset (vertical) is between 5 and 10 cm.
 In 3D, the X offset is 25--45cm, the Y offset is 0, and the Z offset is 30--50cm (alternating sign at each footstep).
 
-Using the TG and learning algorithm described in Sec. \ref{sec:approach} above, our HLP is able to achieve reward $15.7\pm0.2$ (one standard deviation) after only 1 kajillion simulated training footsteps.
+Using the TG and learning algorithm described in Sec. \ref{sec:approach} above, our HLP is able to achieve reward $A\pm B$ (one standard deviation) after only $C$ simulated training footsteps.
 \nhatch{Put actual numbers here.}
 Examples of the final policies may be seen in the supplemental video.
 To the best of our knowledge, our approach is the first to achieve such precise foot placement
@@ -319,9 +318,9 @@ using a fast, dynamic gait that requires no optimization during policy execution
 In this section, we evaluate CIM against a baseline that does not use imitation learning.
 Instead, the baseline uses ARS \citep{mania2018simple} over entire episodes.
 That is, at each iteration we update the HLP directly by estimating the gradient as a weighted combination of $Q$ random directions,
-with weights determined by the total reward as defined in section \ref{sec:expert}.
+with weights determined by the change in total reward as defined in section \ref{sec:expert}.
 Note that this baseline is very similar to PMTG \citep{iscen2018pmtg}.
-The only difference is that the policy architecture still uses the temporal abstraction defined in section \ref{sec:tg}.\footnote{
+The only difference is that its policy architecture still uses the temporal abstraction explained in section \ref{sec:tg}.\footnote{
 As we have not implemented a TG for biped locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
 
 For each approach (CIM and baseline) we run the experiment from scratch with four different random seeds.
@@ -346,7 +345,7 @@ However, one significant limitation of our work so far is that all experiments w
 In future work, we plan to investigate how to transfer policies trained with CIM to real-world bipedal robots.
 
 Finally, we note that a significant portion of the effort for this project went into engineering the trajectory generator.
-It might be possible to avoid this by \emph{training a trajectory generator using motion capture}.
+It might be possible to avoid this by training a trajectory generator using motion capture.
 This would reduce the need for expert engineering and make it easier to test CIM on other robotic motion problems, such as manipulation.
 
 \bibliographystyle{plainnat}
