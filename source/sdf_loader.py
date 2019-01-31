@@ -1,5 +1,10 @@
 import os
 from IPython import embed
+import sys
+
+# Otherwise if running multiple experiments simultaneously,
+# they might overwrite each other's SDF files.
+UQ_ID = sys.argv[1]
 
 # SDF color format is space-separated RGBA
 # Here are some suggested settings
@@ -23,9 +28,11 @@ class SDFLoader:
         # with warnings about duplicate names.
         dot = self.dots.get(name)
         if dot is None:
-            os.system("sed -e 's/__NAME__/dot_" + name + "/' skel/dot.sdf > skel/_dot.sdf")
-            os.system("sed -e 's/__COLOR__/" + color + "/' skel/_dot.sdf > skel/__dot.sdf")
-            dot = self.world.add_skeleton('./skel/__dot.sdf')
+            os.system("sed -e 's/__NAME__/dot_{}/' skel/dot.sdf > skel/_dot{}.sdf".format(
+                name, UQ_ID))
+            os.system("sed -e 's/__COLOR__/{}/' skel/_dot{}.sdf > skel/__dot{}.sdf".format(
+                color, UQ_ID, UQ_ID))
+            dot = self.world.add_skeleton('./skel/__dot{}.sdf'.format(UQ_ID))
             self.dots[name] = dot
         q = dot.q
         q[3:6] = target
@@ -37,12 +44,14 @@ class SDFLoader:
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
             # with warnings about duplicate names.
-            os.system("sed -e 's/__NAME__/ground_" + str(num_grounds)
-                        + "/' skel/ground.sdf > skel/_ground.sdf")
-            os.system("sed -e 's/__LEN__/" + str(length) + "/' skel/_ground.sdf > skel/__ground.sdf")
-            os.system("sed -e 's/__WIDTH__/" + str(width) + "/' skel/__ground.sdf > skel/___ground.sdf")
+            os.system("sed -e 's/__NAME__/ground_{}/' skel/ground.sdf > skel/_ground{}.sdf".format(
+                str(num_grounds), UQ_ID))
+            os.system("sed -e 's/__LEN__/{}/' skel/_ground{}.sdf > skel/__ground{}.sdf".format(
+                str(length), UQ_ID, UQ_ID))
+            os.system("sed -e 's/__WIDTH__/{}/' skel/__ground{}.sdf > skel/___ground{}.sdf".format(
+                str(width), UQ_ID, UQ_ID))
 
-            self.grounds.append(self.world.add_skeleton('./skel/___ground.sdf'))
+            self.grounds.append(self.world.add_skeleton('./skel/___ground{}.sdf'.format(UQ_ID)))
 
         ground = self.grounds[index]
         q = ground.q

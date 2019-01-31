@@ -1,4 +1,5 @@
 from IPython import embed
+import sys
 import numpy as np
 import pickle
 import os.path
@@ -103,12 +104,11 @@ class Experiment:
         plt.savefig('{}_{}.png'.format(self.name, settings_name))
         plt.clf()
 
-def ex_3D():
+def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    ex = Experiment(env, "new_experiment", ['SETTINGS_3D_HARDER'])
-    ex.run_evaluations()
+    ex = Experiment(env, "new_experiment"+uq_id, ['SETTINGS_3D_HARDER'])
     ex.run_iters(2, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D_PRECISE)
@@ -117,14 +117,15 @@ def ex_3D():
     ex.run_iters(6, cur.SETTINGS_3D_HARDER, cur.TRAIN_SETTINGS_3D_PRECISE)
     embed()
 
-def ex_2D():
+def ex_2D(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, "cim_final_1", ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
+    ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
     ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(6, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(9, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(9, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':
-    ex_2D()
+    UQ_ID = sys.argv[1]
+    ex_2D(UQ_ID)
