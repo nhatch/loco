@@ -28,6 +28,7 @@ TRAIN_SETTINGS_2D = {
             sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
             ]),
     'observable_features': o2d,
+    'model_class': 'linear',
     }
 
 params_2Dplus = TRAIN_SETTINGS_2D['controllable_params'].copy()
@@ -37,6 +38,7 @@ o2d_plus = np.ones_like(o2d) # All features are observable
 TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
     'controllable_params': params_2Dplus,
     'observable_features': o2d_plus,
+    'model_class': 'quadratic',
     }
 
 SETTINGS_2D_EASY = {
@@ -82,6 +84,7 @@ TRAIN_SETTINGS_3D = {
             sp.UP_IDX+sp.SWING_HIP_WORLD,
             ]),
     'observable_features': o3d,
+    'model_class': 'linear',
     }
 
 TRAIN_SETTINGS_3D_PRECISE = {**TRAIN_SETTINGS_3D,
