@@ -3,13 +3,15 @@ import sys
 import numpy as np
 import pickle
 import os.path
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 import curriculum as cur
 
-RESULTS_FMT = 'data/results_{}.pkl'
+DIR_FMT = 'data/{}/'
+RESULTS_FMT = DIR_FMT + 'results.pkl'
 
 N_EVAL_TRAJECTORIES = 8
 KEYS_TO_SAVE = ['total_reward', 'max_error', 'n_steps', 'seed']
@@ -33,6 +35,9 @@ class Experiment:
             pickle.dump(self.results, f)
 
     def load(self, final_eval_settings):
+        dirname = DIR_FMT.format(self.name)
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
         fname = RESULTS_FMT.format(self.name)
         if os.path.exists(fname):
             with open(fname, 'rb') as f:
@@ -101,7 +106,7 @@ class Experiment:
         sns.set_style('white')
         sns.despine()
 
-        plt.savefig('{}_{}.png'.format(self.name, settings_name))
+        plt.savefig('data/{}/{}.png'.format(self.name, settings_name))
         plt.clf()
 
 def ex_3D(uq_id):
@@ -120,10 +125,10 @@ def ex_3D(uq_id):
 def ex_2D(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_EASY', 'SETTINGS_2D_HARD'])
+    ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
     ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(15, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
-    #ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':

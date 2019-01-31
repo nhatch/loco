@@ -14,7 +14,7 @@ from step_learner import Runner
 from random_search import RandomSearch
 from evaluator import Evaluator
 
-TRAIN_FMT = 'data/train_{}.pkl'
+TRAIN_FMT = 'data/{}/train.pkl'
 
 RIDGE_ALPHA = 0.1
 
