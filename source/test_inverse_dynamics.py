@@ -24,7 +24,8 @@ def retrieve_index(learn, i=None):
 def demo_train_set(learn):
     for i in range(len(learn.train_responses)):
         start_state, target, response, features = retrieve_index(learn, i)
-        runner = Runner(learn.env, start_state, target)
+        #learn.evaluator.set_eval_settings(learn.history[0][4])
+        runner = Runner(learn.env, start_state, target)#, use_stepping_stones=False)
         runner.reset(render=1.0)
         print("Score:", runner.run(response)) # Should be pretty close to zero.
 

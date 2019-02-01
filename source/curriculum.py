@@ -24,10 +24,10 @@ TRAIN_SETTINGS_2D = {
             [
             sp.IK_GAIN,
             #sp.STANCE_ANKLE_RELATIVE,
-            #sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
+            sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
             sp.UP_IDX+sp.SWING_HIP_WORLD,
             sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
-            sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
+            #sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
             ]),
     'observable_features': o2d,
     'model_class': 'linear',

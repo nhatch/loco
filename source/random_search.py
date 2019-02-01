@@ -12,7 +12,6 @@ class RandomSearch:
 
         self.n_dirs = settings['n_dirs']
         self.tol = settings['tol']
-        self.eps = settings.get('eps') or 0.1
         self.max_iters = settings.get('max_iters') or 5
         self.controllable_params = settings['controllable_params']
 
@@ -28,9 +27,9 @@ class RandomSearch:
         for j in range(self.n_dirs):
             p = self.sample_perturbation()
             self.runner.reset()
-            p_ret = self.runner.run(policy + self.eps*p)
+            p_ret = self.runner.run(policy + self.step_size*p)
             self.runner.reset()
-            n_ret = self.runner.run(policy - self.eps*p)
+            n_ret = self.runner.run(policy - self.step_size*p)
             rets.append(p_ret)
             rets.append(n_ret)
             grad += (p_ret - n_ret) / self.n_dirs * p

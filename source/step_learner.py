@@ -19,9 +19,13 @@ class Runner:
         r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
         score = -np.linalg.norm(r.stance_heel_location() - r.stance_platform())
         # Having the COM in front of the stance foot is bad
-        if self.env.controller.distance_to_go(r.pose()[:3]) < 0.0:
+        com_dist = self.env.controller.distance_to_go(r.pose()[:3])
+        heel_dist = self.env.controller.distance_to_go(r.stance_heel_location())
+        if com_dist - heel_dist < 0.0:
             # TODO probably better to use stance heel for this penalty, not the target itself
-            score += self.env.controller.distance_to_go(r.pose()[:3])
+            score += com_dist - heel_dist
+        if com_dist - heel_dist > 0.2:
+            score -= com_dist - heel_dist - 0.2
         if self.env.video_recorder is not None:
             self.env.pause(0.3)
         return score
@@ -84,6 +88,6 @@ def test_3D(video_save_dir):
     return rs
 
 if __name__ == '__main__':
-    #rs = test_2D()
+    rs = test_2D()
     rs = test_3D(None)
     embed()

@@ -30,14 +30,14 @@ class Experiment:
         self.load(final_eval_settings)
 
     def save(self):
+        dirname = DIR_FMT.format(self.name)
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
         fname = RESULTS_FMT.format(self.name)
         with open(fname, 'wb') as f:
             pickle.dump(self.results, f)
 
     def load(self, final_eval_settings):
-        dirname = DIR_FMT.format(self.name)
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
         fname = RESULTS_FMT.format(self.name)
         if os.path.exists(fname):
             with open(fname, 'rb') as f:
@@ -126,9 +126,9 @@ def ex_2D(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
-    ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(15, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
-    ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    #ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    #ex.run_iters(18, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    #ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
 if __name__ == '__main__':
