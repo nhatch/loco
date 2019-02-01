@@ -11,7 +11,6 @@ from inverse_dynamics import LearnInverseDynamics
 import curriculum as cur
 
 DIR_FMT = 'data/{}/'
-RESULTS_FMT = DIR_FMT + 'results.pkl'
 
 N_EVAL_TRAJECTORIES = 8
 KEYS_TO_SAVE = ['total_reward', 'max_error', 'n_steps', 'seed']
@@ -29,16 +28,19 @@ class Experiment:
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
         self.load(final_eval_settings)
 
-    def save(self):
+    def save_filename(self, filename):
         dirname = DIR_FMT.format(self.name)
         if not os.path.exists(dirname):
             os.mkdir(dirname)
-        fname = RESULTS_FMT.format(self.name)
+        return dirname + filename
+
+    def save(self):
+        fname = self.save_filename('results.pkl')
         with open(fname, 'wb') as f:
             pickle.dump(self.results, f)
 
     def load(self, final_eval_settings):
-        fname = RESULTS_FMT.format(self.name)
+        fname = self.save_filename('results.pkl')
         if os.path.exists(fname):
             with open(fname, 'rb') as f:
                 self.results = pickle.load(f)
@@ -106,7 +108,7 @@ class Experiment:
         sns.set_style('white')
         sns.despine()
 
-        plt.savefig('data/{}/{}.png'.format(self.name, settings_name))
+        plt.savefig(self.save_filename('{}.png'.format(settings_name)))
         plt.clf()
 
 def ex_3D(uq_id):
