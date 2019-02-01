@@ -100,22 +100,17 @@ class LearnInverseDynamics:
         for i, (state, action, reward) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
             if reward < 1-self.train_settings['tol']:
-                self.label_state(state, action)
+                action = self.learn_action(state, action)
+            if action is None:
+                # Random search couldn't find a good enough action; don't use this for training.
+                self.total_failed_annotations += 1
+            else:
+                # The action is good enough; use this (state, action) pair for training.
+                self.train_features.append(state)
+                # We don't need to mirror the action, because Simbicon3D already handled that
+                # during random search.
+                self.train_responses.append(action)
         self.env.clear_skeletons()
-
-    def label_state(self, features, action):
-        mean_action = self.learn_action(features, action)
-        if mean_action is None:
-            # Random search couldn't find a good enough action; don't use this for training.
-            self.total_failed_annotations += 1
-            return
-        # The train set is a set of (features, action) pairs
-        # where taking `action` when the environment features are `features`
-        # will hit the target with the swing foot (within 5 cm).
-        self.train_features.append(features)
-        # We don't need to mirror the action, because Simbicon3D already handled that
-        # during random search.
-        self.train_responses.append(mean_action)
 
     def learn_action(self, features, action):
         start_state, target = reconstruct_state(features, self.env.consts())
