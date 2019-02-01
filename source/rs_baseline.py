@@ -62,7 +62,8 @@ class RandomSearchBaseline:
         fname = TRAIN_FMT.format(self.name)
         with open(fname, 'rb') as f:
             self.history = pickle.load(f)
-        self.revert_to_iteration(len(self.history), self.name)
+        if self.env is not None:
+            self.revert_to_iteration(len(self.history), self.name)
 
     def revert_to_iteration(self, iteration, new_name):
         # Resets so the next iteration index will be `iteration`

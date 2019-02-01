@@ -1,40 +1,80 @@
-
+from IPython import embed
+from experiment import Experiment
+from inverse_dynamics import LearnInverseDynamics
+from rs_baseline import RandomSearchBaseline
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 KEYS_TO_PLOT = ['total_reward']
 SETTINGS = {
-        "total_reward": "red",
-        "max_error": "red",
-        "n_steps": "black",
+        "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8]],
+        "cim_final": ["green", "CIM", LearnInverseDynamics, [1,2,3,4]],
+        "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16]],
+        "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12]],
         }
 
-def plot_results(results, history, save_dir):
-    for settings_name in results.keys():
-        lines = []
-        labels = []
-        for k in KEYS_TO_PLOT:
-            data = np.array(results[settings_name][k])
-            # Index `1` gives total_steps for both RandomSearchBaseline and LearnInverseDynamics.
-            # TODO make this interface more robust/obvious.
-            x = map(lambda h: h[1], history)
-            x = [0] + list(x)
-            color = SETTINGS[k]
-            mean = np.mean(data, 1)
-            line, = plt.plot(x, mean, color=color)
-            #plt.fill_between(x, mean-std, mean+std, color=color, alpha=0.2)
-            plt.fill_between(x, np.min(data, 1), np.max(data, 1), color=color, alpha=0.2)
-            labels.append(k)
-            lines.append(line)
+def fill_plot(x, data, color):
+    line, = plt.plot(x, np.percentile(data, 50, 1), color=color)
+    #plt.fill_between(x, mean-std, mean+std, color=color, alpha=0.2)
+    plt.fill_between(x, np.percentile(data, 5, 1), np.percentile(data, 95, 1),
+            color=color, alpha=0.2)
+    return line
 
-        plt.title(settings_name)
-        plt.xlabel("Total number of simulated footsteps taken")
-        plt.ylabel("Total reward")
-        plt.legend(lines, labels)
+def steps_from_history(history):
+    # Index `1` gives total_steps for both RandomSearchBaseline and LearnInverseDynamics.
+    # TODO make this interface more robust/obvious.
+    steps = map(lambda h: h[1], history)
+    steps = [0] + list(steps)
+    return steps
 
-        sns.set_style('white')
-        sns.despine()
+def load_exp(exp_name, seed):
+    name = "{}_{}".format(exp_name, seed)
+    settings_name = 'SETTINGS_2D_EASY' if exp_name in ['cim_final_easy', 'rs_final'] else 'SETTINGS_2D_HARD'
+    ex = Experiment(None, SETTINGS[exp_name][2], name, [settings_name])
+    return steps_from_history(ex.learn.history), ex.results[settings_name]['total_reward']
 
-        plt.savefig(save_dir + '{}.png'.format(settings_name))
-        plt.clf()
+def multiseed_plot(exp_name):
+    xx = []
+    yy = []
+    for seed in SETTINGS[exp_name][3]:
+        x,y = load_exp(exp_name, seed)
+        xx.append(x)
+        yy.append(y)
+    xx = np.array(xx)
+    final_x = np.mean(xx, 0)
+    final_y = np.concatenate(yy, 1)
+    color = SETTINGS[exp_name][0]
+    return fill_plot(final_x, final_y, color)
+
+def save_plot(filename):
+    plt.xlabel("Total number of simulated footsteps taken")
+    plt.ylabel("Total reward")
+
+    sns.set_style('white')
+    sns.despine()
+
+    plt.savefig(filename)
+    plt.clf()
+
+def gen_figures():
+    lines = []
+    labels = []
+    for exp in ['cim_final_easy', 'rs_final']:
+        lines.append(multiseed_plot(exp))
+        labels.append(SETTINGS[exp][1])
+    plt.legend(lines, labels)
+    plt.title('Training curves on 2D-Easy environment')
+    save_plot('../paper/figures/ars_baseline.pdf')
+
+    lines = []
+    labels = []
+    for exp in ['cim_final', 'nocur_final']:
+        lines.append(multiseed_plot(exp))
+        labels.append(SETTINGS[exp][1])
+    plt.legend(lines, labels, loc='lower right')
+    plt.title('Training curves on 2D-Hard environment')
+    save_plot('../paper/figures/nocur_baseline.pdf')
+
+if __name__ == '__main__':
+    gen_figures()

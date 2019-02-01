@@ -8,7 +8,6 @@ from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 from rs_baseline import RandomSearchBaseline
 import curriculum as cur
-import plotter
 
 DIR_FMT = 'data/{}/'
 
@@ -32,10 +31,6 @@ class Experiment:
         fname = self.save_filename('results.pkl')
         with open(fname, 'wb') as f:
             pickle.dump(self.results, f)
-        self.plot_results()
-
-    def plot_results(self):
-        plotter.plot_results(self.results, self.learn.history, self.save_filename(''))
 
     def load(self, final_eval_settings):
         fname = self.save_filename('results.pkl')
@@ -129,4 +124,4 @@ def ex_2D_rs(uq_id):
 
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
-    ex_2D_cim_easy(UQ_ID)
+    ex_2D_cim(UQ_ID)
