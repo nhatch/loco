@@ -89,7 +89,7 @@ class RandomSearchBaseline:
             self.total_steps,
             self.total_train_time,
             self.evaluator.eval_settings,
-            self.train_settings))
+            self.train_settings.copy()))
         print("Total steps:", self.total_steps)
         self.dump_train_set()
 
@@ -100,6 +100,8 @@ class RandomSearchBaseline:
         grad = rs.estimate_grad(self.coef_)
         self.coef_ += self.train_settings['rs_step_size'] * grad
         self.total_steps += runner.n_steps
+        self.train_settings['rs_eps'] *= 0.9
+        self.train_settings['rs_step_size'] *= 0.9
 
     def evaluate(self, **kwargs):
         return self.evaluator.evaluate(coef_to_fn(self.coef_), **kwargs)

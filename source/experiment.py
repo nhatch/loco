@@ -137,12 +137,19 @@ def ex_2D_cim(uq_id):
     ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
     embed()
 
+def ex_2D_cim_easy(uq_id):
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    ex = Experiment(env, LearnInverseDynamics, "cim_final_easy_"+uq_id, ['SETTINGS_2D_EASY'])
+    ex.run_iters(4, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    embed()
+
 def ex_2D_nocur(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, LearnInverseDynamics, "nocur_final_"+uq_id, ['SETTINGS_2D_HARD'])
     ex.run_iters(1, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_FIRST)
-    ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_NEXT)
+    ex.run_iters(8, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_NEXT)
     embed()
 
 def ex_2D_rs(uq_id):
@@ -154,4 +161,4 @@ def ex_2D_rs(uq_id):
 
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
-    ex_2D_rs(UQ_ID)
+    ex_2D_cim_easy(UQ_ID)

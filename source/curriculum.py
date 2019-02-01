@@ -40,7 +40,7 @@ row = np.concatenate((o2d, [True])).reshape((1,-1))
 cp_baseline_noexpert = np.dot(col, row) # Outer product
 
 TRAIN_SETTINGS_BASELINE_NOEXPERT = {
-    'n_dirs': 4,
+    'n_dirs': 8,
     'tol': 0.00, # Not actually used
     'controllable_params': cp_baseline_noexpert,
     'rs_eps': 0.1,
@@ -54,11 +54,11 @@ TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
     }
 
 TRAIN_SETTINGS_2D_NOCUR_FIRST = {**TRAIN_SETTINGS_2D_PLUS,
-    'n_trajectories': 80,
+    'n_trajectories': 32,
     }
 
 TRAIN_SETTINGS_2D_NOCUR_NEXT = {**TRAIN_SETTINGS_2D_PLUS,
-    'n_trajectories': 4,
+    'n_trajectories': 16,
     }
 
 SETTINGS_2D_EASY = {
