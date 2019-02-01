@@ -6,6 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import matplotlib
+matplotlib.rcParams.update({'font.size': 14})
+
 KEYS_TO_PLOT = ['total_reward']
 SETTINGS = {
         "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8]],
@@ -64,7 +67,6 @@ def gen_figures():
         lines.append(multiseed_plot(exp))
         labels.append(SETTINGS[exp][1])
     plt.legend(lines, labels)
-    plt.title('Training curves on 2D-Easy environment')
     save_plot('../paper/figures/ars_baseline.pdf')
 
     lines = []
@@ -73,7 +75,6 @@ def gen_figures():
         lines.append(multiseed_plot(exp))
         labels.append(SETTINGS[exp][1])
     plt.legend(lines, labels, loc='lower right')
-    plt.title('Training curves on 2D-Hard environment')
     save_plot('../paper/figures/nocur_baseline.pdf')
 
 if __name__ == '__main__':

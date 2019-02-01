@@ -116,7 +116,7 @@ Our main contributions are as follows:
 
 Many approaches to locomotion on physical robots use optimization-based planning with detailed models.
 These approaches tend to generate \emph{hierarchical} plans in order to reduce computational requirements.
-First, they choose footstep locations using search, like A*.\nhatch{citation??}
+First, they choose footstep locations using search, like A* \citep{huang2013step}.
 Based on the footstep plan, they generate a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum \citep{mordatch2010robust} or contact wrench cone \citep{dai2016planning}.
 Then they use inverse kinematics to plan trajectories for end-effectors \citep{zucker2010optimization}.
 Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details \citep{ratliff2009chomp}.
@@ -127,7 +127,7 @@ They also require significant domain knowledge and manual tuning in order to eng
 For now, they are the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
 However, we are interested in exploring alternative possibilities that can exploit the dynamics of the system to achieve faster and more energy-efficient gaits.
 
-\nhatch{Honda and Boston Dynamics do a lot with dynamic gaits, but I don't really understand how it works. To what extent can they plan step locations and handle rough terrain?}
+%\nhatch{Honda and Boston Dynamics do a lot with dynamic gaits, but I don't really understand how it works. To what extent can they plan step locations and handle rough terrain?}
 
 There are a few prior works that use learning-based approaches to do step planning for simulated systems.
 \cite{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
@@ -205,16 +205,16 @@ For more details, see Appendix \ref{app:simbicon}.}
 \end{enumerate}
 
 \begin{table*}
-  \caption{Parameters of the trajectory generator.
-  Note that \texttt{stance\_hip\_roll} is used only in 3D, and \texttt{swing\_knee} is used only in 2D (since in 3D we don't attempt environments with stairs).}
+  \normalsize
+  \caption{Parameters of the trajectory generator.}
   \label{table:params}
   \hrule
   \begin{tabular}{ll}
     \texttt{toe\_off\_ankle} & Angle for swing ankle during TOE-OFF state (saggital plane). \\
     \texttt{down\_gain} & Gain on distance from target used to trigger the end of the UP state. \\
     \texttt{swing\_hip} & Angle for swing hip during UP state (saggital plane). \\
-    \texttt{swing\_knee} & Angle for swing knee during UP state (saggital plane). \\
-    \texttt{stance\_hip\_roll} & Angle for stance hip during all three states (coronal plane). \\
+    \texttt{swing\_knee} & 2D only: Angle for swing knee during UP state (saggital plane). \\
+    \texttt{stance\_hip\_roll} & 3D only: Angle for stance hip during all three states (coronal plane). \\
   \end{tabular}
   \hrule
 \end{table*}
@@ -250,7 +250,7 @@ a standard IL algorithm such as DAgger \citep{ross2011reduction} to generalize t
 Due to the unusual policy architecture of CIM, it is unlikely that preexisting experts exist,
 so CIM designs its own.
 For general RL problems, this would be difficult because of the infamous \emph{credit assignment problem}:
-sometimes, an action during one period of the episode can leave the robot in a bad position to achieve the desired result for the next period.
+sometimes, an action in an early part of an episode can leave the robot in a bad position to achieve the desired result in later parts.
 %Such an action is in fact a bad action, even if the robot does achieve the desired result during the earlier period.
 For example, in our locomotion experiments below, it is not enough just to hit the footstep targets; the robot must also maintain its balance.
 
@@ -280,7 +280,7 @@ The initial point of the expert optimization problem is the action suggested by 
 Since the problem is usually nonconvex, this initialization point matters a lot.
 With better initialization, the solution found by the expert is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
 Hence, it makes sense to scale the difficulty of the expert optimization problem roughly proportionally to the current capabilities of the HLP.
-This is similar to other slow-expert/fast-learner approaches such as ExIt \citep{anthony2017thinking} and AlphaGo Zero \citep{silver2017mastering}.
+This is similar to other slow-expert/fast-learner algorithms such as ExIt \citep{anthony2017thinking} and AlphaGo Zero \citep{silver2017mastering}.
 
 For instance, in our locomotion experiments, the footstep targets are at first all chosen to lie in the ground plane, and the variance in their distance from one another is relatively small.
 After iteration 3, the variance is increased.
@@ -327,14 +327,32 @@ Note that this baseline is very similar to PMTG \citep{iscen2018pmtg}.
 The only difference is that its policy architecture still uses the temporal abstraction explained in section \ref{sec:tg}.\footnote{
 As we have not implemented a TG for biped locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
 
-For each approach (CIM and baseline) we run the experiment from scratch with four different random seeds.
-Results are shown in Fig. TODO. The X axis shows the total number of simulated footsteps taken during training, and the Y axis shows total reward. We plot the mean and standard deviation over 32 testing episodes (eight episodes for each of the four experiments).
+Based on a manual hyperparameter search, we decided that the baseline would use $Q=8$ random directions and a step size of $0.01$ decaying by $0.9$ at each iteration.
+Furthermore, we decided that all $2Q$ rollouts during each iteration of ARS should use the same random seed (i.e. the same placement of stepping stones).
+This reduces the variance of the gradient estimate in the sense that for this particular seed, the gradient estimate is more likely to be a good descent direction.
+The random seed changes between iterations so that the learning algorithm gets to see the full distribution of testing environments.
+
+For each approach (CIM and baseline) we run the experiment from scratch with four different starting random seeds.
+Results comparing its performance to CIM on 2D-Easy are shown in Fig. \ref{fig:ars baseline}.
+The X axis shows the total number of simulated footsteps taken during training, and the Y axis shows total reward.
+We plot the median and 5th/95th percentiles over 32 testing episodes (eight episodes for each of the four starting random seeds).
+This ARS baseline learned very slowly even for the 2D-Easy environment, so we did not attempt to evaluate it on 2D-hard.
+
+\begin{figure}
+  \includegraphics[width=0.48\textwidth]{../figures/ars_baseline.pdf}
+  \caption{\label{fig:ars baseline} Training curves on 2D-Easy environment.}
+\end{figure}
 
 \subsection{Curriculum learning ablations}
 
 In this section, we evaluate CIM against a baseline that does not use curriculum learning.
 Instead, the baseline begins training in the final, most difficult testing environment.
-Results are shown in Fig. TODO.
+Results are shown in Fig. \ref{fig:nocur baseline}.
+
+\begin{figure}
+  \includegraphics[width=0.48\textwidth]{../figures/nocur_baseline.pdf}
+  \caption{\label{fig:nocur baseline} Training curves on 2D-Hard environment.}
+\end{figure}
 
 \section{Discussion}
 
@@ -347,6 +365,8 @@ To the best of our knowledge, our experiments are the first to achieve such prec
 using a fast, dynamic gait that requires no optimization during policy execution.
 However, one significant limitation of our work so far is that all experiments were performed in simulation.
 In future work, we plan to investigate how to transfer policies trained with CIM to real-world bipedal robots.
+
+\nhatch{future work: adaptive curriculum (adjusts to learner's current ability)}
 
 Finally, we note that a significant portion of the effort for this project went into engineering the trajectory generator.
 It might be possible to avoid this by training a trajectory generator using motion capture.
