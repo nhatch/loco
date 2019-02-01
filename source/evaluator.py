@@ -1,4 +1,5 @@
 import numpy as np
+import utils
 
 class Evaluator:
     def __init__(self, env):
@@ -36,7 +37,7 @@ class Evaluator:
             action = policy(features)
             end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
-            reward = 1-error
+            reward = utils.reward(self.env.controller, end_state)
             total_reward += reward
             # In RL terms, (state,target) is the state.
             experience.append((state.extract_features(target), action, reward))

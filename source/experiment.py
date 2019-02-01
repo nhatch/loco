@@ -8,23 +8,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
+from rs_baseline import RandomSearchBaseline
 import curriculum as cur
 
 DIR_FMT = 'data/{}/'
 
 N_EVAL_TRAJECTORIES = 8
 KEYS_TO_SAVE = ['total_reward', 'max_error', 'n_steps', 'seed']
-KEYS_TO_PLOT = ['total_reward', 'max_error']
+KEYS_TO_PLOT = ['total_reward']
 
 class Experiment:
-    def __init__(self, env, name, final_eval_settings):
+    def __init__(self, env, learner_class, name, final_eval_settings):
         self.settings = {
                 "total_reward": "blue",
                 "max_error": "red",
                 "n_steps": "black",
                 }
         self.name = name
-        self.learn = LearnInverseDynamics(env, self.name)
+        self.learn = learner_class(env, self.name)
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
         self.load(final_eval_settings)
 
@@ -91,7 +92,10 @@ class Experiment:
         labels = []
         for k in KEYS_TO_PLOT:
             data = np.array(self.results[settings_name][k])
-            x = range(data.shape[0])
+            # Index `1` gives total_steps for both RandomSearchBaseline and LearnInverseDynamics.
+            # TODO make this interface more robust/obvious.
+            x = map(lambda h: h[1], self.learn.history)
+            x = [0] + list(x)
             color = self.settings[k]
             mean = np.mean(data, 1)
             line, = plt.plot(x, mean, color=color)
@@ -101,8 +105,8 @@ class Experiment:
             lines.append(line)
 
         plt.title(settings_name)
-        plt.xlabel("Number of data collection iterations")
-        plt.ylabel("Foot placement error")
+        plt.xlabel("Total number of simulated footsteps taken")
+        plt.ylabel("Total reward")
         plt.legend(lines, labels)
 
         sns.set_style('white')
@@ -124,15 +128,30 @@ def ex_3D(uq_id):
     ex.run_iters(6, cur.SETTINGS_3D_HARDER, cur.TRAIN_SETTINGS_3D_PRECISE)
     embed()
 
-def ex_2D(uq_id):
+def ex_2D_cim(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, "cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
-    #ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    #ex.run_iters(18, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
-    #ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    ex = Experiment(env, LearnInverseDynamics, "cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
+    ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(18, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
+    embed()
+
+def ex_2D_nocur(uq_id):
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    ex = Experiment(env, LearnInverseDynamics, "nocur_final_"+uq_id, ['SETTINGS_2D_HARD'])
+    ex.run_iters(1, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_FIRST)
+    ex.run_iters(10, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_NEXT)
+    embed()
+
+def ex_2D_rs(uq_id):
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    ex = Experiment(env, RandomSearchBaseline, "rs_final_"+uq_id, ['SETTINGS_2D_EASY'])
+    ex.run_iters(10, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_BASELINE_NOEXPERT)
     embed()
 
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
-    ex_2D(UQ_ID)
+    ex_2D_rs(UQ_ID)

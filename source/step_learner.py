@@ -3,6 +3,7 @@ import numpy as np
 from IPython import embed
 from random_search import RandomSearch
 from curriculum import *
+import utils
 
 class Runner:
     def __init__(self, env, start_state, target, use_stepping_stones=True):
@@ -17,18 +18,9 @@ class Runner:
     def run(self, action):
         self.n_runs += 1
         r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
-        score = -np.linalg.norm(r.stance_heel_location() - r.stance_platform())
-        # Having the COM in front of the stance foot is bad
-        com_dist = self.env.controller.distance_to_go(r.pose()[:3])
-        heel_dist = self.env.controller.distance_to_go(r.stance_heel_location())
-        if com_dist - heel_dist < 0.0:
-            # TODO probably better to use stance heel for this penalty, not the target itself
-            score += com_dist - heel_dist
-        if com_dist - heel_dist > 0.2:
-            score -= com_dist - heel_dist - 0.2
         if self.env.video_recorder is not None:
             self.env.pause(0.3)
-        return score
+        return utils.reward(self.env.controller, r)
 
     def reset(self, video_save_dir=None, render=None):
         self.env.reset(self.start_state, video_save_dir=video_save_dir, render=render)

@@ -15,17 +15,17 @@ class RandomSearch:
         self.max_iters = settings.get('max_iters') or 5
         self.controllable_params = settings['controllable_params']
 
-    def sample_perturbation(self):
-        delta = np.random.randn(np.prod(self.w_policy.shape))
+    def sample_perturbation(self, policy):
+        delta = np.random.randn(np.prod(policy.shape)).reshape(policy.shape)
         delta *= self.controllable_params
         delta /= np.linalg.norm(delta)
-        return delta.reshape(self.w_policy.shape)
+        return delta
 
     def estimate_grad(self, policy):
         grad = np.zeros_like(policy)
         rets = []
         for j in range(self.n_dirs):
-            p = self.sample_perturbation()
+            p = self.sample_perturbation(policy)
             self.runner.reset()
             p_ret = self.runner.run(policy + self.step_size*p)
             self.runner.reset()
@@ -56,5 +56,5 @@ class RandomSearch:
         # The idea is, the closer we are to the target, the smaller our next
         # step size should be. (But when we are very far from the target, we should
         # still use a reasonably small step size to avoid divergence.)
-        self.step_size = min(-ret, 0.3)
-        return ret > -self.tol
+        self.step_size = min(-(ret-1), 0.3)
+        return ret > 1-self.tol

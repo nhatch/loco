@@ -17,6 +17,17 @@ def heading_from_vector(d, branch=0.0):
             heading += k*2*np.pi
         return planar_d, heading
 
+def reward(controller, state):
+    score = 1.0
+    score -= np.linalg.norm(state.stance_heel_location() - state.stance_platform())
+    # Balance penalty: Having the COM far away from the stance foot is bad
+    com_dist = controller.distance_to_go(state.pose()[:3])
+    heel_dist = controller.distance_to_go(state.stance_heel_location())
+    if heel_dist - com_dist > 0.0: # COM is past the heel
+        score -= heel_dist - com_dist
+    if com_dist - heel_dist > 0.2: # COM is far behind the heel
+        score -= com_dist - heel_dist - 0.2
+    return score
 
 def rotmatrix(theta):
     # Note we're rotating in the X-Z plane instead of X-Y, so some signs are weird.

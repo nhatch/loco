@@ -33,10 +33,32 @@ TRAIN_SETTINGS_2D = {
     'model_class': 'linear',
     }
 
+# TODO do this for 3D as well
+cp_orig = TRAIN_SETTINGS_2D['controllable_params']
+col = cp_orig.reshape((-1,1))
+row = np.concatenate((o2d, [True])).reshape((1,-1))
+cp_baseline_noexpert = np.dot(col, row) # Outer product
+
+TRAIN_SETTINGS_BASELINE_NOEXPERT = {
+    'n_dirs': 4,
+    'tol': 0.00, # Not actually used
+    'controllable_params': cp_baseline_noexpert,
+    'rs_eps': 0.1,
+    'rs_step_size': 0.01,
+    }
+
 o2d_plus = np.ones_like(o2d) # All features are observable
 
 TRAIN_SETTINGS_2D_PLUS = {**TRAIN_SETTINGS_2D,
     'model_class': 'quadratic',
+    }
+
+TRAIN_SETTINGS_2D_NOCUR_FIRST = {**TRAIN_SETTINGS_2D_PLUS,
+    'n_trajectories': 80,
+    }
+
+TRAIN_SETTINGS_2D_NOCUR_NEXT = {**TRAIN_SETTINGS_2D_PLUS,
+    'n_trajectories': 4,
     }
 
 SETTINGS_2D_EASY = {
