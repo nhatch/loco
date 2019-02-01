@@ -4,26 +4,19 @@ import numpy as np
 import pickle
 import os.path
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 from rs_baseline import RandomSearchBaseline
 import curriculum as cur
+import plotter
 
 DIR_FMT = 'data/{}/'
 
 N_EVAL_TRAJECTORIES = 8
 KEYS_TO_SAVE = ['total_reward', 'max_error', 'n_steps', 'seed']
-KEYS_TO_PLOT = ['total_reward']
 
 class Experiment:
     def __init__(self, env, learner_class, name, final_eval_settings):
-        self.settings = {
-                "total_reward": "blue",
-                "max_error": "red",
-                "n_steps": "black",
-                }
         self.name = name
         self.learn = learner_class(env, self.name)
         self.n_eval_trajectories = N_EVAL_TRAJECTORIES
@@ -39,6 +32,10 @@ class Experiment:
         fname = self.save_filename('results.pkl')
         with open(fname, 'wb') as f:
             pickle.dump(self.results, f)
+        self.plot_results()
+
+    def plot_results(self):
+        plotter.plot_results(self.results, self.learn.history, self.save_filename(''))
 
     def load(self, final_eval_settings):
         fname = self.save_filename('results.pkl')
@@ -76,7 +73,6 @@ class Experiment:
                     results[k].append(result[k])
             for k,v in results.items():
                 self.results[settings_name][k].append(v)
-            self.plot_results(settings_name)
         self.save()
         #self.learn.evaluate() # For human consumption
 
@@ -86,34 +82,6 @@ class Experiment:
             self.learn.evaluator.set_eval_settings(eval_settings)
             self.learn.training_iter()
             self.run_evaluations()
-
-    def plot_results(self, settings_name):
-        lines = []
-        labels = []
-        for k in KEYS_TO_PLOT:
-            data = np.array(self.results[settings_name][k])
-            # Index `1` gives total_steps for both RandomSearchBaseline and LearnInverseDynamics.
-            # TODO make this interface more robust/obvious.
-            x = map(lambda h: h[1], self.learn.history)
-            x = [0] + list(x)
-            color = self.settings[k]
-            mean = np.mean(data, 1)
-            line, = plt.plot(x, mean, color=color)
-            #plt.fill_between(x, mean-std, mean+std, color=color, alpha=0.2)
-            plt.fill_between(x, np.min(data, 1), np.max(data, 1), color=color, alpha=0.2)
-            labels.append(k)
-            lines.append(line)
-
-        plt.title(settings_name)
-        plt.xlabel("Total number of simulated footsteps taken")
-        plt.ylabel("Total reward")
-        plt.legend(lines, labels)
-
-        sns.set_style('white')
-        sns.despine()
-
-        plt.savefig(self.save_filename('{}.png'.format(settings_name)))
-        plt.clf()
 
 def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
@@ -141,7 +109,7 @@ def ex_2D_cim_easy(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, LearnInverseDynamics, "cim_final_easy_"+uq_id, ['SETTINGS_2D_EASY'])
-    ex.run_iters(4, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
+    ex.run_iters(5, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
     embed()
 
 def ex_2D_nocur(uq_id):
