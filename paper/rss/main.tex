@@ -7,6 +7,7 @@
 \usepackage[bookmarks=true]{hyperref}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{amsmath}
 
 \pdfinfo{
    /Author (Homer Simpson)
@@ -16,6 +17,7 @@
    /Keywords (Robots;Overlords)
 }
 \newcommand{\nhatch}[1]{{\leavevmode\color{magenta} Nathan: #1}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
 
 \begin{document}
 
@@ -268,14 +270,20 @@ Such \emph{reward shaping} effectively eliminates the credit assignment problem 
 This makes imitation learning a feasible way to simplify the HLP learning problem.\footnote{
 In principle, one could use a shaped reward function without also using imitation learning; we compare against this approach in the experiments.}
 
-For example, in the case of the locomotion experiments below, our expert is defined by the following optimization problem.
-Given a starting state and a target footstep location, we define the \emph{achieved step location} for an action as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
-The objective is the Euclidean distance between the target and achieved step locations,
-plus a hinge loss penalty if the CoM ends up too far \emph{past} the target (projected along the direction of travel).
-\nhatch{TODO: describe this reward more carefully. In particular, it is one minus the penalties described above.}
-At each iteration, we estimate gradients for this objective as a weighted average of $Q$ random directions according to ARS \citep{mania2018simple}.
-We stop iterating once the accuracy reaches two centimeters, or once a certain maximum number of iterations (in our case, five) is reached.
-The hinge loss penalty protects the robot's balance, ensuring that if the expert finds a successful action, it will actually be a \emph{good} action to use to train the HLP.
+For example, in the case of the locomotion experiments below, we define the reward function as follows.
+Given a starting state $\mathbf{s}$ and a target footstep location $\mathbf{t}$, we define the final heel location $\mathbf{f}_{heel}$ for an action $\mathbf{a}$ as the location of the swing heel at the moment that the step ends, which is the moment that any part of the swing foot makes contact with the ground.\footnote{The step also ends if the robot crashes; i.e. falls off of the edge of a stepping stone, falls over, etc.}
+We define the final CoM location $\mathbf{f}_{CoM}$ as the location of the CoM at the same moment.
+We define ${p}_{heel}$ and ${p}_{CoM}$ by projecting $\mathbf{f}_{heel}$ and $\mathbf{f}_{CoM}$ respectively along the direction of travel.
+Let $\delta = {p}_{heel} - {p}_{CoM}$, the (signed) distance in meters between these two projected points along the direction of travel.
+Then the reward for this action is
+\[
+r(\mathbf{s},\mathbf{a}) := 1 - \norm{\mathbf{f}_{heel} - \mathbf{t}}_2 - \max\{|\delta-0.1|-0.1, 0\}
+\]
+The final term is the \emph{balance penalty}, ensuring that for high-reward actions, the CoM must be approximately ten centimeters behind the heel-strike location.
+
+Given a state $\mathbf{s}$, the expert attempts to find a good action $\mathbf{a}$ using random search, specifically ARS \citep{mania2018simple}.
+At each iteration, we estimate gradients for the objective $r(\mathbf s, \mathbf a)$ as a weighted average of $Q$ random directions, then take a step in that direction.
+We stop iterating once the accuracy reaches two centimeters ($r \geq 0.98$), or once a certain maximum number of iterations (in our case, five) is reached.
 
 
 \subsection{Curriculum} \label{sec:curriculum}
