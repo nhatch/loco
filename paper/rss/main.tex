@@ -131,19 +131,19 @@ Based on the footstep plan, a lower-level planner generates a CoM trajectory wit
 Next, inverse kinematics are used to plan trajectories for end-effectors \citep{zucker2010optimization}.
 Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details~\citep{ratliff2009chomp}.
 
-These approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
+Hierarchical planning approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
 This is because static walking is easier to model and optimization takes a lot of computation time.
 They also require significant domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
-For now, they are the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
+Hierarchical planners are currently the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
 However, we are interested in exploring alternative possibilities that can exploit the dynamics of the system to achieve faster and more energy-efficient gaits.
 
 %\nhatch{Honda and Boston Dynamics do a lot with dynamic gaits, but I don't really understand how it works. To what extent can they plan step locations and handle rough terrain?}
 
 There are a few prior works that use learning-based approaches to do step planning for simulated systems.
-\cite{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
-However, it produces target step locations that are unrealistic and rarely actually achieved.
+\citet{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
+However, this strategy produces target step locations that are unrealistic and rarely actually achieved.
 The path that the agent follows is perfectly flat; on rough terrain, such inaccurate step planning would probably fail.
-\cite{karpathy2012curriculum} use curriculum learning for a simple planar biped to collect a set of (state, action, resulting step distance) tuples.
+\citet{karpathy2012curriculum} use curriculum learning for a simple planar biped to collect a set of (state, action, resulting step distance) tuples.
 The final policy is based on nearest-neighbor search among this set of collected experience.
 However, the curse of dimensionality for nearest-neighbor search
 makes it infeasible to apply this approach to a more complicated model.
