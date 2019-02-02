@@ -67,7 +67,15 @@
 \maketitle
 
 \begin{abstract}
-The abstract goes here.
+  Biped locomotion with precise foot placement has previously been achieved only for static gaits, using detailed dynamics models and hierarchical optimization-based planning.
+  Meanwhile, learning-based approaches to locomotion, such as deep reinforcement learning, are still too sample-inefficient to achieve the precise foot placement necessary to traverse rough terrain.
+  In this paper, we improve sample efficiency for learning-based control techniques.
+  Our strategy applies to any periodic robotic control task that admits significant prior knowledge.
+  First, we engineer a versatile low-level policy (a.k.a. trajectory generator) with interpretable high-level parameters.
+  Second, we use reward shaping, imitation learning, and curriculum learning to train a high-level policy for the control task.
+  We evaluate this technique with a simulated biped locomotion task over rough terrain.
+  To the best of our knowledge, our experiments are the first to achieve such precise foot placement
+  using a fast, non-static gait that requires no optimization during policy execution.
 \end{abstract}
 
 \IEEEpeerreviewmaketitle
@@ -360,7 +368,7 @@ Best results for the baseline were obtained by collecting an initial dataset of 
 Hyperparameters for the baseline were otherwise identical to the ones used for CIM.
 
 Results on the 2D-Hard environment are shown in Fig. \ref{fig:nocur baseline}.
-Like in Fig. \ref{fig:rs baseline},
+Like in Fig. \ref{fig:ars baseline},
 we plot the median reward and 5th/95th percentiles over 32 testing episodes.
 
 Even without a curriculum, the algorithm is able to find a policy that \emph{usually} achieves high reward.
