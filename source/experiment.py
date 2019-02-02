@@ -78,11 +78,23 @@ class Experiment:
             self.learn.training_iter()
             self.run_evaluations()
 
+    def visualize(self):
+        import stepping_stones_env
+        # Ensure we take less than one step
+        stepping_stones_env.EPISODE_TIME_LIMIT = 0.3
+        self.learn.evaluator.set_eval_settings(cur.SETTINGS_3D_HARD)
+        self.learn.env.track_point = [3.0, 0.0, 0.0] # Use in 3D
+        #self.learn.env.track_point = [3.7, 0.0, 0.0] # Use in 2D
+        #self.learn.env.zoom = 6.0 # Use in 2D
+        self.learn.env.theta = -np.pi/4
+        self.learn.env.phi = 0.0
+        self.learn.evaluate(render=1)
+
 def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    ex = Experiment(env, LearnInverseDynamics, "3D_test_"+uq_id, ['SETTINGS_3D_MEDIUM', 'SETTINGS_3D_HARD'])
+    ex = Experiment(env, LearnInverseDynamics, "cim_3D_"+uq_id, ['SETTINGS_3D_MEDIUM', 'SETTINGS_3D_HARD'])
     ex.run_iters(5, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(15, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)

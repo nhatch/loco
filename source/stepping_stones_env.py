@@ -84,8 +84,11 @@ class SteppingStonesEnv:
 
     def init_camera(self):
         tb = Trackball(theta=-45.0, phi = 0.0)
-        tb.trans[2] = -5
         self.track_point = None
+        self.zoom = 5.0
+        def zoom_to(dx, dy):
+            self.zoom -= dy/20
+        tb.zoom_to = zoom_to
         return tb
 
     def reset(self, state=None, video_save_dir=None, render=None, random=0.0, seed=None):
@@ -137,7 +140,7 @@ class SteppingStonesEnv:
             return None, False, None
 
     # Run one footstep of simulation, returning the final state
-    def simulate(self, target, target_heading=None, action=None, put_dots=True):
+    def simulate(self, target, target_heading=None, action=None, put_dots=False):
         self.controller.set_gait_raw(raw_gait=action, target_heading=target_heading, target=target)
         steps_per_render = None
         if self.render_rate:
@@ -235,9 +238,10 @@ class SteppingStonesEnv:
 
     def update_viewer(self, com):
         track_point = self.track_point or com
-        track_point = track_point + np.array([-2, 0, 0])
+        #track_point = track_point + np.array([-2, 0, 0])
         #tb.trans[1] = -0.5
         self.viewer.scene.tb.trans[0] = -track_point[0]
+        self.viewer.scene.tb.trans[2] = -self.zoom
 
     def gui(self):
         pydart.gui.viewer.launch(self.world)

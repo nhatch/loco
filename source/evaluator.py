@@ -1,5 +1,6 @@
 import numpy as np
 import utils
+from sdf_loader import GREEN
 
 class Evaluator:
     def __init__(self, env):
@@ -11,7 +12,7 @@ class Evaluator:
             self.env.sdf_loader.ground_width = self.eval_settings['ground_width']
             self.env.sdf_loader.ground_length = self.eval_settings['ground_length']
         else:
-            self.env.sdf_loader.ground_length = 10.0
+            self.env.sdf_loader.ground_length = 7.5
             self.env.sdf_loader.ground_width = self.env.consts().DEFAULT_GROUND_WIDTH
         self.env.clear_skeletons()
 
@@ -27,6 +28,9 @@ class Evaluator:
             self.env.sdf_loader.put_grounds(targets)
         else:
             self.env.sdf_loader.put_grounds(targets[:1])
+            if render is not None:
+                for i,t in enumerate(targets[2:]):
+                    self.env.sdf_loader.put_dot(t, str(i), color=GREEN)
         total_offset = 0
         num_successful_steps = 0
         num_intolerable_steps = 0

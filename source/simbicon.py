@@ -312,15 +312,16 @@ class Simbicon(PDController):
         self.env.doppelganger.q = self.env.from_features(tq)
         self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
-def test(env, length, seed=None, runway_length=15, runway_x=0, render=1):
+def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, video_save_dir=None):
     env.clear_skeletons() # Necessary in order to change the runway length
     env.sdf_loader.ground_length = runway_length
-    start_state = env.reset(seed=seed, random=0.005, render=render)
+    start_state = env.reset(seed=seed, random=0.005,
+            render=render, video_save_dir=video_save_dir)
     env.sdf_loader.put_grounds([[runway_x,0,0]])
     action = np.zeros(sp.N_PARAMS)
-    for i in range(8):
-        if i > 2:
-            action[sp.UP_IDX+sp.SWING_ANKLE_RELATIVE] = -0.3
+    for i in range(n):
+        #if i > 2:
+        #    action[sp.UP_IDX+sp.SWING_ANKLE_RELATIVE] = -0.3
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
         _, terminated = env.simulate([t,0,0], action=action)
         if terminated:
@@ -344,6 +345,7 @@ def reproduce_bug(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
+    #test(env, 0.5, n=4, render=2, video_save_dir='monitoring')
     test(env, 0.5)
     #reproduce_bug(env)
     embed()
