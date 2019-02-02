@@ -151,19 +151,18 @@ makes it infeasible to apply this approach to a more complicated model.
 
 \subsection{Learning-based locomotion}
 
-Most prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations.
-Examples of this \boots{examples of what?} are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
+Most prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations \citep{peng2018deepmimic, heess2017emergence, peng2016terrain}.
+The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
 However, they have not been shown to work in situations with dense or large obstacles where small missteps can be catastrophic.
 Such environments require accurate predictive planning at the level of individual contacts.
 
 Perhaps the most closely related prior work is \citet{iscen2018pmtg}.
 As described in Section~\ref{sec:intro}, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
-This allows the HLP to use a very simple hypothesis class (e.g. linear) and a very simple learning algorithm (e.g. \boots{what is ARS?} ARS \citep{mania2018simple}).
+This allows the HLP to use a very simple hypothesis class (e.g. linear) and a very simple learning algorithm (e.g. Augmented Random Search \citep{mania2018simple}).
 However, PMTG has been applied only to control walking speed for a quadruped on flat ground.
 The policy architecture in our work is similar to PMTG in that we learn a high-level policy that modulates a TG.
-However, one important difference is that in our work, the HLP and the TG run at different frequencies. \boots{which means what?}
-We will give a detailed description of these differences in the next section.
-
+However, one important difference is that in our work, the HLP and the TG run at different frequencies.
+In the next section, we give a detailed description of this and other differences.
 
 \section{Our approach} \label{sec:approach}
 
@@ -282,7 +281,7 @@ r(\mathbf{s},\mathbf{a}) := 1 - \norm{\mathbf{f}_{heel} - \mathbf{t}}_2 - \max\{
 \]
 The final term is the \emph{balance penalty}, ensuring that for high-reward actions, the CoM must be approximately ten centimeters behind the heel-strike location.
 
-Given a state $\mathbf{s}$, the expert attempts to find a good action $\mathbf{a}$ using random search, specifically ARS \citep{mania2018simple}.
+Given a state $\mathbf{s}$, the expert attempts to find a good action $\mathbf{a}$ using random search, specifically Augmented Random Search (ARS) \citep{mania2018simple}.
 At each iteration, we estimate gradients for the objective $r(\mathbf s, \mathbf a)$ as a weighted average of $Q$ random directions, then take a step in that direction.
 We stop iterating once the accuracy reaches two centimeters ($r \geq 0.98$), or once a certain maximum number of iterations (in our case, five) is reached.
 
