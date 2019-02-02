@@ -350,8 +350,23 @@ In future work, to further validate the importance of imitation learning for per
 \subsection{Curriculum learning ablations}
 
 In this section, we evaluate CIM against a baseline that does not use curriculum learning.
-Instead, the baseline begins training in the final, most difficult testing environment.
-Results are shown in Fig. \ref{fig:nocur baseline}.
+Instead, the baseline begins training with a quadratic model in the final, most difficult testing environment.
+
+Due to the sample complexity of the quadratic model, making this a fair comparison requires changing the training schedule used for imitation learning.
+For the CIM experiments, we retrained the model every four rollouts,
+but with a quadratic model this leads to disastrous overfitting and actually makes the expert \emph{worse}.
+We tried several alternative imitation learning schedules.
+Best results for the baseline were obtained by collecting an initial dataset of 32 rollouts and thereafter retraining every 16 rollouts.
+Hyperparameters for the baseline were otherwise identical to the ones used for CIM.
+
+Results on the 2D-Hard environment are shown in Fig. \ref{fig:nocur baseline}.
+Like in Fig. \ref{fig:rs baseline},
+we plot the median reward and 5th/95th percentiles over 32 testing episodes.
+
+Even without a curriculum, the algorithm is able to find a policy that \emph{usually} achieves high reward.
+However, CIM reaches the same median performance twice as quickly.
+The story is similar for fifth-percentile performance.
+\nhatch{TODO finish this once rerunning experiments finish}
 
 \begin{figure}
   \includegraphics[width=0.48\textwidth]{../figures/nocur_baseline.pdf}
