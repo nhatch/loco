@@ -8,6 +8,7 @@
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\newcommand{\boots}[1]{{\textcolor{red} {Byron: {#1}}}}
 
 \pdfinfo{
    /Author (Homer Simpson)
@@ -150,17 +151,17 @@ makes it infeasible to apply this approach to a more complicated model.
 
 \subsection{Learning-based locomotion}
 
-Most of the prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations.
-Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
+Most prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations.
+Examples of this \boots{examples of what?} are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
 However, they have not been shown to work in situations with dense or large obstacles where small missteps can be catastrophic.
 Such environments require accurate predictive planning at the level of individual contacts.
 
 Perhaps the most closely related prior work is \citet{iscen2018pmtg}.
-As described in section \ref{sec:intro}, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
-This allows the HLP to use a very simple hypothesis class (e.g. linear) and a very simple learning algorithm (e.g. ARS \citep{mania2018simple}).
+As described in Section~\ref{sec:intro}, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
+This allows the HLP to use a very simple hypothesis class (e.g. linear) and a very simple learning algorithm (e.g. \boots{what is ARS?} ARS \citep{mania2018simple}).
 However, PMTG has been applied only to control walking speed for a quadruped on flat ground.
-The policy architecture in our paper is similar to PMTG in that we learn a high-level policy that modulates a TG.
-However, one important difference is that in our paper, the HLP and the TG run at different frequencies.
+The policy architecture in our work is similar to PMTG in that we learn a high-level policy that modulates a TG.
+However, one important difference is that in our work, the HLP and the TG run at different frequencies. \boots{which means what?}
 We will give a detailed description of these differences in the next section.
 
 
