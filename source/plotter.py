@@ -12,7 +12,7 @@ matplotlib.rcParams.update({'font.size': 14})
 KEYS_TO_PLOT = ['total_reward']
 SETTINGS = {
         "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8]],
-        "cim_final": ["green", "CIM", LearnInverseDynamics, [1,2,3,4]],
+        "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20]],
         "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16]],
         "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12]],
         }
@@ -20,7 +20,7 @@ SETTINGS = {
 def fill_plot(x, data, color):
     line, = plt.plot(x, np.percentile(data, 50, 1), color=color)
     #plt.fill_between(x, mean-std, mean+std, color=color, alpha=0.2)
-    plt.fill_between(x, np.percentile(data, 5, 1), np.percentile(data, 95, 1),
+    plt.fill_between(x, np.percentile(data, 10, 1), np.percentile(data, 90, 1),
             color=color, alpha=0.2)
     return line
 

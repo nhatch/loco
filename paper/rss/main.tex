@@ -344,7 +344,7 @@ Results were comparable or worse for the other hyperparameter settings that we t
 For each approach (CIM and baseline) we run the experiment from scratch with four different starting random seeds.
 Results on the 2D-Easy environment are shown in Fig. \ref{fig:ars baseline}.
 The X axis shows the total number of simulated footsteps taken during training, and the Y axis shows total reward.
-We plot the median and 5th/95th percentiles over 32 testing episodes (eight episodes for each of the four starting random seeds).
+We plot the median and 10th/90th percentiles over 32 testing episodes (eight episodes for each of the four starting random seeds).
 
 \begin{figure}
   \includegraphics[width=0.48\textwidth]{../figures/ars_baseline.pdf}
@@ -369,7 +369,7 @@ Hyperparameters for the baseline were otherwise identical to the ones used for C
 
 Results on the 2D-Hard environment are shown in Fig. \ref{fig:nocur baseline}.
 Like in Fig. \ref{fig:ars baseline},
-we plot the median reward and 5th/95th percentiles over 32 testing episodes.
+we plot the median reward and 10th/90th percentiles over 32 testing episodes.
 
 Even without a curriculum, the algorithm is able to find a policy that \emph{usually} achieves high reward.
 However, CIM reaches the same median performance twice as quickly.
