@@ -421,18 +421,15 @@ This would reduce the need for expert engineering and make it easier to test CIM
 In addition to the SIMBICON modifications discussed in Section \ref{sec:tg}, we also made the following changes:
 
 \begin{enumerate}
-  \item Set the target swing leg joint angles in the DOWN state using inverse kinematics (IK).
-    Again, adjust the target swing heel location for the purposes of IK from the true target location based on the CoM speed and the same gain parameter as above.
 
   \item Control the swing ankle angle in world space to ensure that the swing heel is the first part of the foot to hit the ground.
     This does not have much effect on the step distance, but it helps make the dynamics of each impact more predictable, which is important for accurate function approximation.
-    \nhatch{Again, all of this will have to be validated with ablations\dots.}
 
   \item In 3D, control the robot's heading using the stance hip.
     We found that setting the target stance hip angles using inverse kinematics and then using plain PD control was sufficient, without considering the effect of other torques on the stance hip.
 \end{enumerate}
 
-Note that there are also many additional parameters of SIMBICON that we could have exposed to the high-level policy; e.g. the stance ankle angle of the UP state.
+Note that there are also many additional parameters of SIMBICON that we could have exposed to the high-level policy; e.g. the stance ankle angle of the UP state, or the balance gain parameters used by SIMBICON.
 Of course, we prefer to keep the problem dimension as low as possible, and we found that the short list of parameters given in Table \ref{table:params} was enough for our experiments.
 We chose those parameters using a combination of intuition and trial-and-error.
 
