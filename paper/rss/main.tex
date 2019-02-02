@@ -193,7 +193,7 @@ During each state, proportional derivative (PD) controllers attempt to reach the
 Balance feedback is achieved by adjusting the target swing hip angles based on the distance and velocity of the agent's CoM relative to its stance foot contact location.
 After hand-tuning the balance feedback gains and the joint angles for each state, this simple control scheme can walk forward and maintain its balance.
 We make several novel modifications to SIMBICON in order to control its footstep placement more precisely:\footnote{
-For more details, see Appendix \ref{app:simbicon}.}
+For more details, see Appendix \ref{app:simbicon} in the supplemental material.}
 \begin{enumerate}
   \item Insert a new TOE-OFF state at the beginning of each step.
     This state transitions to the UP state after 0.2s.
@@ -371,10 +371,9 @@ Results on the 2D-Hard environment are shown in Fig. \ref{fig:nocur baseline}.
 Like in Fig. \ref{fig:ars baseline},
 we plot the median reward and 10th/90th percentiles over 32 testing episodes.
 
-Even without a curriculum, the algorithm is able to find a policy that \emph{usually} achieves high reward.
-However, CIM reaches the same median performance twice as quickly.
-The story is similar for fifth-percentile performance.
-\nhatch{TODO finish this once rerunning experiments finish}
+Even without a curriculum, the algorithm is able to find a policy whose median performance completes all sixteen steps of an episode.
+However, CIM reaches that same median performance three times as quickly.
+Similarly, CIM's 10th-percentile performance is almost perfect with less than 6000 training footsteps, while without a curriculum it takes twice as long to reach that level.
 
 \begin{figure}
   \includegraphics[width=0.48\textwidth]{../figures/nocur_baseline.pdf}
@@ -392,8 +391,7 @@ To the best of our knowledge, our experiments are the first to achieve such prec
 using a fast, dynamic gait that requires no optimization during policy execution.
 However, one significant limitation of our work so far is that all experiments were performed in simulation.
 In future work, we plan to investigate how to transfer policies trained with CIM to real-world bipedal robots.
-
-\nhatch{future work: adaptive curriculum (adjusts to learner's current ability)}
+We also plan to investigate whether it helps to have an \emph{adaptive} curriculum that adjusts to the learner's current ability.
 
 Finally, we note that a significant portion of the effort for this project went into engineering the trajectory generator.
 It might be possible to avoid this by training a trajectory generator using motion capture.
