@@ -126,10 +126,10 @@ Our main contributions are as follows:
 
 Many approaches to locomotion on physical robots use optimization-based planning with detailed models.
 These approaches tend to generate \emph{hierarchical} plans in order to reduce computational requirements.
-First, they choose footstep locations using search, like A* \citep{huang2013step}.
-Based on the footstep plan, they generate a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum \citep{mordatch2010robust} or contact wrench cone \citep{dai2016planning}.
-Then they use inverse kinematics to plan trajectories for end-effectors \citep{zucker2010optimization}.
-Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details \citep{ratliff2009chomp}.
+At the highest level, the planner chooses footstep locations using, e.g. A* search~\citep{huang2013step}.
+Based on the footstep plan, a lower-level planner generates a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum~\citep{mordatch2010robust} or contact wrench cone~\citep{dai2016planning}.
+Next, inverse kinematics are used to plan trajectories for end-effectors \citep{zucker2010optimization}.
+Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details~\citep{ratliff2009chomp}.
 
 These approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
 This is because static walking is easier to model and optimization takes a lot of computation time.
