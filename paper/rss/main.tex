@@ -188,6 +188,15 @@ One consequence of this abstraction is that it does not make sense for the HLP t
 The only output of the HLP is the parameter settings for the TG.
 %Assuming that the low-level environment dynamics between calls to the HLP are fairly predictable (or that the TG can moderate any stochasticity that does arise), this further simplifies the environment from the point of view of the HLP.
 
+\begin{figure}
+  \includegraphics[width=0.15\textwidth]{../figures/TOE_OFF.png}
+  \includegraphics[width=0.12\textwidth]{../figures/UP.png}
+  \includegraphics[width=0.175\textwidth]{../figures/DOWN.png}
+  \caption{\label{fig:fsm} Visualization of target joint angles for the locomotion TG.
+  State TOE-OFF (left) transitions to state UP (middle) after 0.2s, which transitions to state DOWN once the robot is close to the target location.
+  Finally, state DOWN transitions to state UP upon heel-strike.}
+\end{figure}
+
 In subsequent subsections, it will be helpful to have in mind a concrete example of this kind of TG.
 For bipedal locomotion, our TG is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
 SIMBICON uses a finite state machine (FSM) with two states: an UP state that ends after 0.3 seconds, and a DOWN state that ends on swing foot contact.
@@ -229,7 +238,8 @@ For more details, see Appendix \ref{app:simbicon} in the supplemental material.}
   \hrule
 \end{table*}
 
-See Table \ref{table:params} for a summary of the parameters of the TG.
+See Fig. \ref{fig:fsm} for a visualization of the TG's states, and
+see Table \ref{table:params} for a summary of the parameters of the TG.
 These parameters are \emph{residual} in the sense that setting all of them to zero will produce the default behavior of the TG.
 Examples of this default behavior can be seen in the supplemental video.
 On its own, the TG can walk forward, walk in a circle, and to some extent control the length of its steps.
@@ -297,6 +307,16 @@ Since the problem is usually nonconvex, this initialization point matters a lot.
 With better initialization, the solution found by the expert is more likely to be a good local optimum, and the optimization problem might be more quickly solvable.
 Hence, it makes sense to scale the difficulty of the expert optimization problem roughly proportionally to the current capabilities of the HLP.
 This is similar to other slow-expert/fast-learner algorithms such as ExIt \citep{anthony2017thinking} and AlphaGo Zero \citep{silver2017mastering}.
+
+\begin{figure}
+  \includegraphics[width=0.48\textwidth]{../figures/2D_EASY.png}
+  \includegraphics[width=0.48\textwidth]{../figures/2D_HARD.png}
+  \includegraphics[width=0.48\textwidth]{../figures/3D_EASY.png}
+  \includegraphics[width=0.48\textwidth]{../figures/3D_MEDIUM.png}
+  \includegraphics[width=0.48\textwidth]{../figures/3D_HARD.png}
+  \caption{\label{fig:curriculum} Example episodes from the various environments used in the locomotion curriculum.
+  Top to bottom: 2D-Easy, 2D-Hard, 3D-Easy, 3D-Medium, and 3D-Hard.}
+\end{figure}
 
 For instance, in our locomotion experiments, the footstep targets are at first all chosen to lie in the ground plane, and the variance in their distance from one another is relatively small.
 After iteration 3, the variance is increased.
