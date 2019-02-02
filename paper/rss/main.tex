@@ -322,26 +322,30 @@ using a fast, dynamic gait that requires no optimization during policy execution
 In this section, we evaluate CIM against a baseline that does not use imitation learning.
 Instead, the baseline uses ARS \citep{mania2018simple} over entire episodes.
 That is, at each iteration we update the HLP directly by estimating the gradient as a weighted combination of $Q$ random directions,
-with weights determined by the change in total reward as defined in section \ref{sec:expert}.
+with weights determined by the change in total shaped reward as defined in section \ref{sec:expert}.
 Note that this baseline is very similar to PMTG \citep{iscen2018pmtg}.
 The only difference is that its policy architecture still uses the temporal abstraction explained in section \ref{sec:tg}.\footnote{
 As we have not implemented a TG for biped locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
 
 Based on a manual hyperparameter search, we decided that the baseline would use $Q=8$ random directions and a step size of $0.01$ decaying by $0.9$ at each iteration.
-Furthermore, we decided that all $2Q$ rollouts during each iteration of ARS should use the same random seed (i.e. the same placement of stepping stones).
+Furthermore, we decided that all $2Q$ rollouts during each iteration of ARS would use the same random seed (i.e. the same placement of stepping stones).
 This reduces the variance of the gradient estimate in the sense that for this particular seed, the gradient estimate is more likely to be a good descent direction.
 The random seed changes between iterations so that the learning algorithm gets to see the full distribution of testing environments.
+Results were comparable or worse for the other hyperparameter settings that we tried.
 
 For each approach (CIM and baseline) we run the experiment from scratch with four different starting random seeds.
-Results comparing its performance to CIM on 2D-Easy are shown in Fig. \ref{fig:ars baseline}.
+Results on the 2D-Easy environment are shown in Fig. \ref{fig:ars baseline}.
 The X axis shows the total number of simulated footsteps taken during training, and the Y axis shows total reward.
 We plot the median and 5th/95th percentiles over 32 testing episodes (eight episodes for each of the four starting random seeds).
-This ARS baseline learned very slowly even for the 2D-Easy environment, so we did not attempt to evaluate it on 2D-hard.
 
 \begin{figure}
   \includegraphics[width=0.48\textwidth]{../figures/ars_baseline.pdf}
   \caption{\label{fig:ars baseline} Training curves on 2D-Easy environment.}
 \end{figure}
+
+Taking advantage of simplifications to the credit assignment problem seems to be very helpful for this task.
+Since the ARS baseline learns very slowly even on the 2D-Easy environment, we did not attempt to evaluate it on 2D-Hard.
+In future work, to further validate the importance of imitation learning for periodic tasks, it would be interesting to compare CIM against a reinforcement learning algorithm such as PPO \citep{schulman2017proximal}.
 
 \subsection{Curriculum learning ablations}
 
