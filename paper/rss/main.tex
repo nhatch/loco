@@ -21,7 +21,7 @@
 
 \begin{document}
 
-\title{Curriculum and Imitation Learning for Biped Locomotion on Rough Terrain}
+\title{Curriculum and Imitation Learning for Bipedal Locomotion on Rough Terrain}
 
 % You will get a Paper-ID when submitting a pdf file to the conference system
 \author{Author Names Omitted for Anonymous Review.}
@@ -69,13 +69,13 @@
 \maketitle
 
 \begin{abstract}
-  Biped locomotion with precise foot placement has previously been achieved only for static gaits, using detailed dynamics models and hierarchical optimization-based planning.
+  bipedal locomotion with precise foot placement has previously been achieved only for static gaits, using detailed dynamics models and hierarchical optimization-based planning.
   Meanwhile, learning-based approaches to locomotion, such as deep reinforcement learning, are still too sample-inefficient to achieve the precise foot placement necessary to traverse rough terrain.
   In this paper, we improve sample efficiency for learning-based control techniques.
   Our strategy applies to any periodic robotic control task that admits significant prior knowledge.
   First, we engineer a versatile low-level policy (a.k.a. trajectory generator) with interpretable high-level parameters.
-  Second, we use reward shaping, imitation learning, and curriculum learning to train a high-level policy for the control task.
-  We evaluate this technique with a simulated biped locomotion task over rough terrain.
+  Second, we use a combination of reward shaping, imitation learning, and curriculum learning to train a high-level policy for the control task.
+  We evaluate this technique with a simulated bipedal locomotion task over rough terrain.
   To the best of our knowledge, our experiments are the first to achieve such precise foot placement
   using a fast, non-static gait that requires no optimization during policy execution.
 \end{abstract}
@@ -86,8 +86,8 @@
 \section{Introduction} \label{sec:intro}
 
 Locomotion is a difficult, underactuated control problem.
-\emph{Biped} locomotion is more difficult because the support polygon is small and the center of mass is relatively high.
-Biped locomotion on \emph{rough terrain} is more difficult still, because frequent large obstacles make even small mistakes catastrophic.
+\emph{Bipedal} locomotion is more difficult because the support polygon is small and the center of mass is relatively high.
+bipedal locomotion on \emph{rough terrain} is more difficult still, because frequent large obstacles make even small mistakes catastrophic.
 
 One way to handle these challenges is with detailed models and extensive optimization.
 For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}.
@@ -97,7 +97,7 @@ For the DRC, reliability was more important than speed, but eventually we want t
 
 Recent advances in reinforcement learning (RL) suggest an alternative approach.
 Deep RL is a popular technique to learn highly dynamic motions for humanoids \citep{peng2018deepmimic, heess2017emergence}.
-Using sim-to-real techniques, \citet{tan2018sim} have even applied deep RL techniques to physical robots, albeit for quadruped locomotion rather than biped.
+Using sim-to-real techniques, \citet{tan2018sim} have even applied deep RL techniques to physical robots, albeit for quadrupedal locomotion rather than bipedal.
 The policies learned by deep RL are both computationally and physically fast.
 However, due to the extreme sample inefficiency of deep RL algorithms, their effectiveness in more challenging environments---for example, physical bipeds or rough terrain---is uncertain.
 
@@ -109,15 +109,15 @@ The TG allows us to take advantage of prior knowledge, while the learned policy 
 As shown in \citet{iscen2018pmtg}, this environmental simplification makes it feasible to learn a policy that can control walking speed for a quadruped robot.
 
 In this manuscript, we propose several additional ways to simplify robotic learning tasks by taking advantage of prior knowledge.
-Our experiments then demonstrate that these simplifications, taken together, make it feasible to use machine learning for simulated biped locomotion over rough terrain.
+Our experiments then demonstrate that these simplifications, taken together, make it feasible to use machine learning for simulated bipedal locomotion over rough terrain.
 In contrast to prior work in footstep planning, our approach learns a dynamic policy that requires no optimization at execution time.
 In contrast to prior work in learning-based locomotion, our learned policy \emph{controls its footstep locations}, which allows it to handle larger and more frequent obstacles.
 Our main contributions are as follows:
 \begin{itemize}
-  \item a trajectory generator for controllable biped locomotion, based on SIMBICON \citep{yin2007simbicon} but with several modifications to enhance controllability;
+  \item a trajectory generator for controllable bipedal locomotion, based on SIMBICON \citep{yin2007simbicon} but with several modifications to enhance controllability;
   \item a policy architecture similar to PMTG but with a simpler HLP interface;
   \item an efficient learning algorithm for this architecture, which takes advantage of imitation and curriculum learning; and
-  \item simulated experiments evaluating the necessity and sufficiency of this approach for dynamic biped locomotion over rough terrain.
+  \item simulated experiments evaluating the necessity and sufficiency of this approach for dynamic bipedal locomotion over rough terrain.
 \end{itemize}
 
 \section{Related work}
@@ -150,7 +150,7 @@ makes it infeasible to apply this approach to a more complicated model.
 
 \subsection{Learning-based locomotion}
 
-Most of the prior work on deep RL for biped locomotion on rough terrain does not explicitly plan individual footstep locations.
+Most of the prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations.
 Examples of this are \cite{peng2018deepmimic, heess2017emergence, peng2016terrain}. The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
 However, they have not been shown to work in situations with dense or large obstacles where small missteps can be catastrophic.
 Such environments require accurate predictive planning at the level of individual contacts.
@@ -189,7 +189,7 @@ The only output of the HLP is the parameter settings for the TG.
 %Assuming that the low-level environment dynamics between calls to the HLP are fairly predictable (or that the TG can moderate any stochasticity that does arise), this further simplifies the environment from the point of view of the HLP.
 
 In subsequent subsections, it will be helpful to have in mind a concrete example of this kind of TG.
-For biped locomotion, our TG is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
+For bipedal locomotion, our TG is a modification of the walking gait from SIMBICON \citep{yin2007simbicon}.
 SIMBICON uses a finite state machine (FSM) with two states: an UP state that ends after 0.3 seconds, and a DOWN state that ends on swing foot contact.
 During each state, proportional derivative (PD) controllers attempt to reach the corresponding set of target joint angles.
 Balance feedback is achieved by adjusting the target swing hip angles based on the distance and velocity of the agent's CoM relative to its stance foot contact location.
@@ -304,7 +304,7 @@ After iteration 9, we change the environment such that the ground is no longer a
 \nhatch{TODO: fix these iteration numbers, and maybe put a more detailed description of the curriculum in an appendix}
 
 %The overall thrust of these differences from PMTG is to simplify the high-level environment dynamics as much as possible.
-%This makes CIM suitable for highly challenging environments, such as biped locomotion over rough terrain, where pure RL or random search algorithms are unlikely to succeed.
+%This makes CIM suitable for highly challenging environments, such as bipedal locomotion over rough terrain, where pure RL or random search algorithms are unlikely to succeed.
 
 \section{Experiments}
 
@@ -314,7 +314,7 @@ After iteration 9, we change the environment such that the ground is no longer a
   \caption{Screenshots of example episodes.\label{fig:example episodes}}
 \end{figure}
 
-We evaluate CIM on the problem of dynamic biped locomotion over rough terrain.
+We evaluate CIM on the problem of dynamic bipedal locomotion over rough terrain.
 Using the DART simulator \citep{lee2018dart}, we implement two RL problems as illustrated in Fig. \ref{fig:example episodes}.
 In both environments, the goal is to walk across 16 stepping stones while maximizing the reward per step as defined in section \ref{sec:expert}.
 Crashing terminates the episode early;
@@ -341,7 +341,7 @@ That is, at each iteration we update the HLP directly by estimating the gradient
 with weights determined by the change in total shaped reward as defined in section \ref{sec:expert}.
 Note that this baseline is very similar to PMTG \citep{iscen2018pmtg}.
 The only difference is that its policy architecture still uses the temporal abstraction explained in section \ref{sec:tg}.\footnote{
-As we have not implemented a TG for biped locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
+As we have not implemented a TG for bipedal locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
 
 Based on a manual hyperparameter search, we decided that the baseline would use $Q=8$ random directions and a step size of $0.01$ decaying by $0.9$ at each iteration.
 Furthermore, we decided that all $2Q$ rollouts during each iteration of ARS would use the same random seed (i.e. the same placement of stepping stones).
@@ -394,7 +394,7 @@ Curricular imitative modulation is a general approach to integrating prior knowl
 Like PMTG \citep{iscen2018pmtg}, it simplifies the learning problem with the use of a well-designed trajectory generator.
 Moreover, it further simplifies the learning problem by (1) using a temporally abstract high-level policy and (2) training with imitation and curriculum learning.
 
-In particular, CIM is an intriguing direction for biped locomotion research.
+In particular, CIM is an intriguing direction for bipedal locomotion research.
 To the best of our knowledge, our experiments are the first to achieve such precise foot placement
 using a fast, dynamic gait that requires no optimization during policy execution.
 However, one significant limitation of our work so far is that all experiments were performed in simulation.
@@ -412,7 +412,7 @@ This would reduce the need for expert engineering and make it easier to test CIM
 
 \appendix
 
-\section{Detailed description of trajectory generator for biped locomotion}
+\section{Detailed description of trajectory generator for bipedal locomotion}
 
 \label{app:simbicon}
 
