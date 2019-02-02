@@ -82,14 +82,11 @@ def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    ex = Experiment(env, "new_experiment"+uq_id, ['SETTINGS_3D_HARDER'])
-    ex.run_iters(2, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(6, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D_PRECISE)
+    ex = Experiment(env, LearnInverseDynamics, "3D_test_"+uq_id, ['SETTINGS_3D_MEDIUM', 'SETTINGS_3D_HARD'])
+    ex.run_iters(5, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(15, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PRECISE)
-    ex.run_iters(6, cur.SETTINGS_3D_HARDER, cur.TRAIN_SETTINGS_3D_PRECISE)
-    embed()
+    ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PLUS)
 
 def ex_2D_cim(uq_id):
     from stepping_stones_env import SteppingStonesEnv
@@ -98,14 +95,12 @@ def ex_2D_cim(uq_id):
     ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(18, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)
-    embed()
 
 def ex_2D_cim_easy(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, LearnInverseDynamics, "cim_final_easy_"+uq_id, ['SETTINGS_2D_EASY'])
     ex.run_iters(5, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
-    embed()
 
 def ex_2D_nocur(uq_id):
     from stepping_stones_env import SteppingStonesEnv
@@ -113,15 +108,13 @@ def ex_2D_nocur(uq_id):
     ex = Experiment(env, LearnInverseDynamics, "nocur_final_"+uq_id, ['SETTINGS_2D_HARD'])
     ex.run_iters(1, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_FIRST)
     ex.run_iters(8, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_NOCUR_NEXT)
-    embed()
 
 def ex_2D_rs(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
     ex = Experiment(env, RandomSearchBaseline, "rs_final_"+uq_id, ['SETTINGS_2D_EASY'])
     ex.run_iters(10, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_BASELINE_NOEXPERT)
-    embed()
 
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
-    ex_2D_cim(UQ_ID)
+    ex_3D(UQ_ID)

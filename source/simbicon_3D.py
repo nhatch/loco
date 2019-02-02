@@ -16,7 +16,7 @@ class Simbicon3D(Simbicon):
     def base_gait(self):
         gait = [0.14, 0.5, 0.2, -0.1, 0.2,
                 0.4, -1.1,   0.0, -0.05,
-                -0.0, -0.00, 0.05, -0.1,
+                -0.0, -0.00, 0.1, -0.1,
                 0.5, 0.2, 0.0, 0.0, 0.0, 0.0]
         return np.array(gait)
 
@@ -62,23 +62,7 @@ class Simbicon3D(Simbicon):
 
         tq[TORSO_ROLL] = -q[ROOT_ROLL]
 
-        self.update_doppelganger(tq)
         return tq
-
-    def update_doppelganger(self, tq):
-        dop = self.env.doppelganger
-        if dop is None:
-            return
-        c = self.env.consts()
-        tq = tq.copy()
-        dop.q = self.env.from_features(tq)
-        ik = InverseKinematics(self.env.doppelganger, self.env)
-        offset = c.THIGH_BODYNODE_OFFSET
-        dop_bodynode = ik.get_bodynode(self.stance_idx, offset)
-        robot_bodynode = self.ik.get_bodynode(self.stance_idx, offset)
-        tq[:6] = ik.get_dofs(robot_bodynode.transform(), dop_bodynode)
-        self.env.doppelganger.q = self.env.from_features(tq)
-        self.env.doppelganger.dq = np.zeros(c.Q_DIM)
 
 def next_target(start, heading, length, env):
     c = env.controller

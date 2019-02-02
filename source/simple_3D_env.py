@@ -8,7 +8,6 @@ from OpenGL.GL import GLfloat
 from stepping_stones_env import SteppingStonesEnv
 import consts_armless as consts
 
-SIMULATION_RATE = 1.0 / 2000.0
 THETA = -np.pi/12
 PHI = np.pi / 1.5
 ZOOM = 5.0
@@ -66,20 +65,6 @@ class Simple3DEnv(SteppingStonesEnv):
         if self.world.frame % framerate == 0:
             #print(self.world.time())
             self._render()
-
-    def load_world(self):
-        skel_file = consts.skel_file
-        world = pydart.World(SIMULATION_RATE, skel_file)
-        skel = world.skeletons[1]
-        self.doppelganger = None
-        if len(world.skeletons) == 3:
-            self.doppelganger = world.skeletons[2]
-            assert(self.doppelganger.name == "doppelganger")
-        skel.set_self_collision_check(True)
-        # The kima_human_box model actually has preset damping coeffs.
-        #for dof in skel.dofs[6:]:
-        #    dof.set_damping_coefficient(0.2)
-        return world
 
     def consts(self):
         return consts

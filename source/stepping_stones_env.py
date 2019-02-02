@@ -33,6 +33,8 @@ class SteppingStonesEnv:
         self.viewer = None
         self.sdf_loader = SDFLoader(self.consts().DEFAULT_GROUND_WIDTH)
         pydart.init(verbose=False)
+        c = self.consts()
+        self.is_3D = (c.BRICK_DOF == 6)
         self.clear_skeletons()
 
         self.video_recorder = None
@@ -40,9 +42,6 @@ class SteppingStonesEnv:
         self.metadata = {'render.modes': ['rgb_array', 'human']}
         #self.reward_range = range(10)
         #self.spec = None
-
-        c = self.consts()
-        self.is_3D = (c.BRICK_DOF == 6)
 
     def consts(self):
         return consts_2D
@@ -236,13 +235,22 @@ class SteppingStonesEnv:
 
     def update_viewer(self, com):
         track_point = self.track_point or com
+        track_point = track_point + np.array([-2, 0, 0])
+        #tb.trans[1] = -0.5
         self.viewer.scene.tb.trans[0] = -track_point[0]
 
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
     def load_world(self):
-        skel = "skel/walker2d.skel"
-        world = pydart.World(SIMULATION_RATE, skel)
+        skel_file = self.consts().skel_file
+        world = pydart.World(SIMULATION_RATE, skel_file)
+        self.doppelganger = None
+        if len(world.skeletons) == 3:
+            self.doppelganger = world.skeletons[2]
+            assert(self.doppelganger.name == "doppelganger")
+        if self.is_3D:
+            skel = world.skeletons[1]
+            skel.set_self_collision_check(True)
         return world
 

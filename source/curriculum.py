@@ -33,7 +33,6 @@ TRAIN_SETTINGS_2D = {
     'model_class': 'linear',
     }
 
-# TODO do this for 3D as well
 cp_orig = TRAIN_SETTINGS_2D['controllable_params']
 col = cp_orig.reshape((-1,1))
 row = np.concatenate((o2d, [True])).reshape((1,-1))
@@ -91,7 +90,7 @@ o3d = np.concatenate([oq_3d, oq_3d,
                       ot_3d, ot_3d, ot_3d, ot_3d])
 
 TRAIN_SETTINGS_3D = {
-    'n_trajectories': 3,
+    'n_trajectories': 4,
     'n_dirs': 8,
     'tol': 0.05,
     'max_intolerable_steps': 3,
@@ -107,8 +106,8 @@ TRAIN_SETTINGS_3D = {
     'model_class': 'linear',
     }
 
-TRAIN_SETTINGS_3D_PRECISE = {**TRAIN_SETTINGS_3D,
-    'tol': 0.02,
+TRAIN_SETTINGS_3D_PLUS = {**TRAIN_SETTINGS_3D,
+    'model_class': 'quadratic',
     }
 
 SETTINGS_3D_EASY = {
@@ -129,13 +128,13 @@ SETTINGS_3D_MEDIUM = {**SETTINGS_3D_EASY,
     }
 
 SETTINGS_3D_HARD = {**SETTINGS_3D_MEDIUM,
-    'dist_spread': 0.5,
-    'z_spread': 0.2,
-    }
-
-SETTINGS_3D_HARDER = {**SETTINGS_3D_HARD,
     'use_stepping_stones': True,
     'ground_length': 0.3,
     'ground_width': 0.2,
+    }
+
+SETTINGS_3D_HARDER = {**SETTINGS_3D_HARD,
+    'dist_spread': 0.5,
+    'z_spread': 0.2,
     }
 

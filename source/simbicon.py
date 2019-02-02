@@ -275,6 +275,8 @@ class Simbicon(PDController):
         q, dq = self.env.get_x()
         params = self.params
         target_q = self.compute_target_q(q, dq)
+        self.update_doppelganger(target_q)
+
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
@@ -295,18 +297,32 @@ class Simbicon(PDController):
         torques = self.env.from_features(control)
         return torques
 
-def test(env, length, seed=None, runway_length=15, runway_x=0):
+    def update_doppelganger(self, tq):
+        dop = self.env.doppelganger
+        if dop is None:
+            return
+        c = self.env.consts()
+        tq = tq.copy()
+        dop.q = self.env.from_features(tq)
+        ik = InverseKinematics(self.env.doppelganger, self.env)
+        offset = c.THIGH_BODYNODE_OFFSET
+        dop_bodynode = ik.get_bodynode(self.stance_idx, offset)
+        robot_bodynode = self.ik.get_bodynode(self.stance_idx, offset)
+        tq[:c.BRICK_DOF] = ik.get_dofs(robot_bodynode.transform(), dop_bodynode)
+        self.env.doppelganger.q = self.env.from_features(tq)
+        self.env.doppelganger.dq = np.zeros(c.Q_DIM)
+
+def test(env, length, seed=None, runway_length=15, runway_x=0, render=1):
     env.clear_skeletons() # Necessary in order to change the runway length
     env.sdf_loader.ground_length = runway_length
-    start_state = env.reset(seed=seed, random=0.005, render=1)
+    start_state = env.reset(seed=seed, random=0.005, render=render)
     env.sdf_loader.put_grounds([[runway_x,0,0]])
+    action = np.zeros(sp.N_PARAMS)
     for i in range(8):
-        # TODO: for very small target steps (e.g. 10 cm), the velocity is so small that
-        # the robot can get stuck in the UP state, balancing on one leg.
-        # TODO: for long steps, (e.g. 80 cm) the robot hits the target with its toe rather
-        # than its heel. This makes difficult training environments for random optimization.
+        if i > 2:
+            action[sp.UP_IDX+sp.SWING_ANKLE_RELATIVE] = -0.3
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
-        _, terminated = env.simulate([t,0,0])
+        _, terminated = env.simulate([t,0,0], action=action)
         if terminated:
             break
 
@@ -328,6 +344,6 @@ def reproduce_bug(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    test(env, 0.2)
+    test(env, 0.5)
     #reproduce_bug(env)
     embed()

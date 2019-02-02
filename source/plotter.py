@@ -9,12 +9,12 @@ import seaborn as sns
 import matplotlib
 matplotlib.rcParams.update({'font.size': 14})
 
-KEYS_TO_PLOT = ['total_reward']
 SETTINGS = {
-        "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8]],
-        "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20]],
-        "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16]],
-        "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12]],
+        "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8], 'SETTINGS_2D_EASY'],
+        "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20], 'SETTINGS_2D_HARD'],
+        "cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_MEDIUM'],
+        "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16], 'SETTINGS_2D_EASY'],
+        "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12], 'SETTINGS_2D_HARD'],
         }
 
 def fill_plot(x, data, color):
@@ -33,9 +33,9 @@ def steps_from_history(history):
 
 def load_exp(exp_name, seed):
     name = "{}_{}".format(exp_name, seed)
-    settings_name = 'SETTINGS_2D_EASY' if exp_name in ['cim_final_easy', 'rs_final'] else 'SETTINGS_2D_HARD'
-    ex = Experiment(None, SETTINGS[exp_name][2], name, [settings_name])
-    return steps_from_history(ex.learn.history), ex.results[settings_name]['total_reward']
+    eval_settings = SETTINGS[exp_name][4]
+    ex = Experiment(None, SETTINGS[exp_name][2], name, [eval_settings])
+    return steps_from_history(ex.learn.history), ex.results[eval_settings]['total_reward']
 
 def multiseed_plot(exp_name):
     xx = []
@@ -77,5 +77,10 @@ def gen_figures():
     plt.legend(lines, labels, loc='lower right')
     save_plot('../paper/figures/nocur_baseline.pdf')
 
+def test():
+    multiseed_plot('cim_3D')
+    save_plot('test.png')
+
 if __name__ == '__main__':
-    gen_figures()
+    #gen_figures()
+    test()

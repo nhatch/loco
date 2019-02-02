@@ -2,6 +2,8 @@ import numpy as np
 import pydart2.utils.transformations as libtransform
 from utils import build_mask
 
+skel_file = 'skel/walker2d.skel'
+
 perm = [0,1,2,3,4,5,6,7,8]
 sign_switches = []
 
