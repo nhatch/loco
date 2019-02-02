@@ -91,11 +91,11 @@ One way to handle these challenges is with detailed models and extensive optimiz
 For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}.
 Such approaches tend to be reliable but slow.
 They are physically slow because accurate modeling requires relatively static walking, and also because the optimization procedures are computationally slow.
-For the DRC, reliability was more important than speed, but eventually we want to have robots that can traverse rough terrain using faster, dynamic gaits.
+For the DRC, reliability was more important than speed, but eventually the goal is to build robots that can traverse rough terrain using faster, dynamic gaits.
 
 Recent advances in reinforcement learning (RL) suggest an alternative approach.
 Deep RL is a popular technique to learn highly dynamic motions for humanoids \citep{peng2018deepmimic, heess2017emergence}.
-Using sim-to-real techniques, \citet{tan2018sim} have even applied deep RL techniques to physical robots, albeit for quadrupedal locomotion rather than bipedal.
+Using sim-to-real techniques, \citet{tan2018sim} have applied deep RL techniques to physical robots, albeit for quadrupedal locomotion rather than bipedal locomotion.
 The policies learned by deep RL are both computationally and physically fast.
 However, due to the extreme sample inefficiency of deep RL algorithms, their effectiveness in more challenging environments---for example, physical bipeds or rough terrain---is uncertain.
 
