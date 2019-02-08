@@ -12,7 +12,8 @@ matplotlib.rcParams.update({'font.size': 14})
 SETTINGS = {
         "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8], 'SETTINGS_2D_EASY'],
         "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20], 'SETTINGS_2D_HARD'],
-        "cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_MEDIUM'],
+        "cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
+        "3D_test": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
         "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16], 'SETTINGS_2D_EASY'],
         "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12], 'SETTINGS_2D_HARD'],
         }
@@ -78,8 +79,8 @@ def gen_figures():
     save_plot('../paper/figures/nocur_baseline.pdf')
 
 def test():
-    multiseed_plot('cim_3D')
-    save_plot('test.png')
+    multiseed_plot('3D_test')
+    save_plot('hard.png')
 
 if __name__ == '__main__':
     #gen_figures()
