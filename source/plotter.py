@@ -38,10 +38,12 @@ def load_exp(exp_name, seed):
     ex = Experiment(None, SETTINGS[exp_name][2], name, [eval_settings])
     return steps_from_history(ex.learn.history), ex.results[eval_settings]['total_reward']
 
-def multiseed_plot(exp_name):
+def multiseed_plot(exp_name, seeds=None):
     xx = []
     yy = []
-    for seed in SETTINGS[exp_name][3]:
+    if seeds is None:
+        seeds = SETTINGS[exp_name][3]
+    for seed in seeds:
         x,y = load_exp(exp_name, seed)
         xx.append(x)
         yy.append(y)
@@ -78,10 +80,18 @@ def gen_figures():
     plt.legend(lines, labels, loc='lower right')
     save_plot('../paper/figures/nocur_baseline.pdf')
 
-def test():
-    multiseed_plot('3D_test')
-    save_plot('hard.png')
+def plot_single_seed(exp_name, seed):
+    multiseed_plot(exp_name, [seed])
+    eval_settings = SETTINGS[exp_name][4]
+    save_plot('data/{}_{}/{}.pdf'.format(exp_name, seed, eval_settings))
+
+def all_single_seeds():
+    for exp_name in SETTINGS.keys():
+        seeds = SETTINGS[exp_name][3]
+        for seed in seeds:
+            plot_single_seed(exp_name, seed)
 
 if __name__ == '__main__':
     #gen_figures()
-    test()
+    #plot_single_seed('3D_test', 1)
+    all_single_seeds()
