@@ -1,0 +1,875 @@
+<?xml version="1.0" ?>
+<robot name="darwinOP">
+
+
+
+
+  <link name="torso">
+    <inertial>
+      <!-- <origin xyz="-0.003053 -0.038651 -0.019268" /> -->
+      <origin xyz="-0.00 -0.0 -0.0" />
+      <mass value="0.97559947"/>
+      <inertia ixx="3.1081800"  ixy="-0.25460189"  ixz="2.0318174" iyy="6.3787776" iyz="0.16417863" izz="5.3316425" />
+    </inertial>
+    <visual>
+      <!--origin xyz="-0.0235 0 -0.03525" rpy="0 0 0" /-->
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.102 0.109 0.106" /-->
+        <mesh filename="./meshes/body.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+      <marker>
+        <origin xyz="0.0 0.0 0"/>
+        <color rgba="1.0 0 0 0"/>
+      </marker>
+    </visual>
+  </link>
+
+  <link name="neck">
+    <inertial>
+      <origin xyz="0.001424 -0.016567 -0.007128" />
+      <mass value="0.024357719"/>
+      <inertia ixx="0.0051411124"  ixy="-0.00057530255"  ixz="-0.000024729049" iyy="0.0081915737" iyz="-0.000019223094" izz="0.0011379812" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.045 0.022 0.0325" /-->
+        <mesh filename="./meshes/neck.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="head">
+    <inertial>
+      <origin xyz="0.000064 -0.018565 -0.007667" />
+      <mass value="0.15804192"/>
+      <inertia ixx="0.1239683"  ixy="0.000078494368"  ixz="0.000007645979" iyy="0.11783781" iyz="0.0012199205" izz="0.1583601" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!-- box size="0.0634 0.061 0.033" /-->
+        <mesh filename="./meshes/head.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="back_l">
+    <inertial>
+      <origin xyz="-0.0031158909 0.020443695 -0.019663084" />
+      <mass value="0.010"/>
+      <inertia ixx="3.1081800"  ixy="-0.25460189"  ixz="2.0318174" iyy="6.3787776" iyz="0.16417863" izz="5.3316425" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0 1.57 0" />
+      <geometry>
+        <box size="0.001 0.001 0.001"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="shoulder_l">
+    <inertial>
+      <origin xyz="-0.013522619 0.010264050 0.0013935747" />
+      <mass value="0.025913024"/>
+      <inertia ixx="0.0097758165"  ixy="0.0016911839"  ixz="-0.00045174329" iyx="0.0016911839" iyy="0.010511104" iyz="0.00033406955" izx="-0.00045174329" izy="0.00033406955" izz="0.005476798" />
+    </inertial>
+    
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.016 0.033 0.02165" /-->
+        <mesh filename="./meshes/shoulder_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="upper_arm_l" >
+    <inertial>
+      <origin xyz="-0.036239 0.000734 0.000660" />
+      <mass value="0.16837715"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.06 0.032 0.035" /-->
+        <mesh filename="./meshes/arm_high_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+  
+  <link name="lower_arm_l" >
+    <inertial>
+      <origin xyz="0.000000 0.000000 0.000000"/>
+      <mass value="0.059288504"/>
+      <inertia ixx="0.086855267"  ixy="0.0053020311"  ixz="0.00043636051" iyx="0.0053020311" iyy="0.021192085" iyz="-0.0064855932" izx="0.00043636051" izy="-0.0064855932" izz="0.086845450" />
+    </inertial>
+
+    <visual>
+      <origin xyz="0.016 0.016 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.035" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  
+  <link name="l_hand" >
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.05 -0.08 0.0" rpy="0 0 1.57" />
+      <geometry>
+        <!-- <box size="0.10 0.032 0.015" /> -->
+        <mesh filename="./meshes/forearm_l.STL"  scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.0 0 1.0"/>
+      </material>
+    </visual>
+  </link>
+<!--
+  <link name="MP_ARM_GRIPPER_FIX_DUMMY_L" >0.045838 -0.013490 0.006666
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial> 
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="MP_ARM_GRIPPER_MOV_L" >
+    <inertial>
+      <origin xyz="0.000000 0.000000 0.000000"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual name="VIS_MP_ARM_GRIPPER_MOV_L">
+      <origin xyz="0.016 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision name="COL_MP_ARM_GRIPPER_MOV_L">
+      <origin xyz="0.016 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+    </collision>
+
+    <visual name="VIS_MP_ARM_GRIPPER_MOV_EXT_L">
+      <origin xyz="0.031 -0.0025 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.002 0.01 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision name="COL_MP_ARM_GRIPPER_MOV_EXT_L">
+      <origin xyz="0.031 -0.0025 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.002 0.01 0.032" />
+      </geometry>
+    </collision>
+
+  </link>
+-->
+
+  <link name="back_r">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.010"/>
+      <inertia ixx="3.1081800"  ixy="-0.25460189"  ixz="2.0318174" iyy="6.3787776" iyz="0.16417863" izz="5.3316425" />
+    </inertial>
+    
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.001 0.001 0.001" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>   
+  </link>
+
+  <link name="shoulder_r" >
+    <inertial>
+      <origin xyz="-0.013523 0.010264 0.001394" />
+      <mass value="0.025913024"/>
+      <inertia ixx="0.0097758165"  ixy="0.0016911839"  ixz="-0.00045174329" iyx="0.0016911839" iyy="0.010511104" iyz="0.00033406955" izx="-0.00045174329" izy="0.00033406955" izz="0.005476798" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 3.14" />
+      <geometry>
+        <!--box size="0.016 0.033 0.02165" /-->
+        <mesh filename="./meshes/shoulder_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="1 0 0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="upper_arm_r" >
+    <inertial>
+      <origin xyz="-0.036239 0.000734 -0.000660" />
+      <mass value="0.16837715"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="3.14 0 0" />
+      <geometry>
+        <!--box size="0.06 0.032 0.035"/-->
+        <mesh filename="./meshes/arm_high_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="lower_arm_r" >
+    <inertial>
+      <origin xyz="0.000000 0.000000 0.000000" />
+      <mass value="0.059288504"/>
+      <inertia ixx="0.086855267"  ixy="0.0053020311"  ixz="0.00043636051" iyx="0.0053020311" iyy="0.021192085" iyz="-0.0064855932" izx="0.00043636051" izy="-0.0064855932" izz="0.086845450" />
+    </inertial>
+
+    <visual>
+      <origin xyz="0.016 -0.016 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.035" />
+        
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.70 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="r_hand" >
+    <inertial>
+      <origin xyz="0.045838 -0.013490 0.006666"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.05 -0.08 -0.0" rpy="0 0 1.57" />
+      <geometry>
+        <!-- <box size="0.10 0.032 0.015" /> -->
+        <mesh filename="./meshes/forearm_r.STL"  scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+<!--
+  <link name="MP_ARM_GRIPPER_FIX_DUMMY_R" >
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial> 
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="MP_ARM_GRIPPER_MOV_R" >
+    <inertial>
+      <origin xyz="0.000000 0.000000 0.000000"/>
+      <mass value="0.010"/>
+      <inertia ixx="0.12202839"  ixy="-0.0020812626"  ixz="-0.00088143449" iyx="-0.0020812626" iyy="0.038088441" iyz="0.0018251448" izx="-0.00088143449" izy="0.0018251448" izz="0.11340830" />
+    </inertial>
+    <visual name="VIS_MP_ARM_GRIPPER_MOV_R">
+      <origin xyz="0.016 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision name="COL_MP_ARM_GRIPPER_MOV_R">
+      <origin xyz="0.016 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+    </collision>
+
+    <visual name="VIS_MP_ARM_GRIPPER_MOV_EXT_R">
+      <origin xyz="0.031 -0.0025 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.002 0.01 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision name="COL_MP_ARM_GRIPPER_MOV_EXT_R">
+      <origin xyz="0.031 -0.0025 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.002 0.01 0.032" />
+      </geometry>
+    </collision>
+
+
+  </link>
+-->
+  <link name="pelvis_l" >
+    <inertial>
+      <origin xyz="0.000000 0.000480 0.018437" />
+      <mass value="0.167"/>
+      <inertia ixx="0.12259691"  ixy="0.00071127469"  ixz="0.00081143913" iyx="0.00071127469" iyy="0.11066637" iyz="-0.0071635476" izx="0.00081143913" izy="-0.0071635476" izz="0.041877668" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.045 0.08175 0.028652" /-->
+        <mesh filename="./meshes/pelvis_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="thigh1_l" >
+    <inertial>
+      <origin xyz="0.000079 0.018242 0.013873" />
+      <mass value="0.11904336"/>
+      <inertia ixx="0.097950272"  ixy="0.0012119368"  ixz="-0.00021223016" iyx="0.00122119368" iyy="0.032848287" iyz="-0.0019474021" izx="-0.00021223016" izy="-0.0019474021" izz="0.11493509" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.001 0.001 0.001"/-->
+        <mesh filename="./meshes/thigh1_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="thigh2_l" >
+    <inertial>
+      <origin xyz="-0.062965 -0.000323 0.000692" />
+      <mass value="0.11904336"/>
+      <inertia ixx="0.097950272"  ixy="0.0012119368"  ixz="-0.00021223016" iyx="0.00122119368" iyy="0.032848287" iyz="-0.0019474021" izx="-0.00021223016" izy="-0.0019474021" izz="0.11493509" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.093 0.035 0.045"-->
+        <mesh filename="./meshes/thigh2_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="shin_l" >
+    <inertial>
+      <origin xyz="-0.053955 0.006548 -0.000592" />
+      <mass value="0.070309794"/>
+      <inertia ixx="0.093369608"  ixy="-0.00093567395"  ixz="-0.00023992085" iyx="-0.00093567395" iyy="0.046295534" iyz="-0.012858493" izx="-0.00023992085" izy="-0.012858493" izz="0.11351516" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.093 0.035 0.045"/-->
+        <mesh filename="./meshes/tibia_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="ankle1_l" >
+    <inertial>
+      <origin xyz="-0.000214 -0.018536 0.013873" />
+      <mass value="0.16710792"/>
+      <inertia ixx="0.12079175"  ixy="-0.00079781067"  ixz="-0.00039322246" iyx="-0.00079781067" iyy="0.10885465" iyz="0.0070770117" izx="-0.00039322246" izy="0.0070770117" izz="0.041871103" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.028652 0.08175 0.045"/-->
+        <mesh filename="./meshes/ankle1_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="ankle2_l" >
+    <inertial>
+      <origin xyz="-0.025995 -0.009506 -0.000503" />
+      <mass value="0.0794462"/>
+      <inertia ixx="0.12079175"  ixy="-0.00079781067"  ixz="-0.00039322246" iyx="-0.00079781067" iyy="0.10885465" iyz="0.0070770117" izx="-0.00039322246" izy="0.0070770117" izz="0.041871103" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.008 0.066 0.104"/-->
+        <mesh filename="./meshes/ankle2_l.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="pelvis_r" >
+    <inertial>
+      <origin xyz="0.000000 0.000480 0.018437" />
+      <mass value="0.197"/>
+      <inertia ixx="0.12259691"  ixy="0.00071127469"  ixz="0.00081143913" iyx="0.00071127469" iyy="0.11066637" iyz="-0.0071635476" izx="0.00081143913" izy="-0.0071635476" izz="0.041877668" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.045 0.08175 0.028652" /-->
+        <mesh filename="./meshes/pelvis_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="thigh1_r" >
+    <inertial>
+      <origin xyz="0.000079 -0.018242 0.0138735" />
+      <mass value="0.11904336"/>
+      <inertia ixx="0.097950272"  ixy="0.0012119368"  ixz="-0.00021223016" iyx="0.00122119368" iyy="0.032848287" iyz="-0.0019474021" izx="-0.00021223016" izy="-0.0019474021" izz="0.11493509" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.001 0.001 0.001"/-->
+        <mesh filename="./meshes/thigh1_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="thigh2_r" >
+    <inertial>
+      <origin xyz="0.062965 -0.000323 0.000692" />
+      <mass value="0.11904336"/>
+      <inertia ixx="0.097950272"  ixy="0.0012119368"  ixz="-0.00021223016" iyx="0.00122119368" iyy="0.032848287" iyz="-0.0019474021" izx="-0.00021223016" izy="-0.0019474021" izz="0.11493509" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.093 0.035 0.045"/-->
+        <mesh filename="./meshes/thigh2_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="shin_r" >
+    <inertial>
+      <origin xyz="0.053955 0.006548 -0.000592" />
+      <mass value="0.070309794"/>
+      <inertia ixx="0.093369608"  ixy="-0.00093567395"  ixz="-0.00023992085" iyx="-0.00093567395" iyy="0.046295534" iyz="-0.012858493" izx="-0.00023992085" izy="-0.012858493" izz="0.11351516" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.093 0.035 0.045"/-->
+        <mesh filename="./meshes/tibia_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="ankle1_r" >
+    <inertial>
+      <origin xyz="-0.000214 -0.018536 -0.013873" />
+      <mass value="0.16710792"/>
+      <inertia ixx="0.12079175"  ixy="-0.00079781067"  ixz="-0.00039322246" iyx="-0.00079781067" iyy="0.10885465" iyz="0.0070770117" izx="-0.00039322246" izy="0.0070770117" izz="0.041871103" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.028652 0.08175 0.045"/-->
+        <mesh filename="./meshes/ankle1_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <link name="ankle2_r" >
+    <inertial>
+      <origin xyz="0.025995 -0.009506 -0.000503" />
+      <mass value="0.0794462"/>
+      <inertia ixx="0.12079175"  ixy="-0.00079781067"  ixz="-0.00039322246" iyx="-0.00079781067" iyy="0.10885465" iyz="0.0070770117" izx="-0.00039322246" izy="0.0070770117" izz="0.041871103" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!--box size="0.008 0.066 0.104"/-->
+        <mesh filename="./meshes/ankle2_r.STL"  scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <!--
+  <link name="MP_PMDCAMBOARD" >
+    <!--
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.005 0.032" />
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    
+  </link
+  
+  <joint name="j_camboard" type="fixed">
+  <parent link="MP_HEAD"/>
+  <child link="MP_PMDCAMBOARD"/>
+  <origin xyz="0 0 0.0235" rpy="3.14159 1.5707963 0" />
+  <axis xyz="0 0 1" />
+  <limit effort="2.8" velocity="5.6548668" lower="-2.6179939" upper="2.6179939" />
+  </joint>
+  -->
+  <joint name="j_pan" type="revolute">
+    <parent link="torso"/>
+    <child link="neck"/>
+    <origin xyz="0 0 0.0235" rpy="0 0 1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_tilt" type="revolute">
+    <parent link="neck"/>
+    <child link="head"/>
+    <origin xyz="0 0 0.02715" rpy="-1.5707963 0 1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_back_l" type="fixed">
+    <parent link="torso"/>
+    <child link="back_l"/>
+    <origin xyz="0 0.06035 0" rpy="-1.5707963 0 0" />
+    <limit effort="2.8" velocity="5.6548668" lower="-2.6179939" upper="2.6179939" />
+  </joint>
+
+  <joint name="l_shoulder" type="revolute">
+    <parent link="back_l"/>
+    <child link="shoulder_l"/>
+    <origin xyz="0 0 0" rpy="0 0 -1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_high_arm_l" type="revolute">
+    <parent link="shoulder_l"/>
+    <child link="upper_arm_l"/>
+    <origin xyz="-0.016 0 0.02165" rpy="1.5707963 1.5707963 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="l_hand1" type="revolute">
+    <parent link="upper_arm_l"/>
+    <child link="lower_arm_l"/>
+    <origin xyz="-0.06 0 -0.016" rpy="-1.5707963 3.14159 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+ 
+  <joint name="j_wrist_l" type="fixed">
+    <parent link="lower_arm_l"/>
+    <child link="l_hand"/>
+    <origin xyz="0.048 0.016 0" rpy="1.5707963 0 0" />
+  </joint>
+<!-- 
+  <joint name="j_wrist_dummy_l" type="fixed">
+    <parent link="MP_ARM_GRIPPER_FIX_L"/>
+    <child link="MP_ARM_GRIPPER_FIX_DUMMY_L"/>
+    <origin xyz="0.064 -0.01 0" rpy="0 0 0" />
+  </joint>
+
+  <joint name="j_gripper_l" type="revolute">
+    <parent link="MP_ARM_GRIPPER_FIX_L"/>
+    <child link="MP_ARM_GRIPPER_MOV_L"/>
+    <origin xyz="0.048 0.01 0" rpy="0 0 1.0" />
+    <axis xyz="0 0 1" />
+    <limit effort="2.8" velocity="5.6548668" lower="-2.6179939" upper="2.6179939" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+-->
+  <joint name="j_back_r" type="fixed">
+    <parent link="torso"/>
+    <child link="back_r"/>
+    <origin xyz="0 -0.06035 0" rpy="1.5707963 0 0" />
+    <limit effort="2.8" velocity="5.6548668" lower="-2.6179939" upper="2.6179939" />
+  </joint>
+
+  <joint name="r_shoulder" type="revolute">
+    <parent link="back_r"/>
+    <child link="shoulder_r"/>
+    <origin xyz="0 0 0" rpy="0 0 -1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_high_arm_r" type="revolute">
+    <parent link="shoulder_r"/>
+    <child link="upper_arm_r"/>
+    <origin xyz="0.016 0 0.02165" rpy="-1.5707963 1.5707963 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="r_hand1" type="revolute">
+    <parent link="upper_arm_r"/>
+    <child link="lower_arm_r"/>
+    <origin xyz="-0.06 0 0.016" rpy="-1.5707963 3.14159 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_wrist_r" type="fixed">
+    <parent link="lower_arm_r"/>
+    <child link="r_hand"/>
+    <origin xyz="0.048 -0.016 0" rpy="1.5707963 0 0" />
+  </joint>
+<!--
+  <joint name="j_wrist_dummy_r" type="fixed">
+    <parent link="MP_ARM_GRIPPER_FIX_R"/>
+    <child link="MP_ARM_GRIPPER_FIX_DUMMY_R"/>
+    <origin xyz="0.064 -0.01 0" rpy="0 0 0" />
+  </joint>
+
+  <joint name="j_gripper_r" type="revolute">
+    <parent link="MP_ARM_GRIPPER_FIX_R"/>
+    <child link="MP_ARM_GRIPPER_MOV_R"/>
+    <origin xyz="0.048 0.01 0" rpy="0 0 1.0" />
+    <axis xyz="0 0 1" />
+    <limit effort="2.8" velocity="5.6548668" lower="-2.6179939" upper="2.6179939" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+-->
+  <joint name="j_pelvis_l" type="revolute">
+    <parent link="torso"/>
+    <child link="pelvis_l"/>
+    <origin xyz="-0.005 0.037 -0.09355" rpy="0 3.14159 -1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_thigh1_l" type="revolute">
+    <parent link="pelvis_l"/>
+    <child link="thigh1_l"/>
+    <origin xyz="0 0 0.028652" rpy="1.5707963 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="l_thigh" type="revolute">
+    <parent link="thigh1_l"/>
+    <child link="thigh2_l"/>
+    <origin xyz="0 0 0" rpy="1.5707963 0 -1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="l_shin" type="revolute">
+    <parent link="thigh2_l"/>
+    <child link="shin_l"/>
+    <origin xyz="-0.093 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="l_toe" type="revolute">
+    <parent link="shin_l"/>
+    <child link="ankle1_l"/>
+    <origin xyz="-0.093 0 0" rpy="3.14159 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="l_heel" type="revolute">
+    <parent link="ankle1_l"/>
+    <child link="ankle2_l"/>
+    <origin xyz="0 0 0" rpy="-1.5707963 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_pelvis_r" type="revolute">
+    <parent link="torso"/>
+    <child link="pelvis_r"/>
+    <origin xyz="-0.005 -0.037 -0.09355" rpy="0 3.14159 1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="j_thigh1_r" type="revolute">
+    <parent link="pelvis_r"/>
+    <child link="thigh1_r"/>
+    <origin xyz="0 0 0.028652" rpy="-1.5707963 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="r_thigh" type="revolute">
+    <parent link="thigh1_r"/>
+    <child link="thigh2_r"/>
+    <origin xyz="0 0 0" rpy="1.5707963 0 -1.5707963" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="r_shin" type="revolute">
+    <parent link="thigh2_r"/>
+    <child link="shin_r"/>
+    <origin xyz="0.093 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="r_toe" type="revolute">
+    <parent link="shin_r"/>
+    <child link="ankle1_r"/>
+    <origin xyz="0.093 0 0" rpy="3.14159 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+
+  <joint name="r_heel" type="revolute">
+    <parent link="ankle1_r"/>
+    <child link="ankle2_r"/>
+    <origin xyz="0 0 0" rpy="-1.5707963 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.1" friction="0" />
+    <limit effort="1.50" velocity="12" lower="-2.6180" upper="2.6180" />
+    <safety_controller k_position="100" k_velocity="100" soft_lower_limit="-10.6981" soft_upper_limit="10.6981" />
+  </joint>
+<markers>
+  <marker name="trial" segment="torso" RGB = "255 0 0" position="0 0 0" radius="12.2"/>
+</markers>
+</robot>
