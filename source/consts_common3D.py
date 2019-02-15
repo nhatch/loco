@@ -2,7 +2,7 @@
 import numpy as np
 
 BRICK_DOF = 6
-Q_DIM = 21
+Q_DIM = 19
 
 X = 0 # forward
 Y = 1 # vertical
@@ -28,11 +28,10 @@ ANKLE = 4
 ANKLE_ROLL = 5
 
 TORSO_ROLL = 18
-TORSO_YAW = 20
 
 absolute_rotation_indices = [Z, ROOT_YAW, ROOT_ROLL,
         RIGHT_IDX + HIP_YAW, RIGHT_IDX + HIP_ROLL, RIGHT_IDX + ANKLE_ROLL,
         LEFT_IDX + HIP_YAW, LEFT_IDX + HIP_ROLL, LEFT_IDX + ANKLE_ROLL,
-        TORSO_ROLL, TORSO_YAW]
+        TORSO_ROLL]
 
 DEFAULT_GROUND_WIDTH = 2.0

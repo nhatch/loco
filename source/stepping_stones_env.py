@@ -59,7 +59,7 @@ class SteppingStonesEnv:
         self.world = world
         self.sdf_loader.reset(world)
         walker = world.skeletons[1]
-        assert(walker.name == "walker")
+        assert(walker.name != "doppelganger")
         # TODO I spent a whole day tracking down weird behavior that was ultimately due to an incorrect joint limit. Is there a way that I can visualize when these limits are being hit?
         for j in walker.joints:
             j.set_position_limit_enforced()
@@ -246,15 +246,17 @@ class SteppingStonesEnv:
     def gui(self):
         pydart.gui.viewer.launch(self.world)
 
+    def load_robot(self, world):
+        # Loading the robot is a separate step in DarwinEnv
+        pass
+
     def load_world(self):
         skel_file = self.consts().skel_file
         world = pydart.World(SIMULATION_RATE, skel_file)
+        self.load_robot(world)
         self.doppelganger = None
         if len(world.skeletons) == 3:
             self.doppelganger = world.skeletons[2]
             assert(self.doppelganger.name == "doppelganger")
-        if self.is_3D:
-            skel = world.skeletons[1]
-            skel.set_self_collision_check(True)
         return world
 

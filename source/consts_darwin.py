@@ -1,17 +1,19 @@
 import numpy as np
 import pydart2.utils.transformations as libtransform
 
-skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
+skel_file = "skel/darwinmodel/darwin_ground.skel"
+robot_model = "skel/darwinmodel/robotis_op2.urdf"
 
-perm = [0,1,2,4,3,5, # Brick DOFs
-        14,13,12,15,16,17, # Right leg
-        8,7,6,9,10,11, # Left leg
-        18] # Torso roll
+perm = [3,4,5,2,1,0,
+        22,20,21,23,24,25,
+        16,14,15,17,18,19,
+        12] # Darwin actually doesn't have a torso roll actuator... TODO cleanup this interface
 
 # These are applied in standardized space
 sign_switches = [8,14,17]
 
 from consts_common3D import *
+Q_DIM_RAW = 26
 
 CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
 
@@ -21,10 +23,6 @@ RIGHT_BODYNODE_IDX = 6
 THIGH_BODYNODE_OFFSET = 0
 FOOT_BODYNODE_OFFSET = 2
 
-# TODO this skel file has a lot of "transformation" values that might invalidate
-# the current IK code.
-L_THIGH =    0.42875
-L_SHIN =   0.400875
 L_FOOT =   0.21
 FOOT_RADIUS = 0.049 # Not really a radius; it's a box....
 

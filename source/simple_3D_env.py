@@ -5,7 +5,7 @@ import numpy as np
 from pydart2.gui.trackball import Trackball, _q_add, _q_rotmatrix
 from OpenGL.GL import GLfloat
 
-from stepping_stones_env import SteppingStonesEnv
+from stepping_stones_env import SteppingStonesEnv, SIMULATION_RATE
 import consts_armless as consts
 
 THETA = -np.pi/12
@@ -59,19 +59,27 @@ class Simple3DEnv(SteppingStonesEnv):
         tb.zoom_to = zoom_to
         return tb
 
-    def step(self, frames_per_second=60):
-        self.world.step()
+    def run(self, seconds, frames_per_second=60):
+        self.render()
+        import time
+        # Give the GUI time to launch
+        time.sleep(0.1)
         framerate = int(1 / SIMULATION_RATE / frames_per_second)
-        if self.world.frame % framerate == 0:
-            #print(self.world.time())
-            self._render()
+        for i in range(int(seconds / SIMULATION_RATE)):
+            self.world.step()
+            if self.world.frame % framerate == 0:
+                #print(self.world.time())
+                self._render()
+
+    def load_robot(self, world):
+        skel = world.skeletons[1]
+        skel.set_self_collision_check(True)
 
     def consts(self):
         return consts
 
-def test_pd_control():
-    from pd_control import PDController
-    env = Simple3DEnv(PDController)
+def test_pd_control(env):
+    env.controller.inactive = False
     env.reset()
     env.sdf_loader.put_grounds([[-5,-0.9,0]])
     q, _ = env.get_x()
@@ -82,17 +90,31 @@ def test_pd_control():
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
     q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.75
     env.controller.target_q = q
-    env.render()
-    import time
-    # Otherwise somehow it achieves the pose before the GUI launches
-    time.sleep(0.1)
-    for i in range(int(2 / SIMULATION_RATE)):
-        env.step(60)
+    env.run(2)
 
-def test_gimbal_lock(joint):
-    from pd_control import PDController
+def setup_dof_test(env):
+    env.controller.inactive = True
+    env.reset()
+    env.sdf_loader.put_grounds([[-5,-0.9,0]])
+    q = env.robot_skeleton.q
+    env.track_point = [0,0,0]
+    env.zoom = 2.0 # Specific to Darwin. TODO figure out how to put this in consts()
+    env.render()
+    def t(indices, vals):
+        q_new = q.copy()
+        q_new[indices] = vals
+        env.robot_skeleton.q = q_new
+        env.render()
+    embed()
+
+def test_no_control(env):
+    env.controller.inactive = True
+    env.reset(random=0.05)
+    env.sdf_loader.put_grounds([[-5,-0.9,0]])
+    env.run(2)
+
+def test_gimbal_lock(env, joint):
     from sdf_loader import RED, GREEN, BLUE
-    env = Simple3DEnv(PDController)
     env.track_point = [0,0,0]
     env.sdf_loader.put_dot([1.5,0,0], "positive_x", color=RED)
     env.sdf_loader.put_dot([0,1.5,0], "positive_y", color=GREEN)
@@ -116,8 +138,12 @@ def test_gimbal_lock(joint):
     time.sleep(1)
 
 if __name__ == "__main__":
-    test_pd_control()
+    from pd_control import PDController
+    env = Simple3DEnv(PDController)
+    #test_no_control(env)
+    #test_pd_control(env)
+    setup_dof_test(env)
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
     LEFT_HIP = [12,13,14]
-    test_gimbal_lock(LEFT_HIP)
+    #test_gimbal_lock(env, LEFT_HIP)
