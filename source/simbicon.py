@@ -26,12 +26,12 @@ class Params:
 
 class Simbicon(PDController):
 
-    def __init__(self, skel, env):
-        super().__init__(skel, env)
+    def __init__(self, env):
+        super().__init__(env)
 
     def reset(self, state=None):
         c = self.env.consts()
-        self.ik = InverseKinematics(self.skel, self.env)
+        self.ik = InverseKinematics(self.env.robot_skeleton, self.env)
         self.step_started = self.time()
         self.direction = UP
 

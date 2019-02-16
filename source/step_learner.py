@@ -68,7 +68,7 @@ def test_3D(video_save_dir):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    GY = -0.9 # Ground level for the 3D environment
+    GY = env.consts().GROUND_LEVEL
     # LONG_STEP is a little too hard, but BASIC at least should be learnable
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
     BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])

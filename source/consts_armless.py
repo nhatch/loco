@@ -10,23 +10,24 @@ skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
 
 perm = [0,1,2,4,3,5, # Brick DOFs
-        14,13,12,15,16,17, # Right leg
-        8,7,6,9,10,11, # Left leg
+        13,14,12,15,16,17, # Right leg
+        7,8,6,9,10,11, # Left leg
         18] # Torso roll
 
-sign_switches = [8,14,17]
+sign_switches = [12,6,11]
 
 def standardized_dofs(raw_dofs):
-    r = raw_dofs[perm]
+    r = np.array(raw_dofs)
     r[sign_switches] *= -1
+    r = r[perm]
     return r
 
 def raw_dofs(standardized_dofs):
-    r = standardized_dofs.copy()
-    r[sign_switches] *= -1
+    r = np.array(standardized_dofs)
     base = np.zeros(Q_DIM_RAW)
     for i,j in enumerate(perm):
         base[j] = r[i]
+    base[sign_switches] *= -1
     return base
 
 def virtual_torque_idx(standardized_idx):
@@ -96,7 +97,7 @@ RIGHT_RRT = np.linalg.inv(RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM)
 
 def hip_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'rzyx')
-    hip_dofs = np.array([euler[2], euler[1], -euler[0]])
+    hip_dofs = np.array([euler[1], euler[2], -euler[0]])
     return hip_dofs
 
 def root_dofs_from_transform(transform):

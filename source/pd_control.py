@@ -3,8 +3,7 @@ import numpy as np
 
 # TODO implement Stable PD controllers?
 class PDController:
-    def __init__(self, skel, env):
-        self.skel = skel
+    def __init__(self, env):
         self.env = env
         self.inactive = False
         self.reset()
@@ -23,7 +22,7 @@ class PDController:
         c = self.env.consts()
         BRICK_DOF = c.BRICK_DOF
         raw_target_q = c.raw_dofs(target_q)
-        q, dq = self.skel.q, self.skel.dq
+        q, dq = self.env.robot_skeleton.q, self.env.robot_skeleton.dq
         control = -self.Kp * (q - raw_target_q) - self.Kd * dq
         for i in range(BRICK_DOF, len(control)):
             if control[i] > self.control_bounds[1][i-BRICK_DOF]:
@@ -36,7 +35,8 @@ class PDController:
         return self.compute_PD(self.target_q)
 
     def reset(self, state=None):
-        self.target_q = self.env.consts().standardized_dofs(np.array(self.skel.q))
+        current_q = np.array(self.env.robot_skeleton.q)
+        self.target_q = self.env.consts().standardized_dofs(current_q)
 
     def state(self):
         return []

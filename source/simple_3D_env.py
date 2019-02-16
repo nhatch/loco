@@ -58,13 +58,13 @@ class Simple3DEnv(SteppingStonesEnv):
         tb.zoom_to = zoom_to
         return tb
 
-    def run(self, seconds, frames_per_second=60):
+    def run(self, seconds, fps=60):
         self.render()
         import time
         # Give the GUI time to launch
         time.sleep(0.1)
         c = self.consts()
-        framerate = int(1 / c.SIMULATION_RATE / frames_per_second)
+        framerate = int(1 / c.SIMULATION_RATE / fps)
         for i in range(int(seconds / c.SIMULATION_RATE)):
             self.world.step()
             if self.world.frame % framerate == 0:
@@ -74,11 +74,12 @@ class Simple3DEnv(SteppingStonesEnv):
     def load_robot(self, world):
         skel = world.skeletons[1]
         skel.set_self_collision_check(True)
+        return skel
 
     def consts(self):
         return consts
 
-def test_pd_control(env):
+def test_pd_control(env, secs=2):
     env.controller.inactive = False
     env.reset()
     c = env.consts()
@@ -88,9 +89,9 @@ def test_pd_control(env):
     # Set some weird target pose
     q[c.RIGHT_IDX + c.HIP_PITCH] = 1
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
-    q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.75
+    q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.5
     env.controller.target_q = np.array(q)
-    env.run(2)
+    env.run(secs)
 
 def setup_dof_test(env):
     env.controller.inactive = True
@@ -106,11 +107,11 @@ def setup_dof_test(env):
         env.render()
     embed()
 
-def test_no_control(env):
+def test_no_control(env, secs=2):
     env.controller.inactive = True
     env.reset(random=0.05)
     env.sdf_loader.put_grounds([[-5,env.consts().GROUND_LEVEL,0]])
-    env.run(2)
+    env.run(secs)
 
 def test_gimbal_lock(env, joint):
     from sdf_loader import RED, GREEN, BLUE

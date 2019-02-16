@@ -24,8 +24,10 @@ class DarwinEnv(Simple3DEnv):
 
         world.skeletons[0].bodynodes[0].set_friction_coeff(0.716)
 
+        return skel
+
 if __name__ == "__main__":
     from pd_control import PDController
     env = DarwinEnv(PDController)
     #setup_dof_test(env)
-    test_pd_control(env)
+    test_pd_control(env, secs=5)

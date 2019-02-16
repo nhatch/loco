@@ -78,7 +78,7 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
     #obs.mirror()
     obs.rotate(a)
     env.reset(obs, video_save_dir=None, render=r)
-    env.sdf_loader.put_grounds([[-3.0,-0.9,0]])
+    env.sdf_loader.put_grounds([[-3.0,env.consts().GROUND_LEVEL,0]])
     t = env.controller.stance_heel
     for i in range(n):
         l = length*0.5 if i == 0 else length
