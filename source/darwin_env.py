@@ -29,5 +29,5 @@ class DarwinEnv(Simple3DEnv):
 if __name__ == "__main__":
     from pd_control import PDController
     env = DarwinEnv(PDController)
-    #setup_dof_test(env)
-    test_pd_control(env, secs=5)
+    setup_dof_test(env)
+    test_pd_control(env, secs=2)

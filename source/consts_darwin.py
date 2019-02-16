@@ -15,7 +15,7 @@ perm = [3,4,5,2,1,0,
         14,15,16,17,18,19,
         12] # Darwin actually doesn't have a torso roll actuator... TODO cleanup this interface
 
-sign_switches = [22,20,23,14,18]
+sign_switches = [14,15,18,20,21,22,23]
 
 STANDARD_EULER_ORDER = 'ryzx'
 RAW_EULER_ORDER_HIP = 'ryxz'

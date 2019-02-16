@@ -229,15 +229,15 @@ class SteppingStonesEnv:
         # Loading the robot is a separate step in DarwinEnv
         skel = world.skeletons[1]
         assert(skel.name != "doppelganger")
+        # TODO I spent a whole day tracking down weird behavior that was ultimately due to an incorrect joint limit. Is there a way that I can visualize when these limits are being hit?
+        for j in skel.joints:
+            j.set_position_limit_enforced(True)
         return skel
 
     def load_world(self):
         c = self.consts()
         world = pydart.World(c.SIMULATION_RATE, c.skel_file)
         self.robot_skeleton = self.load_robot(world)
-        # TODO I spent a whole day tracking down weird behavior that was ultimately due to an incorrect joint limit. Is there a way that I can visualize when these limits are being hit?
-        for j in self.robot_skeleton.joints:
-            j.set_position_limit_enforced()
         self.doppelganger = None
         if len(world.skeletons) == 3:
             self.doppelganger = world.skeletons[2]

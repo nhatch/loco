@@ -14,7 +14,7 @@ perm = [0,1,2,4,3,5, # Brick DOFs
         7,8,6,9,10,11, # Left leg
         18] # Torso roll
 
-sign_switches = [12,6,11]
+sign_switches = [6,11,12]
 
 def standardized_dofs(raw_dofs):
     r = np.array(raw_dofs)
