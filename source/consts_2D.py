@@ -3,14 +3,17 @@ import pydart2.utils.transformations as libtransform
 from utils import build_mask
 
 skel_file = 'skel/walker2d.skel'
+SIMULATION_RATE = 1.0 / 2000.0 # seconds
 
 perm = [0,1,2,3,4,5,6,7,8]
 sign_switches = []
 
 BRICK_DOF = 3
-CONTROL_BOUNDS = 1.5 * np.array([100, 100, 20, 100, 100, 20])
+cb = 1.5 * np.array([100, 100, 20, 100, 100, 20])
+CONTROL_BOUNDS = np.array([-cb, cb])
 
 Q_DIM = 9
+Q_DIM_RAW = 9
 X = 0
 Y= 1
 ROOT_PITCH = 2
@@ -26,6 +29,18 @@ STANCE_IDX = LEFT_IDX
 HIP_PITCH = 0
 KNEE = 1
 ANKLE = 2
+
+def standardized_dofs(raw_dofs):
+    return raw_dofs
+
+def raw_dofs(standardized_dofs):
+    return standardized_dofs
+
+def virtual_torque_idx(standardized_idx):
+    return standardized_idx + HIP_PITCH
+
+def fix_Kd_idx(standardized_idx):
+    return standardized_idx + KNEE
 
 PELVIS_BODYNODE_IDX = 2
 RIGHT_BODYNODE_IDX = 3

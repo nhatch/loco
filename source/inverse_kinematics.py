@@ -107,13 +107,13 @@ class InverseKinematics:
         q, _ = self.env.get_x()
         print("BRICK POSE:", brick_pose)
         q[:c.BRICK_DOF] = brick_pose
-        agent.q = self.env.from_features(q)
+        agent.q = c.raw_dofs(q)
 
         self.env.sdf_loader.put_dot(target, 'ik_target', color=GREEN)
         print("TARGET:", target)
         hip, knee = self.inv_kine(target, idx, verbose=True)
         q = self.inv_kine_pose(hip, knee)
-        agent.q = self.env.from_features(q)
+        agent.q = c.raw_dofs(q)
         self.env.render()
         print("Foot heading:",self.heading(idx), "Robot heading:",self.env.controller.heading())
 

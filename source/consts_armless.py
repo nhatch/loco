@@ -1,19 +1,51 @@
 import numpy as np
 import pydart2.utils.transformations as libtransform
 
+from consts_common3D import *
+Q_DIM_RAW = 21
+DEFAULT_ZOOM = 5.0
+GROUND_LEVEL = -0.9
+
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
+SIMULATION_RATE = 1.0 / 2000.0 # seconds
 
 perm = [0,1,2,4,3,5, # Brick DOFs
         14,13,12,15,16,17, # Right leg
         8,7,6,9,10,11, # Left leg
         18] # Torso roll
 
-# These are applied in standardized space
 sign_switches = [8,14,17]
 
-from consts_common3D import *
+def standardized_dofs(raw_dofs):
+    r = raw_dofs[perm]
+    r[sign_switches] *= -1
+    return r
 
-CONTROL_BOUNDS = 1000 * np.array([100]*Q_DIM)
+def raw_dofs(standardized_dofs):
+    r = standardized_dofs.copy()
+    r[sign_switches] *= -1
+    base = np.zeros(Q_DIM_RAW)
+    for i,j in enumerate(perm):
+        base[j] = r[i]
+    return base
+
+def virtual_torque_idx(standardized_idx):
+    if standardized_idx == RIGHT_IDX:
+        return 14
+    elif standardized_idx == LEFT_IDX:
+        return 8
+    else:
+        raise "Invalid stance index"
+
+def fix_Kd_idx(standardized_idx):
+    if standardized_idx == RIGHT_IDX:
+        return 15
+    elif standardized_idx == LEFT_IDX:
+        return 9
+    else:
+        raise "Invalid stance index"
+
+CONTROL_BOUNDS = 1000 * np.array([[-100]*Q_DIM, [100]*Q_DIM])
 
 PELVIS_BODYNODE_IDX = 2
 LEFT_BODYNODE_IDX = 3

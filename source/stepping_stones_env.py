@@ -16,7 +16,6 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 import time
 
-SIMULATION_RATE = 1.0 / 2000.0 # seconds
 EPISODE_TIME_LIMIT = 10.0 # seconds
 REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
@@ -160,27 +159,11 @@ class SteppingStonesEnv:
                     self.log(status_string)
                 return obs, terminated
 
-    # Maps the raw agent state to a standardized ordering of DOFs with standardized signs.
-    # The length of the array should not change. The inverse operation is `from_features`.
-    def to_features(self, q):
-        c = self.consts()
-        q = q[c.perm]
-        q[c.sign_switches] *= -1
-        return q
-
     def get_x(self):
-        q = self.to_features(np.array(self.robot_skeleton.q))
-        dq = self.to_features(np.array(self.robot_skeleton.dq))
-        return q, dq
-
-    def from_features(self, q):
         c = self.consts()
-        q = q.copy()
-        q[c.sign_switches] *= -1
-        base = np.zeros(c.Q_DIM)
-        for i,j in enumerate(c.perm):
-            base[j] = q[i]
-        return base
+        q = c.standardized_dofs(self.robot_skeleton.q)
+        dq = c.standardized_dofs(self.robot_skeleton.dq)
+        return q, dq
 
     def current_observation(self):
         obs = np.concatenate(self.get_x())
@@ -198,17 +181,20 @@ class SteppingStonesEnv:
         # If random = 0.0, no randomness will be added.
         ndofs = self.robot_skeleton.ndofs
         perturbation = np.random.uniform(low=-random, high=random, size=2*ndofs)
+        c = self.consts()
         if state is None:
             self.robot_skeleton.x += perturbation
             # Start with some forward momentum (Simbicon has some trouble otherwise)
             dq = np.zeros(ndofs)
             dq[0] += 0.4 + random * np.random.uniform(low=0.0, high=0.4)
-            dq = self.robot_skeleton.dq + self.from_features(dq)
+            dq = self.robot_skeleton.dq + c.raw_dofs(dq)
             self.robot_skeleton.dq = dq
             self.controller.reset()
         else:
-            perturbation[:ndofs] += self.from_features(state.raw_state[:ndofs])
-            perturbation[ndofs:] += self.from_features(state.raw_state[ndofs:2*ndofs])
+            # TODO should State objects contain *all* state, or just the reduced-dim
+            # representation used by the FSM?
+            perturbation[:ndofs] += c.raw_dofs(state.raw_state[:c.Q_DIM])
+            perturbation[ndofs:] += c.raw_dofs(state.raw_state[c.Q_DIM:2*c.Q_DIM])
             self.robot_skeleton.x = perturbation
             self.controller.reset(state)
 
@@ -251,8 +237,8 @@ class SteppingStonesEnv:
         pass
 
     def load_world(self):
-        skel_file = self.consts().skel_file
-        world = pydart.World(SIMULATION_RATE, skel_file)
+        c = self.consts()
+        world = pydart.World(c.SIMULATION_RATE, c.skel_file)
         self.load_robot(world)
         self.doppelganger = None
         if len(world.skeletons) == 3:

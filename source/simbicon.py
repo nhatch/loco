@@ -280,22 +280,27 @@ class Simbicon(PDController):
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
+        fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE] *= 8
-        control = self.compute_transformed(target_q)
+            # TODO this Kd index is wrong!!
+            self.Kd[fix_Kd_idx] *= 8
+        raw_control = self.compute_PD(target_q)
         if fix_Kd:
-            self.Kd[self.stance_idx+c.KNEE] /= 8
+            self.Kd[fix_Kd_idx] /= 8
 
         # Make modifications to control torso pitch
+        control = c.standardized_dofs(raw_control)
         torso_actual = q[c.ROOT_PITCH]
         torso_speed = dq[c.ROOT_PITCH]
-        kp = self.Kp[self.stance_idx+c.HIP_PITCH]
-        kd = self.Kd[self.stance_idx+c.HIP_PITCH]
+        virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)
+        kp = self.Kp[virtual_torque_idx]
+        kd = self.Kd[virtual_torque_idx]
         torso_torque = - kp * (torso_actual - params[sp.TORSO_WORLD]) - kd * torso_speed
         control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
+        transformed_control = c.raw_dofs(control)
+        raw_control[virtual_torque_idx] = transformed_control[virtual_torque_idx]
 
-        torques = self.env.from_features(control)
-        return torques
+        return raw_control
 
     def update_doppelganger(self, tq):
         dop = self.env.doppelganger
@@ -303,14 +308,14 @@ class Simbicon(PDController):
             return
         c = self.env.consts()
         tq = tq.copy()
-        dop.q = self.env.from_features(tq)
+        dop.q = c.raw_dofs(tq)
         ik = InverseKinematics(self.env.doppelganger, self.env)
         offset = c.THIGH_BODYNODE_OFFSET
         dop_bodynode = ik.get_bodynode(self.stance_idx, offset)
         robot_bodynode = self.ik.get_bodynode(self.stance_idx, offset)
         tq[:c.BRICK_DOF] = ik.get_dofs(robot_bodynode.transform(), dop_bodynode)
-        self.env.doppelganger.q = self.env.from_features(tq)
-        self.env.doppelganger.dq = np.zeros(c.Q_DIM)
+        dop.q = c.raw_dofs(tq)
+        dop.dq = np.zeros(c.Q_DIM_RAW)
 
 def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, video_save_dir=None):
     env.clear_skeletons() # Necessary in order to change the runway length
@@ -323,7 +328,7 @@ def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, vi
         #if i > 2:
         #    action[sp.UP_IDX+sp.SWING_ANKLE_RELATIVE] = -0.3
         t = length*(0.5 + i)# + np.random.uniform(low=-0.2, high=0.2)
-        _, terminated = env.simulate([t,0,0], action=action)
+        _, terminated = env.simulate([t,0,0], action=action, put_dots=True)
         if terminated:
             break
 

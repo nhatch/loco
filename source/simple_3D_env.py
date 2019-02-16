@@ -5,12 +5,11 @@ import numpy as np
 from pydart2.gui.trackball import Trackball, _q_add, _q_rotmatrix
 from OpenGL.GL import GLfloat
 
-from stepping_stones_env import SteppingStonesEnv, SIMULATION_RATE
+from stepping_stones_env import SteppingStonesEnv
 import consts_armless as consts
 
 THETA = -np.pi/12
 PHI = np.pi / 1.5
-ZOOM = 5.0
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self, com):
@@ -45,7 +44,7 @@ class Simple3DEnv(SteppingStonesEnv):
     def init_camera(self):
         self.theta = THETA
         self.phi = PHI
-        self.zoom = ZOOM
+        self.zoom = self.consts().DEFAULT_ZOOM
         self.track_point = None
         tb = Trackball()
         self.set_rot(tb)
@@ -64,8 +63,9 @@ class Simple3DEnv(SteppingStonesEnv):
         import time
         # Give the GUI time to launch
         time.sleep(0.1)
-        framerate = int(1 / SIMULATION_RATE / frames_per_second)
-        for i in range(int(seconds / SIMULATION_RATE)):
+        c = self.consts()
+        framerate = int(1 / c.SIMULATION_RATE / frames_per_second)
+        for i in range(int(seconds / c.SIMULATION_RATE)):
             self.world.step()
             if self.world.frame % framerate == 0:
                 #print(self.world.time())
@@ -81,24 +81,23 @@ class Simple3DEnv(SteppingStonesEnv):
 def test_pd_control(env):
     env.controller.inactive = False
     env.reset()
-    env.sdf_loader.put_grounds([[-5,-0.9,0]])
+    c = env.consts()
+    env.sdf_loader.put_grounds([[-5,c.GROUND_LEVEL,0]])
     q, _ = env.get_x()
     env.render()
     # Set some weird target pose
-    c = env.consts()
     q[c.RIGHT_IDX + c.HIP_PITCH] = 1
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
     q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.75
-    env.controller.target_q = q
+    env.controller.target_q = np.array(q)
     env.run(2)
 
 def setup_dof_test(env):
     env.controller.inactive = True
     env.reset()
-    env.sdf_loader.put_grounds([[-5,-0.9,0]])
+    env.sdf_loader.put_grounds([[-5,env.consts().GROUND_LEVEL,0]])
     q = env.robot_skeleton.q
     env.track_point = [0,0,0]
-    env.zoom = 2.0 # Specific to Darwin. TODO figure out how to put this in consts()
     env.render()
     def t(indices, vals):
         q_new = q.copy()
@@ -110,7 +109,7 @@ def setup_dof_test(env):
 def test_no_control(env):
     env.controller.inactive = True
     env.reset(random=0.05)
-    env.sdf_loader.put_grounds([[-5,-0.9,0]])
+    env.sdf_loader.put_grounds([[-5,env.consts().GROUND_LEVEL,0]])
     env.run(2)
 
 def test_gimbal_lock(env, joint):
@@ -141,8 +140,8 @@ if __name__ == "__main__":
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     #test_no_control(env)
-    #test_pd_control(env)
-    setup_dof_test(env)
+    test_pd_control(env)
+    #setup_dof_test(env)
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
     LEFT_HIP = [12,13,14]
