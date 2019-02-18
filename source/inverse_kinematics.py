@@ -20,6 +20,7 @@ class InverseKinematics:
             foot_centric_offset = np.array([0.0, -c.FOOT_RADIUS, 0.5*c.L_FOOT])
         foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         # TODO is it cheating to pull foot.com() directly from the environment?
+        # TODO fix this for Z gravity!
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
         return heel_location
 
@@ -43,87 +44,18 @@ class InverseKinematics:
         bodynode = self.robot_skeleton.bodynodes[swing_side_idx+offset]
         return bodynode
 
-    def inv_kine(self, target, swing_idx, verbose=False):
-        r, theta = self.transform_frame(target, swing_idx, verbose)
-        c = self.env.consts()
-
-        # Handle out-of-reach targets by moving them within reach
-        if (r > c.L_THIGH + c.L_SHIN):
-            r = c.L_THIGH + c.L_SHIN
-        if (r < np.abs(c.L_THIGH - c.L_SHIN)):
-            r = np.abs(c.L_THIGH - c.L_SHIN)
-
-        cos_knee_inner = (r**2 - c.L_THIGH**2 - c.L_SHIN**2) / (-2 * c.L_THIGH * c.L_SHIN)
-        cos_hip = (c.L_SHIN**2 - r**2 - c.L_THIGH**2) / (-2 * r * c.L_THIGH)
-        knee_inner = np.arccos(cos_knee_inner)
-        knee = knee_inner - np.pi
-        hip = np.arccos(cos_hip)
-        hip = hip + theta
-        return hip, knee
-
     def root_bodynode(self):
         c = self.env.consts()
         return self.robot_skeleton.bodynodes[c.PELVIS_BODYNODE_IDX]
 
-    def transform_frame(self, target, swing_idx, verbose=False):
-        c = self.env.consts()
-        thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
-        # Locate the hip joint
-        thigh_centric_offset = np.array([0.0, 0.5*c.L_THIGH, 0.0])
-        hip_location = np.dot(thigh.transform()[:3,:3], thigh_centric_offset) + thigh.com()
-        if verbose:
-            self.env.sdf_loader.put_dot(hip_location, 'hip_joint', color=RED)
-            print("CENTER JOINT:", hip_location)
-        # Move the target to the coordinate system centered at the hip joint
-        # facing in the same direction as the pelvis.
-        rot = np.linalg.inv(self.root_bodynode().transform())[:3,:3]
-        egocentric_target = np.dot(rot, target - hip_location)
-        # Ignore the Z coordinate for now (TODO?)
-        x, y, _ = egocentric_target
-
-        # Transform to polar coordinates
-        r = np.sqrt(x**2 + y**2)
-        phi = np.arcsin(x/r)
-        if y > 0:
-            phi = np.pi - phi
-        if verbose:
-            print("POLAR COORDINATES:", r, phi)
-        return r, phi
-
     def test(self, right=True):
         c = self.env.consts()
         idx = c.RIGHT_IDX if right else c.LEFT_IDX
-        self.test_inv_kine(idx)
+        self.env.reset(random=0.3)
         heel_loc = self.forward_kine(idx)
         self.env.sdf_loader.put_dot(heel_loc[:3], 'heel_loc', color=BLUE)
         if self.env.is_3D:
             self.env.pause()
-
-    def test_inv_kine(self, idx, planar=False):
-        c = self.env.consts()
-        agent = self.robot_skeleton
-        brick_pose, target = self.gen_brick_pose(planar)
-
-        q, _ = self.env.get_x()
-        print("BRICK POSE:", brick_pose)
-        q[:c.BRICK_DOF] = brick_pose
-        agent.q = c.raw_dofs(q)
-
-        self.env.sdf_loader.put_dot(target, 'ik_target', color=GREEN)
-        print("TARGET:", target)
-        hip, knee = self.inv_kine(target, idx, verbose=True)
-        q = self.inv_kine_pose(hip, knee)
-        agent.q = c.raw_dofs(q)
-        self.env.render()
-        print("Foot heading:",self.heading(idx), "Robot heading:",self.env.controller.heading())
-
-    def inv_kine_pose(self, hip, knee, is_right_foot=True):
-        q, _ = self.env.get_x()
-        c = self.env.consts()
-        base = c.RIGHT_IDX if is_right_foot else c.LEFT_IDX
-        q[base+c.HIP_PITCH] = hip
-        q[base+c.KNEE] = knee
-        return q
 
     # Returns the values of the 6 "brick DOFs" for which, if the rest of the DOFs
     # remain the same, the given bodynode will have the given target transformation.
@@ -225,7 +157,8 @@ if __name__ == "__main__":
     env = Simple3DEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
-    #ik.test()
+    ik.test()
+    embed()
     c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
     #ik.test_inverse_transform(bodynode)
