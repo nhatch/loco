@@ -8,6 +8,8 @@ class DarwinEnv(Simple3DEnv):
 
     def load_robot(self, world):
         skel = world.add_skeleton(self.consts().robot_model)
+        skel.set_root_joint_to_trans_and_euler()
+
         for dof in skel.dofs[6:]:
             dof.set_damping_coefficient(0.2165)
         for body in skel.bodynodes:

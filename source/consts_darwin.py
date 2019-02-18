@@ -10,7 +10,7 @@ GROUND_LEVEL = -0.35
 skel_file = "skel/darwinmodel/darwin_ground.skel"
 robot_model = "skel/darwinmodel/robotis_op2.urdf"
 
-perm = [3,4,5,2,1,0,
+perm = [0,1,2,3,4,5,
         20,21,22,23,24,25,
         14,15,16,17,18,19,
         12] # Darwin actually doesn't have a torso roll actuator... TODO cleanup this interface
@@ -60,11 +60,6 @@ def fix_Kd_idx(standardized_idx):
     else:
         raise "Invalid stance index"
 
-CONTROL_BOUNDS = np.array([-0.01*np.ones(20,), 0.05*np.ones(20,)])
-CONTROL_BOUNDS[0,[8,9,14,15]] = -0.01
-CONTROL_BOUNDS[1,[8,9,14,15]] = 0.01
-CONTROL_BOUNDS[0,[10,16]] = -0.20
-CONTROL_BOUNDS[1,[10,16]] = 0.20
 CONTROL_BOUNDS = np.array([-7.5*np.ones(20,), 7.5*np.ones(20,)])
 
 KP_GAIN = np.array([154.019]*20)

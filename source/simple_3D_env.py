@@ -90,7 +90,9 @@ def test_pd_control(env, secs=2):
     q[c.RIGHT_IDX + c.HIP_PITCH] = 1
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
     q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.5
+    #q[c.ROOT_PITCH] = np.pi *0.3
     env.controller.target_q = np.array(q)
+    #env.robot_skeleton.q = c.raw_dofs(q)
     env.run(secs)
 
 def setup_dof_test(env):
@@ -104,6 +106,7 @@ def setup_dof_test(env):
         q_new = q.copy()
         q_new[indices] = vals
         env.robot_skeleton.q = q_new
+        env.robot_skeleton.dq = np.zeros_like(q_new)
         env.render()
     embed()
 
@@ -141,8 +144,8 @@ if __name__ == "__main__":
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     #test_no_control(env)
+    setup_dof_test(env)
     test_pd_control(env)
-    #setup_dof_test(env)
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
     LEFT_HIP = [12,13,14]
