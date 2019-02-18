@@ -32,15 +32,16 @@ class SDFLoader:
         dot = self.dots.get(name)
         radius = self.consts.DOT_RADIUS
         if dot is None:
-            os.system("sed -e 's/__NAME__/dot_{}/' skel/dot.sdf > skel/_dot{}.sdf".format(
+            os.system("sed -e 's/__NAME__/dot_{}/' skel/dot.sdf > skel/_dot_{}.sdf".format(
                 name, UQ_ID))
-            os.system("sed -e 's/__COLOR__/{}/' skel/_dot{}.sdf > skel/__dot{}.sdf".format(
+            os.system("sed -e 's/__COLOR__/{}/' skel/_dot_{}.sdf > skel/__dot_{}.sdf".format(
                 color, UQ_ID, UQ_ID))
-            os.system("sed -e 's/__RADIUS__/{}/' skel/__dot{}.sdf > skel/___dot{}.sdf".format(
+            os.system("sed -e 's/__RADIUS__/{}/' skel/__dot_{}.sdf > skel/___dot_{}.sdf".format(
                 radius, UQ_ID, UQ_ID))
-            dot = self.world.add_skeleton('./skel/___dot{}.sdf'.format(UQ_ID))
+            dot = self.world.add_skeleton('./skel/___dot_{}.sdf'.format(UQ_ID))
             self.dots[name] = dot
             dot.set_root_joint_to_trans_and_euler()
+            os.system("rm skel/_*_{}.sdf".format(UQ_ID))
         dot.q = self.consts.convert_root(np.concatenate([target, [0,0,0]]))
 
     # Length is in meters.
@@ -49,14 +50,14 @@ class SDFLoader:
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
             # with warnings about duplicate names.
-            os.system("sed -e 's/__NAME__/ground_{}/' skel/ground.sdf > skel/_ground{}.sdf".format(
+            os.system("sed -e 's/__NAME__/ground_{}/' skel/ground.sdf > skel/_ground_{}.sdf".format(
                 str(num_grounds), UQ_ID))
-            os.system("sed -e 's/__LEN__/{}/' skel/_ground{}.sdf > skel/__ground{}.sdf".format(
+            os.system("sed -e 's/__LEN__/{}/' skel/_ground_{}.sdf > skel/__ground_{}.sdf".format(
                 str(length), UQ_ID, UQ_ID))
-            os.system("sed -e 's/__WIDTH__/{}/' skel/__ground{}.sdf > skel/___ground{}.sdf".format(
+            os.system("sed -e 's/__WIDTH__/{}/' skel/__ground_{}.sdf > skel/___ground_{}.sdf".format(
                 str(width), UQ_ID, UQ_ID))
 
-            ground = self.world.add_skeleton('./skel/___ground{}.sdf'.format(UQ_ID))
+            ground = self.world.add_skeleton('./skel/___ground_{}.sdf'.format(UQ_ID))
             ground.set_root_joint_to_trans_and_euler()
             self.grounds.append(ground)
 
