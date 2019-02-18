@@ -16,6 +16,12 @@ perm = [0,1,2,4,3,5, # Brick DOFs
 
 sign_switches = [6,11,12]
 
+GRAVITY_Y = True
+def convert_root(q):
+    return q
+def inverse_convert_root(q):
+    return q
+
 def standardized_dofs(raw_dofs):
     r = np.array(raw_dofs)
     r[sign_switches] *= -1

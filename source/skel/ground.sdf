@@ -2,7 +2,7 @@
 <sdf version="1.4">
 <model name="__NAME__">
   <static>1</static>
-  <pose>0 -0.025 0 0 0 0</pose>
+  <pose>0 0 0 0 0 0</pose>
   <link name="ground">
     <collision>
       <geometry>

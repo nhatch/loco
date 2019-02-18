@@ -30,10 +30,10 @@ class SteppingStonesEnv:
         self.controller = None
         self.world = None
         self.viewer = None
-        self.sdf_loader = SDFLoader(self.consts().DEFAULT_GROUND_WIDTH)
-        pydart.init(verbose=False)
         c = self.consts()
         self.is_3D = (c.BRICK_DOF == 6)
+        self.sdf_loader = SDFLoader(c)
+        pydart.init(verbose=False)
         self.clear_skeletons()
 
         self.video_recorder = None
@@ -198,7 +198,7 @@ class SteppingStonesEnv:
             self.render()
 
     def render(self, mode='human', close=False):
-        self.update_viewer(self.robot_skeleton.com())
+        self.update_viewer()
         if mode == 'rgb_array':
             data = self.viewer.getFrame()
             return data
@@ -215,8 +215,8 @@ class SteppingStonesEnv:
             self._render()
             time.sleep(1/FPS)
 
-    def update_viewer(self, com):
-        track_point = self.track_point or com
+    def update_viewer(self):
+        track_point = self.track_point or self.robot_skeleton.com()
         #track_point = track_point + np.array([-2, 0, 0])
         #tb.trans[1] = -0.5
         self.viewer.scene.tb.trans[0] = -track_point[0]

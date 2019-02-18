@@ -1,4 +1,5 @@
 from simple_3D_env import Simple3DEnv, test_pd_control, test_no_control, setup_dof_test
+import numpy as np
 import consts_darwin
 from IPython import embed
 
@@ -9,6 +10,7 @@ class DarwinEnv(Simple3DEnv):
     def load_robot(self, world):
         skel = world.add_skeleton(self.consts().robot_model)
         skel.set_root_joint_to_trans_and_euler()
+        skel.joints[1].set_axis_order('ZYX')
 
         for dof in skel.dofs[6:]:
             dof.set_damping_coefficient(0.2165)
@@ -31,5 +33,5 @@ class DarwinEnv(Simple3DEnv):
 if __name__ == "__main__":
     from pd_control import PDController
     env = DarwinEnv(PDController)
-    setup_dof_test(env)
+    #setup_dof_test(env)
     test_pd_control(env, secs=2)

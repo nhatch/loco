@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from IPython import embed
 import sys
 
@@ -13,10 +14,12 @@ GREEN = "0.2 0.7 0.2 1"
 BLUE = "0.4 0.4 1 1"
 
 class SDFLoader:
-    def __init__(self, ground_width):
+    def __init__(self, consts):
         self.ground_length = 10.0
         self.ground_offset = 0.02
-        self.ground_width = ground_width
+        self.ground_thickness = 0.05
+        self.ground_width = consts.DEFAULT_GROUND_WIDTH
+        self.consts = consts
 
     def reset(self, world):
         self.world = world
@@ -34,12 +37,11 @@ class SDFLoader:
                 color, UQ_ID, UQ_ID))
             dot = self.world.add_skeleton('./skel/__dot{}.sdf'.format(UQ_ID))
             self.dots[name] = dot
-        q = dot.q
-        q[3:6] = target
-        dot.q = q
+            dot.set_root_joint_to_trans_and_euler()
+        dot.q = self.consts.convert_root(np.concatenate([target, [0,0,0]]))
 
     # Length is in meters.
-    def put_ground(self, x, y, z, length, width, index):
+    def _put_ground(self, target, length, width, index):
         num_grounds = len(self.grounds)
         if num_grounds <= index:
             # Change the skeleton name so that the console output is not cluttered
@@ -51,22 +53,22 @@ class SDFLoader:
             os.system("sed -e 's/__WIDTH__/{}/' skel/__ground{}.sdf > skel/___ground{}.sdf".format(
                 str(width), UQ_ID, UQ_ID))
 
-            self.grounds.append(self.world.add_skeleton('./skel/___ground{}.sdf'.format(UQ_ID)))
+            ground = self.world.add_skeleton('./skel/___ground{}.sdf'.format(UQ_ID))
+            ground.set_root_joint_to_trans_and_euler()
+            self.grounds.append(ground)
 
         ground = self.grounds[index]
-        q = ground.q
-        # The x coordinate q[3] gives the *center* of the block.
-        q[3] = x + 0.5*length
-        q[4] = y
-        q[5] = z
-        ground.q = q
+        q = np.concatenate([target, [0,0,0]])
+        # The x coordinate q[0] gives the *center* of the block.
+        q[0] += 0.5*length - self.ground_offset
+        q[1] -= 0.5*self.ground_thickness
+        ground.q = self.consts.convert_root(q)
 
     def put_grounds(self, targets):
         for i in range(len(targets)):
-            x, y, z = targets[i]
             length = self.ground_length
             width = self.ground_width
-            self.put_ground(x - self.ground_offset, y, z, length, width, i)
+            self._put_ground(targets[i], length, width, i)
 
 if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv

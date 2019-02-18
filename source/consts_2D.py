@@ -2,6 +2,12 @@ import numpy as np
 import pydart2.utils.transformations as libtransform
 from utils import build_mask
 
+GRAVITY_Y = True
+def convert_root(q):
+    return q
+def inverse_convert_root(q):
+    return q
+
 skel_file = 'skel/walker2d.skel'
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
 

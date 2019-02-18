@@ -12,7 +12,8 @@ THETA = -np.pi/12
 PHI = np.pi / 1.5
 
 class Simple3DEnv(SteppingStonesEnv):
-    def update_viewer(self, com):
+    def update_viewer(self):
+        com = self.consts().inverse_convert_root(self.robot_skeleton.com())
         x0, _, z0 = self.track_point or com
         # Transform the offset -[x0, 0, z0] into the camera coordinate frame.
         # First, rotate by PHI around the Y axis.
@@ -34,9 +35,14 @@ class Simple3DEnv(SteppingStonesEnv):
         # The default Trackball parameters rotate phi around the z axis
         # rather than the y axis. I modified this code from the
         # Trackball.set_orientation method.
-        xrot = np.array([np.sin(self.theta/2), 0, 0, np.cos(self.theta/2)])
-        yrot = np.array([0, np.sin(self.phi/2), 0, np.cos(self.phi/2)])
-        rot = _q_add(xrot, yrot)
+        if self.consts().GRAVITY_Y:
+            theta_to_use = self.theta
+            heading_rot = np.array([0, np.sin(self.phi/2), 0, np.cos(self.phi/2)])
+        else:
+            theta_to_use = self.theta + np.pi/2
+            heading_rot = np.array([0, 0, np.sin(self.phi/2), np.cos(self.phi/2)])
+        azimuth_rot = np.array([np.sin(theta_to_use/2), 0, 0, np.cos(theta_to_use/2)])
+        rot = _q_add(azimuth_rot, heading_rot)
         tb._rotation = rot
         m = _q_rotmatrix(rot)
         tb._matrix = (GLfloat*len(m))(*m)
@@ -90,7 +96,7 @@ def test_pd_control(env, secs=2):
     q[c.RIGHT_IDX + c.HIP_PITCH] = 1
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
     q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.5
-    #q[c.ROOT_PITCH] = np.pi *0.3
+    #q[c.Z] = 2
     env.controller.target_q = np.array(q)
     #env.robot_skeleton.q = c.raw_dofs(q)
     env.run(secs)
@@ -144,7 +150,7 @@ if __name__ == "__main__":
     from pd_control import PDController
     env = Simple3DEnv(PDController)
     #test_no_control(env)
-    setup_dof_test(env)
+    #setup_dof_test(env)
     test_pd_control(env)
     ROOT = [3,4,5]
     RIGHT_HIP = [6,7,8]
