@@ -83,3 +83,4 @@ def root_dofs_from_transform(transform):
     return np.array([translation[0], translation[1]-1.25, euler[2]])
 
 DEFAULT_GROUND_WIDTH = 0.5
+DOT_RADIUS = 0.08

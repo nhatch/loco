@@ -30,12 +30,15 @@ class SDFLoader:
         # Change the skeleton name so that the console output is not cluttered
         # with warnings about duplicate names.
         dot = self.dots.get(name)
+        radius = self.consts.DOT_RADIUS
         if dot is None:
             os.system("sed -e 's/__NAME__/dot_{}/' skel/dot.sdf > skel/_dot{}.sdf".format(
                 name, UQ_ID))
             os.system("sed -e 's/__COLOR__/{}/' skel/_dot{}.sdf > skel/__dot{}.sdf".format(
                 color, UQ_ID, UQ_ID))
-            dot = self.world.add_skeleton('./skel/__dot{}.sdf'.format(UQ_ID))
+            os.system("sed -e 's/__RADIUS__/{}/' skel/__dot{}.sdf > skel/___dot{}.sdf".format(
+                radius, UQ_ID, UQ_ID))
+            dot = self.world.add_skeleton('./skel/___dot{}.sdf'.format(UQ_ID))
             self.dots[name] = dot
             dot.set_root_joint_to_trans_and_euler()
         dot.q = self.consts.convert_root(np.concatenate([target, [0,0,0]]))

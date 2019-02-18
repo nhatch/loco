@@ -66,6 +66,7 @@ L_THIGH =    0.42875
 L_SHIN =   0.400875
 L_FOOT =   0.21
 FOOT_RADIUS = 0.049 # Not really a radius; it's a box....
+DOT_RADIUS = 0.08
 
 # Three hip, one knee, two ankle
 leg_kp = [600, 600, 600, 200, 200, 100]

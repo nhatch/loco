@@ -6,6 +6,7 @@ from consts_common3D import *
 Q_DIM_RAW = 26
 SIMULATION_RATE = 0.002
 GROUND_LEVEL = -0.35
+DEFAULT_ZOOM = 2.0
 
 GRAVITY_Y = False
 
@@ -79,4 +80,9 @@ CONTROL_BOUNDS = np.array([-7.5*np.ones(20,), 7.5*np.ones(20,)])
 KP_GAIN = np.array([154.019]*20)
 KD_GAIN = np.array([0.1002]*20)
 
-DEFAULT_ZOOM = 2.0
+FOOT_RADIUS = 0.004
+L_FOOT = 0.104
+RIGHT_BODYNODE_IDX = 22
+LEFT_BODYNODE_IDX = 16
+FOOT_BODYNODE_OFFSET = 5
+DOT_RADIUS = 0.01
