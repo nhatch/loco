@@ -64,14 +64,6 @@ KD_GAIN = [15.0]*6
 
 ALLOWED_COLLISION_IDS = [5,8] # The two feet
 
-# The relative transform of the thigh when all DOFs of the joint are set to zero
-LEFT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[ 1. ,  0. ,  0. ,  0. ],
-       [ 0. ,  1. ,  0. , -0.2],
-       [ 0. ,  0. ,  1. ,  0. ],
-       [ 0. ,  0. ,  0. ,  1. ]])
-LEFT_RRT = np.linalg.inv(LEFT_THIGH_RESTING_RELATIVE_TRANSFORM)
-RIGHT_RRT = LEFT_RRT
-
 def hip_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'rxyz')
     return euler[2]

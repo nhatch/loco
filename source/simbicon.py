@@ -28,6 +28,7 @@ class Simbicon(PDController):
 
     def __init__(self, env):
         super().__init__(env)
+        self.set_RRTs()
 
     def reset(self, state=None):
         c = self.env.consts()
@@ -316,6 +317,16 @@ class Simbicon(PDController):
         tq[:c.BRICK_DOF] = ik.get_dofs(robot_bodynode.transform(), dop_bodynode)
         dop.q = c.raw_dofs(tq)
         dop.dq = np.zeros(c.Q_DIM_RAW)
+
+    def set_RRTs(self):
+        c = self.env.consts()
+        thigh_r = self.ik.get_bodynode(c.RIGHT_IDX, c.THIGH_BODYNODE_OFFSET)
+        thigh_l = self.ik.get_bodynode(c.LEFT_IDX, c.THIGH_BODYNODE_OFFSET)
+        pelvis = self.ik.root_bodynode()
+        # The relative transform of the thigh when all DOFs of the joint are set to zero
+        # (inverted to save computation--we only ever use the inverse)
+        c.LEFT_RRT_INV = np.dot(np.linalg.inv(thigh_l.transform()), pelvis.transform())
+        c.RIGHT_RRT_INV = np.dot(np.linalg.inv(thigh_r.transform()), pelvis.transform())
 
 def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, video_save_dir=None):
     env.clear_skeletons() # Necessary in order to change the runway length

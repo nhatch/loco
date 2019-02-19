@@ -61,12 +61,20 @@ class InverseKinematics:
         return c.root_dofs_from_transform(target_base_transform)
 
     def test_inverse_transform(self, bodynode):
+        # TODO for Darwin, this seems to be broken for certain bodynodes (e.g. 10, 14)
+
         self.env.reset(random=0.4)
+        c = self.env.consts()
+        # First just test whether `root_dofs_from_transform` is working correctly.
+        inferred_root_dofs = c.root_dofs_from_transform(ik.root_bodynode().transform())
+        true_root_dofs = env.current_observation().raw_state[:6]
+        print(np.allclose(true_root_dofs, inferred_root_dofs))
+
         orig_transform = bodynode.transform()
         self.env.pause(0.5)
 
+        # Now try to match that absolute transform with a different joint configuration
         obs = self.env.reset(random=0.4)
-        c = self.env.consts()
         obs.raw_state[0:c.BRICK_DOF] = self.get_dofs(orig_transform, bodynode)
         env.reset(obs)
         print(libtransform.is_same_transform(orig_transform, bodynode.transform()))
@@ -80,28 +88,41 @@ class InverseKinematics:
         thigh_transform = bodynode.transform()
         c = self.env.consts()
         if bodynode.id == c.LEFT_BODYNODE_IDX + c.THIGH_BODYNODE_OFFSET:
-            RRT = c.LEFT_RRT
+            RRT = c.LEFT_RRT_INV
         else:
-            RRT = c.RIGHT_RRT
+            RRT = c.RIGHT_RRT_INV
         target_relative_transform = np.linalg.inv(target_root_transform).dot(thigh_transform)
         target_dof_transform = RRT.dot(target_relative_transform)
         return c.hip_dofs_from_transform(target_dof_transform)
 
     # Gives the transform corresponding to the given heading and pitch (with zero roll)
     def root_transform_from_angles(self, heading, pitch):
-        return libtransform.euler_matrix(0.0, heading, pitch, 'rxyz')
+        c = self.env.consts()
+        if c.GRAVITY_Y:
+            return libtransform.euler_matrix(0.0, heading, pitch, 'rxyz')
+        else:
+            return libtransform.euler_matrix(heading, -pitch, 0.0, 'rzyx')
 
     def test_inverse_hip(self, swing_idx, heading=0.0, pitch=0.0):
+        obs = self.env.reset(random=0.4)
+        c = self.env.consts()
+
+        # First just test whether `hip_dofs_from_transform` is working correctly.
+        l_thigh = ik.get_bodynode(c.LEFT_IDX, c.THIGH_BODYNODE_OFFSET)
+        pelvis = ik.root_bodynode()
+        rt = np.dot(np.linalg.inv(pelvis.transform()), l_thigh.transform())
+        rt = c.LEFT_RRT_INV.dot(rt)
+        true_hip_dofs = obs.raw_state[c.LEFT_IDX:c.LEFT_IDX+3]
+        print(np.allclose(c.hip_dofs_from_transform(rt), true_hip_dofs))
+
         if not self.env.is_3D:
             heading = 0.0
         target_root_transform = self.root_transform_from_angles(heading, pitch)
-        obs = self.env.reset(random=0.4)
-        c = self.env.consts()
         thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         orig_thigh_transform = thigh.transform()
         self.env.pause(0.5)
 
-        # Use the hip to point the pelvis in the target direction
+        # Now use the hip to point the pelvis in the target direction
         hip_dofs = self.get_hip(thigh, target_root_transform)
         if self.env.is_3D:
             obs.raw_state[swing_idx:swing_idx+3] = hip_dofs
@@ -119,18 +140,18 @@ class InverseKinematics:
         self.env.pause(0.5)
 
 if __name__ == "__main__":
-    from pd_control import PDController
+    from simbicon_3D import Simbicon3D
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from darwin_env import DarwinEnv
     #env = SteppingStonesEnv()
     #env = Simple3DEnv(Simbicon3D)
-    env = DarwinEnv(PDController)
+    env = DarwinEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
-    ik.test()
+    #ik.test()
     c = env.consts()
-    #bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
-    #ik.test_inverse_transform(bodynode)
+    bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
+    ik.test_inverse_transform(bodynode)
     #ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
     embed()

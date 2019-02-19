@@ -9,7 +9,7 @@ GROUND_LEVEL = -0.9
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 SIMULATION_RATE = 1.0 / 2000.0 # seconds
 
-perm = [0,1,2,4,3,5, # Brick DOFs
+perm = [0,1,2,3,4,5, # Brick DOFs
         13,14,12,15,16,17, # Right leg
         7,8,6,9,10,11, # Left leg
         18] # Torso roll
@@ -81,27 +81,6 @@ ALLOWED_COLLISION_IDS = [
         RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
         LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET] # The two feet
 
-# The relative transform of the thigh when all DOFs of the joint are set to zero
-LEFT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[  3.26794897e-07,   0.00000000e+00,  -1.00000000e+00,
-         -4.00323748e-08],
-       [  0.00000000e+00,   1.00000000e+00,   0.00000000e+00,
-         -3.50000000e-02],
-       [  1.00000000e+00,   0.00000000e+00,   3.26794897e-07,
-         -1.22500000e-01],
-       [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-          1.00000000e+00]])
-
-RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM = np.array([[  3.26794897e-07,   0.00000000e+00,  -1.00000000e+00,
-          4.00323748e-08],
-       [  0.00000000e+00,   1.00000000e+00,   0.00000000e+00,
-         -3.50000000e-02],
-       [  1.00000000e+00,   0.00000000e+00,   3.26794897e-07,
-          1.22500000e-01],
-       [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-          1.00000000e+00]])
-LEFT_RRT = np.linalg.inv(LEFT_THIGH_RESTING_RELATIVE_TRANSFORM)
-RIGHT_RRT = np.linalg.inv(RIGHT_THIGH_RESTING_RELATIVE_TRANSFORM)
-
 def hip_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'rzyx')
     hip_dofs = np.array([euler[1], euler[2], -euler[0]])
@@ -111,6 +90,6 @@ def root_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'ryzx')
     translation = transform[0:3,3]
     dofs = np.zeros(6)
-    dofs[3:6] = [euler[1], euler[0], euler[2]]
+    dofs[3:6] = euler
     dofs[0:3] = translation
     return dofs

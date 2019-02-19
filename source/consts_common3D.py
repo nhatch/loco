@@ -8,8 +8,8 @@ X = 0 # forward
 Y = 1 # vertical
 Z = 2 # transverse
 
-ROOT_PITCH = 3
-ROOT_YAW = 4
+ROOT_YAW = 3
+ROOT_PITCH = 4
 ROOT_ROLL = 5
 
 LEG_DOF = 6

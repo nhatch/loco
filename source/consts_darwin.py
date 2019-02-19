@@ -28,7 +28,7 @@ def inverse_convert_root(brick_dof):
 skel_file = "skel/darwinmodel/darwin_ground.skel"
 robot_model = "skel/darwinmodel/robotis_op2.urdf"
 
-perm = [0,2,1,4,3,5,
+perm = [0,2,1,3,4,5,
         20,21,22,23,24,25,
         14,15,16,17,18,19,
         12] # Darwin actually doesn't have a torso roll actuator... TODO cleanup this interface
@@ -85,4 +85,19 @@ L_FOOT = 0.104
 RIGHT_BODYNODE_IDX = 22
 LEFT_BODYNODE_IDX = 16
 FOOT_BODYNODE_OFFSET = 5
+THIGH_BODYNODE_OFFSET = 2
+PELVIS_BODYNODE_IDX = 2
 DOT_RADIUS = 0.01
+
+def hip_dofs_from_transform(relative_transform):
+    euler = libtransform.euler_from_matrix(relative_transform, STANDARD_EULER_ORDER)
+    return euler
+
+def root_dofs_from_transform(transform):
+    euler = libtransform.euler_from_matrix(transform, 'rzyx')
+    translation = transform[0:3,3]
+    dofs = np.zeros(6)
+    dofs[3:6] = euler
+    dofs[4] *= -1
+    dofs[0:3] = inverse_convert_root(translation)
+    return dofs
