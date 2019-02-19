@@ -81,7 +81,7 @@ ALLOWED_COLLISION_IDS = [
         RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
         LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET] # The two feet
 
-def hip_dofs_from_transform(transform):
+def hip_dofs_from_transform(_, transform):
     euler = libtransform.euler_from_matrix(transform, 'rzyx')
     hip_dofs = np.array([euler[1], euler[2], -euler[0]])
     return hip_dofs

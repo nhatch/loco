@@ -66,7 +66,7 @@ class InverseKinematics:
         self.env.reset(random=0.4)
         c = self.env.consts()
         # First just test whether `root_dofs_from_transform` is working correctly.
-        inferred_root_dofs = c.root_dofs_from_transform(ik.root_bodynode().transform())
+        inferred_root_dofs = c.root_dofs_from_transform(self.root_bodynode().transform())
         true_root_dofs = env.current_observation().raw_state[:6]
         print(np.allclose(true_root_dofs, inferred_root_dofs))
 
@@ -84,16 +84,21 @@ class InverseKinematics:
     # such that, if the transform of that thigh stays fixed, then the pelvis orientation
     # will match the orientation of `target_root_transform`. (Note however that the
     # translation of `target_root_transform` will not in general be achieved.)
-    def get_hip(self, bodynode, target_root_transform):
-        thigh_transform = bodynode.transform()
+    def get_hip(self, stance_idx, target_root_transform):
         c = self.env.consts()
-        if bodynode.id == c.LEFT_BODYNODE_IDX + c.THIGH_BODYNODE_OFFSET:
+        thigh = self.get_bodynode(stance_idx, c.THIGH_BODYNODE_OFFSET)
+        thigh_transform = thigh.transform()
+        target_relative_transform = np.linalg.inv(target_root_transform).dot(thigh_transform)
+        return self.hip_dofs_from_transform(target_relative_transform, stance_idx)
+
+    def hip_dofs_from_transform(self, hip_relative_transform, stance_idx):
+        c = self.env.consts()
+        if stance_idx == c.LEFT_IDX:
             RRT = c.LEFT_RRT_INV
         else:
             RRT = c.RIGHT_RRT_INV
-        target_relative_transform = np.linalg.inv(target_root_transform).dot(thigh_transform)
-        target_dof_transform = RRT.dot(target_relative_transform)
-        return c.hip_dofs_from_transform(target_dof_transform)
+        target_dof_transform = RRT.dot(hip_relative_transform)
+        return c.hip_dofs_from_transform(stance_idx, target_dof_transform)
 
     # Gives the transform corresponding to the given heading and pitch (with zero roll)
     def root_transform_from_angles(self, heading, pitch):
@@ -103,40 +108,41 @@ class InverseKinematics:
         else:
             return libtransform.euler_matrix(heading, -pitch, 0.0, 'rzyx')
 
-    def test_inverse_hip(self, swing_idx, heading=0.0, pitch=0.0):
-        obs = self.env.reset(random=0.4)
+    def test_inverse_hip(self, stance_idx, heading=0.0, pitch=0.0):
         c = self.env.consts()
+        obs = self.env.reset(random=0.4)
 
-        # First just test whether `hip_dofs_from_transform` is working correctly.
-        l_thigh = ik.get_bodynode(c.LEFT_IDX, c.THIGH_BODYNODE_OFFSET)
-        pelvis = ik.root_bodynode()
-        rt = np.dot(np.linalg.inv(pelvis.transform()), l_thigh.transform())
-        rt = c.LEFT_RRT_INV.dot(rt)
-        true_hip_dofs = obs.raw_state[c.LEFT_IDX:c.LEFT_IDX+3]
-        print(np.allclose(c.hip_dofs_from_transform(rt), true_hip_dofs))
-
+        HIP_DOF = 3
         if not self.env.is_3D:
             heading = 0.0
+            HIP_DOF = 1
+
+        thigh = self.get_bodynode(stance_idx, c.THIGH_BODYNODE_OFFSET)
+        pelvis = self.root_bodynode()
+
+        # First just test get_hip with the current root transform.
+        # (Should just return the current hip DOFs.)
+        inferred_hip_dofs = self.get_hip(stance_idx, pelvis.transform())
+        print(inferred_hip_dofs)
+        true_hip_dofs = obs.raw_state[stance_idx:stance_idx+HIP_DOF]
+        print(true_hip_dofs)
+        print(np.allclose(inferred_hip_dofs, true_hip_dofs, atol=1e-7))
+
         target_root_transform = self.root_transform_from_angles(heading, pitch)
-        thigh = self.get_bodynode(swing_idx, c.THIGH_BODYNODE_OFFSET)
         orig_thigh_transform = thigh.transform()
         self.env.pause(0.5)
 
         # Now use the hip to point the pelvis in the target direction
-        hip_dofs = self.get_hip(thigh, target_root_transform)
-        if self.env.is_3D:
-            obs.raw_state[swing_idx:swing_idx+3] = hip_dofs
-        else:
-            obs.raw_state[swing_idx] = hip_dofs
+        hip_dofs = self.get_hip(stance_idx, target_root_transform)
+        obs.raw_state[stance_idx:stance_idx+HIP_DOF] = hip_dofs
         env.reset(obs)
         # Rotate the whole robot so the transform of bodynode doesn't change
         obs.raw_state[0:c.BRICK_DOF] = self.get_dofs(orig_thigh_transform, thigh)
         env.reset(obs)
-        pelvis = self.root_bodynode()
         # We can't get the same translation (3 DOFs vs 6 DOFs), but the orientation
         # should be correct.
         # For some reason there seems to be some numerical error sometimes
-        print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3], atol=1e-6))
+        print(np.allclose(target_root_transform[:3,:3], pelvis.transform()[:3,:3], atol=1e-5))
         self.env.pause(0.5)
 
 if __name__ == "__main__":
@@ -152,6 +158,6 @@ if __name__ == "__main__":
     #ik.test()
     c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
-    ik.test_inverse_transform(bodynode)
-    #ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
+    #ik.test_inverse_transform(bodynode)
+    ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
     embed()

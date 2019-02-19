@@ -89,9 +89,22 @@ THIGH_BODYNODE_OFFSET = 2
 PELVIS_BODYNODE_IDX = 2
 DOT_RADIUS = 0.01
 
-def hip_dofs_from_transform(relative_transform):
-    euler = libtransform.euler_from_matrix(relative_transform, STANDARD_EULER_ORDER)
-    return euler
+def hip_dofs_from_transform(stance_idx, relative_transform):
+    # For some reason, the relative transform is given in a coordinate system
+    # where the X axis points down and the Y axis points forward.
+    # (At least, true for the left leg. Maybe the right leg is different
+    # or is using a left-handed coordinate system; I didn't check.)
+    # Hence, we conjugate it to the coordinate system with X pointing forward
+    # and Y pointing left.
+    axis_correction = libtransform.euler_matrix(0.0, np.pi/2, np.pi/2, 'rzyx')
+    corrected_transform = axis_correction.dot(relative_transform).dot(np.linalg.inv(axis_correction))
+    euler = libtransform.euler_from_matrix(corrected_transform, 'rzyx')
+    # I honestly do not understand why all of these signs are backwards,
+    # or why the sign changes are different for each leg. I give up.
+    if stance_idx == LEFT_IDX:
+        return euler*np.array([-1,-1,-1])
+    elif stance_idx == RIGHT_IDX:
+        return euler*np.array([ 1, 1,-1])
 
 def root_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'rzyx')

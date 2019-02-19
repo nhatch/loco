@@ -258,8 +258,7 @@ class Simbicon(PDController):
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
         target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
-        thigh = self.ik.get_bodynode(self.stance_idx, c.THIGH_BODYNODE_OFFSET)
-        hip_dofs = self.ik.get_hip(thigh, target_orientation)
+        hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
         if self.env.is_3D:
             tq[self.stance_idx:self.stance_idx+3] = hip_dofs
             # This is a hack; the hip was dipping a little bit too much on the swing side.

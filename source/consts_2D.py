@@ -64,7 +64,7 @@ KD_GAIN = [15.0]*6
 
 ALLOWED_COLLISION_IDS = [5,8] # The two feet
 
-def hip_dofs_from_transform(transform):
+def hip_dofs_from_transform(_, transform):
     euler = libtransform.euler_from_matrix(transform, 'rxyz')
     return euler[2]
 
