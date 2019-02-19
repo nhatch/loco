@@ -19,13 +19,12 @@ class InverseKinematics:
             # of 'zyx' in the skel file for the simple 3D model.
             foot_centric_offset = np.array([0.0, -c.FOOT_RADIUS, 0.5*c.L_FOOT])
         else:
-            # Again, trial and error
+            # Z-axis gravity. Again, trial and error
             foot_centric_offset = np.array([c.FOOT_RADIUS, 0.0, -0.5*c.L_FOOT])
         foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         # TODO is it cheating to pull foot.com() directly from the environment?
-        # TODO fix this for Z gravity!
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
-        return c.inverse_convert_root(heel_location) # TODO
+        return c.inverse_convert_root(heel_location)
 
     def get_bodynode(self, swing_idx, offset):
         c = self.env.consts()
