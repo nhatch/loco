@@ -70,8 +70,8 @@ class Simple3DEnv(SteppingStonesEnv):
         # Give the GUI time to launch
         time.sleep(0.1)
         c = self.consts()
-        framerate = int(1 / c.SIMULATION_RATE / fps)
-        for i in range(int(seconds / c.SIMULATION_RATE)):
+        framerate = int(c.SIMULATION_FREQUENCY / fps)
+        for i in range(int(seconds * c.SIMULATION_FREQUENCY)):
             self.world.step()
             if self.world.frame % framerate == 0:
                 #print(self.world.time())
@@ -97,7 +97,7 @@ def test_pd_control(env, secs=2):
     q[c.RIGHT_IDX + c.KNEE] = -np.pi/2
     q[c.LEFT_IDX + c.HIP_PITCH] = -np.pi * 0.5
     #q[c.Z] = 2
-    env.controller.target_q = np.array(q)
+    env.controller.target_q = c.raw_dofs(q)
     #env.robot_skeleton.q = c.raw_dofs(q)
     env.run(secs)
 

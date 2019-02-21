@@ -275,8 +275,8 @@ class Simbicon(PDController):
         q, dq = self.env.get_x()
         params = self.params
         if self.env.world.frame % c.FRAMES_PER_CONTROL == 0:
-            self.target_q = self.compute_target_q(q, dq)
-        self.update_doppelganger(self.target_q)
+            self.target_q = c.raw_dofs(self.compute_target_q(q, dq))
+        self.update_doppelganger()
 
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
@@ -285,7 +285,7 @@ class Simbicon(PDController):
         if fix_Kd:
             # TODO this Kd index is wrong!!
             self.Kd[fix_Kd_idx] *= 8
-        raw_control = self.compute_PD(self.target_q)
+        raw_control = self.compute_PD()
         if fix_Kd:
             self.Kd[fix_Kd_idx] /= 8
 
@@ -303,13 +303,13 @@ class Simbicon(PDController):
 
         return raw_control
 
-    def update_doppelganger(self, tq):
+    def update_doppelganger(self):
         dop = self.env.doppelganger
         if dop is None:
             return
         c = self.env.consts()
-        tq = tq.copy()
-        dop.q = c.raw_dofs(tq)
+        dop.q = self.target_q
+        tq = c.standardized_dofs(self.target_q)
         ik = InverseKinematics(self.env.doppelganger, self.env)
         offset = c.THIGH_BODYNODE_OFFSET
         dop_bodynode = ik.get_bodynode(self.stance_idx, offset)

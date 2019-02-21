@@ -16,14 +16,13 @@ class PDController:
         self.Kd = np.concatenate([[0.0] * BRICK_DOF, c.KD_GAIN])
         self.control_bounds = c.CONTROL_BOUNDS
 
-    def compute_PD(self, target_q):
+    def compute_PD(self):
         if self.inactive:
             return np.zeros_like(self.Kp)
         c = self.env.consts()
         BRICK_DOF = c.BRICK_DOF
-        raw_target_q = c.raw_dofs(target_q)
         q, dq = self.env.robot_skeleton.q, self.env.robot_skeleton.dq
-        control = -self.Kp * (q - raw_target_q) - self.Kd * dq
+        control = -self.Kp * (q - self.target_q) - self.Kd * dq
         for i in range(BRICK_DOF, len(control)):
             if control[i] > self.control_bounds[1][i-BRICK_DOF]:
                 control[i] = self.control_bounds[1][i-BRICK_DOF]
@@ -32,11 +31,11 @@ class PDController:
         return np.array(control)
 
     def compute(self):
-        return self.compute_PD(self.target_q)
+        return self.compute_PD()
 
     def reset(self, state=None):
         current_q = np.array(self.env.robot_skeleton.q)
-        self.target_q = self.env.consts().standardized_dofs(current_q)
+        self.target_q = current_q
 
     def state(self):
         return []
