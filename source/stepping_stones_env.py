@@ -141,9 +141,9 @@ class SteppingStonesEnv:
                 self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
                 self.sdf_loader.put_dot(self.controller.prev_target, 'prev_step_target', color=GREEN)
         while True:
-            # We use %1 instead of %0 to avoid distracting jumps when resetting things like
+            # We don't render on frame 0 to avoid distracting jumps when resetting things like
             # ground platforms and dots.
-            if steps_per_render and self.world.frame % steps_per_render == 1:
+            if steps_per_render and self.world.frame % steps_per_render == 0 and self.world.frame > 0:
                 self._render()
             obs, terminated, status_string = self.simulation_step()
             if obs is not None:

@@ -21,6 +21,8 @@ class InverseKinematics:
         else:
             # Z-axis gravity. Again, trial and error
             foot_centric_offset = np.array([c.FOOT_RADIUS, 0.0, -0.5*c.L_FOOT])
+            if swing_idx == c.LEFT_IDX:
+                foot_centric_offset[0] *= -1
         foot = self.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         # TODO is it cheating to pull foot.com() directly from the environment?
         heel_location = np.dot(foot.transform()[:3,:3], foot_centric_offset) + foot.com()
@@ -155,9 +157,9 @@ if __name__ == "__main__":
     env = DarwinEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
-    #ik.test()
+    ik.test(False)
     c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
     #ik.test_inverse_transform(bodynode)
-    ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
+    #ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
     embed()
