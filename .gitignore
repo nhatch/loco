@@ -6,12 +6,12 @@
 *.swp
 *.log
 *.png
+*.pkl
 
 junk/
 __pycache__/
 saved_controllers/
 monitoring/
-data/
 
 notes.txt
 source/skel/_*
