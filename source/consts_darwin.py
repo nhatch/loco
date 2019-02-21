@@ -4,7 +4,9 @@ from utils import convert_euler
 
 from consts_common3D import *
 Q_DIM_RAW = 26
-SIMULATION_RATE = 0.002
+SIMULATION_FREQUENCY = 500
+CONTROL_FREQUENCY = 20 # Hz
+REAL_TIME_STEPS_PER_RENDER = 8
 GROUND_LEVEL = -0.33
 DEFAULT_ZOOM = 2.0
 

@@ -9,7 +9,9 @@ def inverse_convert_root(q):
     return q
 
 skel_file = 'skel/walker2d.skel'
-SIMULATION_RATE = 1.0 / 2000.0 # seconds
+SIMULATION_FREQUENCY = 2000 # Hz
+CONTROL_FREQUENCY = 2000
+REAL_TIME_STEPS_PER_RENDER = 25
 
 perm = [0,1,2,3,4,5,6,7,8]
 sign_switches = []

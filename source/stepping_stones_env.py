@@ -17,7 +17,6 @@ from pydart2.gui.trackball import Trackball
 import time
 
 EPISODE_TIME_LIMIT = 10.0 # seconds
-REAL_TIME_STEPS_PER_RENDER = 25 # Number of simulation steps to run per frame so it looks like real time. Just a rough estimate.
 
 class StepResult(Enum):
     ERROR = -1
@@ -31,6 +30,7 @@ class SteppingStonesEnv:
         self.world = None
         self.viewer = None
         c = self.consts()
+        c.FRAMES_PER_CONTROL = int(c.SIMULATION_FREQUENCY/c.CONTROL_FREQUENCY)
         self.is_3D = (c.BRICK_DOF == 6)
         self.sdf_loader = SDFLoader(c)
         pydart.init(verbose=False)
@@ -136,7 +136,7 @@ class SteppingStonesEnv:
         self.controller.set_gait_raw(raw_gait=action, target_heading=target_heading, target=target)
         steps_per_render = None
         if self.render_rate:
-            steps_per_render = int(REAL_TIME_STEPS_PER_RENDER / self.render_rate)
+            steps_per_render = int(self.consts().REAL_TIME_STEPS_PER_RENDER / self.render_rate)
             if put_dots:
                 self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
                 self.sdf_loader.put_dot(self.controller.prev_target, 'prev_step_target', color=GREEN)
@@ -236,7 +236,7 @@ class SteppingStonesEnv:
 
     def load_world(self):
         c = self.consts()
-        world = pydart.World(c.SIMULATION_RATE, c.skel_file)
+        world = pydart.World(1/c.SIMULATION_FREQUENCY, c.skel_file)
         self.robot_skeleton = self.load_robot(world)
         self.doppelganger = None
         if len(world.skeletons) == 3:

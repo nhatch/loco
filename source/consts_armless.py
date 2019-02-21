@@ -7,7 +7,9 @@ DEFAULT_ZOOM = 5.0
 GROUND_LEVEL = -0.9
 
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
-SIMULATION_RATE = 1.0 / 2000.0 # seconds
+SIMULATION_FREQUENCY = 2000
+CONTROL_FREQUENCY = 2000
+REAL_TIME_STEPS_PER_RENDER = 25
 
 perm = [0,1,2,3,4,5, # Brick DOFs
         13,14,12,15,16,17, # Right leg
