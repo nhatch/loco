@@ -67,12 +67,14 @@ class Simbicon3D(Simbicon):
 def next_target(start, heading, length, env):
     c = env.controller
     rot = utils.rotmatrix(-heading)
-    lateral_length = 0.3 if c.swing_idx == RIGHT_IDX else -0.3
+    import curriculum as cur
+    z_diff = cur.SETTINGS_3D_EASY['z_mean']
+    lateral_length = z_diff if c.swing_idx == RIGHT_IDX else -z_diff
     offset = [length, 0.0, lateral_length]
     target = start + np.dot(rot, offset)
     return target
 
-def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=False):
+def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=True):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed)
     #obs.mirror()
@@ -83,6 +85,7 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = next_target(t, a, l, env)
+        # TODO: Get the controller to work well even when we don't provide the target heading.
         target_heading = None
         if provide_target_heading:
             target_heading = a+delta_a
@@ -95,8 +98,10 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
 
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
-    env = Simple3DEnv(Simbicon3D)
+    from darwin_env import DarwinEnv
+    #env = Simple3DEnv(Simbicon3D)
+    env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    # TODO: Get the controller to work well even when we don't provide the target heading.
-    test(env, 0.5, delta_a=0.33, n=8, provide_target_heading=True)
+    #test(env, 0.5, delta_a=0.33, n=8)
+    test(env, 0.2, r=10)
     embed()

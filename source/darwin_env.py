@@ -27,6 +27,8 @@ class DarwinEnv(Simple3DEnv):
                 body.set_mass(0.6)
 
         world.skeletons[0].bodynodes[0].set_friction_coeff(0.716)
+        import curriculum as cur
+        cur.SETTINGS_3D_EASY['z_mean'] /= 2
 
         return skel
 

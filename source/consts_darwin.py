@@ -5,7 +5,7 @@ from utils import convert_euler
 from consts_common3D import *
 Q_DIM_RAW = 26
 SIMULATION_RATE = 0.002
-GROUND_LEVEL = -0.35
+GROUND_LEVEL = -0.33
 DEFAULT_ZOOM = 2.0
 
 GRAVITY_Y = False
@@ -114,3 +114,7 @@ def root_dofs_from_transform(transform):
     dofs[4] *= -1
     dofs[0:3] = inverse_convert_root(translation)
     return dofs
+
+ALLOWED_COLLISION_IDS = [
+        RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
+        LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET]
