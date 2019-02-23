@@ -207,8 +207,8 @@ class Simbicon(PDController):
             if self.env.is_3D:
                 self.params[sp.SWING_ANKLE_ROLL] = self.base_gait()[sp.SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
-        #if early_strike:
-        #    print("Early strike!")
+        if early_strike:
+            print("Early strike!")
         q, dq = self.env.get_x()
         target_diff = self.params[sp.IK_GAIN] * self.speed(dq)
         heel_close = self.distance_to_go(swing_heel) < target_diff
@@ -236,7 +236,6 @@ class Simbicon(PDController):
         DIR_IDX = sp.UP_IDX if self.direction == UP else sp.DN_IDX
         tq = np.zeros(c.Q_DIM)
         tq[self.stance_idx+c.KNEE] = params[sp.STANCE_KNEE_RELATIVE+DIR_IDX]
-        tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
 
         cd = params[sp.POSITION_BALANCE_GAIN]
         cv = params[sp.VELOCITY_BALANCE_GAIN]
@@ -250,10 +249,12 @@ class Simbicon(PDController):
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
 
-        shin_actual = torso_actual + q[self.swing_idx+c.KNEE] + q[self.swing_idx+c.HIP_PITCH]
-        # The following line sets the swing ankle to be flat relative to the ground.
-        tq[self.swing_idx+c.ANKLE] = -shin_actual
+        # The following sets the ankles to be flat relative to the ground.
+        ANKLE_DOF = 2 if self.env.is_3D else 1
+        tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
+        tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
         tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
+        tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
@@ -283,7 +284,6 @@ class Simbicon(PDController):
         fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
         fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
         if fix_Kd:
-            # TODO this Kd index is wrong!!
             self.Kd[fix_Kd_idx] *= 8
         raw_control = self.compute_PD()
         if fix_Kd:
@@ -328,6 +328,13 @@ class Simbicon(PDController):
         c.LEFT_RRT_INV = np.dot(np.linalg.inv(thigh_l.transform()), pelvis.transform())
         c.RIGHT_RRT_INV = np.dot(np.linalg.inv(thigh_r.transform()), pelvis.transform())
 
+        foot_r = self.ik.get_bodynode(c.RIGHT_IDX, c.FOOT_BODYNODE_OFFSET)
+        foot_l = self.ik.get_bodynode(c.LEFT_IDX, c.FOOT_BODYNODE_OFFSET)
+        shin_r = self.ik.get_bodynode(c.RIGHT_IDX, c.SHIN_BODYNODE_OFFSET)
+        shin_l = self.ik.get_bodynode(c.LEFT_IDX, c.SHIN_BODYNODE_OFFSET)
+        c.LEFT_RRT_INV_ANKLE = np.dot(np.linalg.inv(foot_l.transform()), shin_l.transform())
+        c.RIGHT_RRT_INV_ANKLE = np.dot(np.linalg.inv(foot_r.transform()), shin_r.transform())
+
 def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, video_save_dir=None):
     env.clear_skeletons() # Necessary in order to change the runway length
     env.sdf_loader.ground_length = runway_length
@@ -361,7 +368,5 @@ def reproduce_bug(env):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    #test(env, 0.5, n=4, render=2, video_save_dir='monitoring')
     test(env, 0.5)
-    #reproduce_bug(env)
     embed()

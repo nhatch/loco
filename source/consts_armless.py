@@ -60,6 +60,7 @@ PELVIS_BODYNODE_IDX = 2
 LEFT_BODYNODE_IDX = 3
 RIGHT_BODYNODE_IDX = 6
 THIGH_BODYNODE_OFFSET = 0
+SHIN_BODYNODE_OFFSET = 1
 FOOT_BODYNODE_OFFSET = 2
 
 # TODO this skel file has a lot of "transformation" values that might invalidate
@@ -95,3 +96,12 @@ def root_dofs_from_transform(transform):
     dofs[3:6] = euler
     dofs[0:3] = translation
     return dofs
+
+def ankle_dofs_from_transform(_, relative_transform):
+    euler = libtransform.euler_from_matrix(relative_transform, 'rxzy')
+    dofs = np.array([euler[0], -euler[1]])
+    return dofs
+
+def foot_transform_from_angles(_, pitch, roll):
+    correction = libtransform.euler_matrix(0, -np.pi/2, 0, 'rxyz')
+    return correction.dot(libtransform.euler_matrix(pitch, 0, roll, 'rzxy'))

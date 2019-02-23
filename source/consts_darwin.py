@@ -7,8 +7,8 @@ Q_DIM_RAW = 26
 SIMULATION_FREQUENCY = 500
 CONTROL_FREQUENCY = 30 # Hz
 REAL_TIME_STEPS_PER_RENDER = 8
-GROUND_LEVEL = -0.33
-DEFAULT_ZOOM = 2.0
+GROUND_LEVEL = -0.34
+DEFAULT_ZOOM = 1.2
 
 GRAVITY_Y = False
 
@@ -88,8 +88,9 @@ RIGHT_BODYNODE_IDX = 22
 LEFT_BODYNODE_IDX = 16
 FOOT_BODYNODE_OFFSET = 5
 THIGH_BODYNODE_OFFSET = 2
+SHIN_BODYNODE_OFFSET = 3
 PELVIS_BODYNODE_IDX = 2
-DOT_RADIUS = 0.01
+DOT_RADIUS = 0.02
 
 def hip_dofs_from_transform(stance_idx, relative_transform):
     # For some reason, the relative transform is given in a coordinate system
@@ -108,6 +109,13 @@ def hip_dofs_from_transform(stance_idx, relative_transform):
     elif stance_idx == RIGHT_IDX:
         return euler*np.array([ 1, 1,-1])
 
+def ankle_dofs_from_transform(stance_idx, relative_transform):
+    euler = libtransform.euler_from_matrix(relative_transform, 'ryzx')
+    dofs = np.array([euler[0], euler[1]])
+    if stance_idx == RIGHT_IDX:
+        dofs[0] *= -1
+    return dofs
+
 def root_dofs_from_transform(transform):
     euler = libtransform.euler_from_matrix(transform, 'rzyx')
     translation = transform[0:3,3]
@@ -116,6 +124,13 @@ def root_dofs_from_transform(transform):
     dofs[4] *= -1
     dofs[0:3] = inverse_convert_root(translation)
     return dofs
+
+def foot_transform_from_angles(stance_idx, pitch, roll):
+    correction_pitch = -np.pi/2 if stance_idx == LEFT_IDX else np.pi/2
+    if stance_idx == LEFT_IDX:
+        roll *= -1
+    correction = libtransform.euler_matrix(0, correction_pitch, 0, 'rxyz')
+    return correction.dot(libtransform.euler_matrix(0,-pitch,roll, 'rxyz'))
 
 ALLOWED_COLLISION_IDS = [
         RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,

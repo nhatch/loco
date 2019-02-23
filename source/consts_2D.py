@@ -54,6 +54,7 @@ PELVIS_BODYNODE_IDX = 2
 RIGHT_BODYNODE_IDX = 3
 LEFT_BODYNODE_IDX = 6
 THIGH_BODYNODE_OFFSET = 0
+SHIN_BODYNODE_OFFSET = 1
 FOOT_BODYNODE_OFFSET = 2
 
 L_THIGH =    0.45
@@ -78,3 +79,10 @@ def root_dofs_from_transform(transform):
 
 DEFAULT_GROUND_WIDTH = 0.5
 DOT_RADIUS = 0.08
+
+def ankle_dofs_from_transform(_, relative_transform):
+    euler = libtransform.euler_from_matrix(relative_transform, 'rzyx')
+    return euler[0]
+
+def foot_transform_from_angles(_, pitch, __):
+    return libtransform.euler_matrix(pitch, 0, 0, 'rzxy')

@@ -110,6 +110,43 @@ class InverseKinematics:
         else:
             return libtransform.euler_matrix(heading, -pitch, 0.0, 'rzyx')
 
+    def get_ankle(self, stance_idx, pitch=0.0, roll=0.0, target_foot_transform=None):
+        c = self.env.consts()
+        if target_foot_transform is None:
+            target_foot_transform = c.foot_transform_from_angles(stance_idx, pitch, roll)
+        shin = self.get_bodynode(stance_idx, c.SHIN_BODYNODE_OFFSET)
+        target_rel_trans = np.linalg.inv(shin.transform()).dot(target_foot_transform)
+        if stance_idx == c.RIGHT_IDX:
+            RRT = c.RIGHT_RRT_INV_ANKLE
+        else:
+            RRT = c.LEFT_RRT_INV_ANKLE
+        return c.ankle_dofs_from_transform(stance_idx, RRT.dot(target_rel_trans))
+
+    def test_inverse_ankle(self, stance_idx, pitch=0.0, roll=0.0):
+        c = self.env.consts()
+        obs = self.env.reset(random=0.4)
+        ANKLE_DOF = 2
+        if not self.env.is_3D:
+            roll = 0.0
+            ANKLE_DOF = 1
+
+        foot = self.get_bodynode(stance_idx, c.FOOT_BODYNODE_OFFSET)
+        inferred_ankle_dofs = self.get_ankle(stance_idx, target_foot_transform=foot.transform())
+        print(inferred_ankle_dofs)
+        true_ankle_dofs = obs.raw_state[stance_idx+c.ANKLE:stance_idx+c.ANKLE+ANKLE_DOF]
+        print(true_ankle_dofs)
+        print(np.allclose(inferred_ankle_dofs, true_ankle_dofs, atol=1e-7))
+
+        ground_loc = c.inverse_convert_root(foot.com()) - [0,0.01,0]
+        env.sdf_loader.put_grounds([ground_loc])
+        self.env.pause(0.5)
+        ankle_dofs = self.get_ankle(stance_idx, pitch, roll)
+        obs.raw_state[stance_idx+c.ANKLE:stance_idx+c.ANKLE+ANKLE_DOF] = ankle_dofs
+
+        env.reset(obs)
+        env.sdf_loader.put_grounds([ground_loc])
+        self.env.pause(0.5)
+
     def test_inverse_hip(self, stance_idx, heading=0.0, pitch=0.0):
         c = self.env.consts()
         obs = self.env.reset(random=0.4)
@@ -152,14 +189,15 @@ if __name__ == "__main__":
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from darwin_env import DarwinEnv
-    #env = SteppingStonesEnv()
+    env = SteppingStonesEnv()
     #env = Simple3DEnv(Simbicon3D)
-    env = DarwinEnv(Simbicon3D)
+    #env = DarwinEnv(Simbicon3D)
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
-    ik.test(False)
+    #ik.test(False)
     c = env.consts()
     bodynode = env.robot_skeleton.bodynodes[c.RIGHT_BODYNODE_IDX+c.THIGH_BODYNODE_OFFSET]
     #ik.test_inverse_transform(bodynode)
     #ik.test_inverse_hip(c.RIGHT_IDX, heading=-1.0, pitch=0.2)
+    ik.test_inverse_ankle(c.RIGHT_IDX, pitch=0.0, roll=0.0)
     embed()
