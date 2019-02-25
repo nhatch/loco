@@ -293,7 +293,8 @@ class Simbicon(PDController):
 
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
-        fix_Kd = self.direction == UP and self.time() - self.step_started < 0.1
+        fix_Kd = (not self.env.is_3D) and self.direction == UP \
+                and self.time() - self.step_started < 0.1
         fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
         if fix_Kd:
             self.Kd[fix_Kd_idx] *= 8
