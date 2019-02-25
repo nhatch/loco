@@ -269,6 +269,18 @@ class Simbicon(PDController):
         else:
             tq[self.stance_idx] = hip_dofs
 
+        # Make modifications to control torso pitch
+        virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)
+        # Should be the same for both stance and swing
+        kp = self.Kp[virtual_torque_idx]
+        kd = self.Kd[virtual_torque_idx]
+        # I say "probable" because I'm not sure the robot will calculate things quite this way
+        probable_swing_torque = kp * (tq[self.swing_idx+c.HIP_PITCH] - q[self.swing_idx+c.HIP_PITCH]) - kd * dq[self.swing_idx+c.HIP_PITCH]
+        torso_torque = - kp * (q[c.ROOT_PITCH] - params[sp.TORSO_WORLD]) - kd * dq[c.ROOT_PITCH]
+        desired_stance_torque = -torso_torque - probable_swing_torque
+        tq_stance = (desired_stance_torque + kd*dq[self.stance_idx+c.HIP_PITCH]) / kp + q[self.stance_idx+c.HIP_PITCH]
+        tq[self.stance_idx+c.HIP_PITCH] = tq_stance
+
         return tq
 
     def compute(self):
@@ -289,18 +301,6 @@ class Simbicon(PDController):
         if fix_Kd:
             self.Kd[fix_Kd_idx] /= 8
 
-        # Make modifications to control torso pitch
-        control = c.standardized_dofs(raw_control)
-        torso_actual = q[c.ROOT_PITCH]
-        torso_speed = dq[c.ROOT_PITCH]
-        virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)
-        kp = self.Kp[virtual_torque_idx]
-        kd = self.Kd[virtual_torque_idx]
-        torso_torque = - kp * (torso_actual - params[sp.TORSO_WORLD]) - kd * torso_speed
-        control[self.stance_idx+c.HIP_PITCH] = -torso_torque - control[self.swing_idx+c.HIP_PITCH]
-        transformed_control = c.raw_dofs(control)
-        raw_control[virtual_torque_idx] = transformed_control[virtual_torque_idx]
-
         return raw_control
 
     def update_doppelganger(self):
@@ -312,8 +312,8 @@ class Simbicon(PDController):
         tq = c.standardized_dofs(self.target_q)
         ik = InverseKinematics(self.env.doppelganger, self.env)
         offset = c.THIGH_BODYNODE_OFFSET
-        dop_bodynode = ik.get_bodynode(self.stance_idx, offset)
-        robot_bodynode = self.ik.get_bodynode(self.stance_idx, offset)
+        dop_bodynode = ik.root_bodynode()
+        robot_bodynode = self.ik.root_bodynode()
         tq[:c.BRICK_DOF] = ik.get_dofs(robot_bodynode.transform(), dop_bodynode)
         dop.q = c.raw_dofs(tq)
         dop.dq = np.zeros(c.Q_DIM_RAW)
@@ -335,11 +335,11 @@ class Simbicon(PDController):
         c.LEFT_RRT_INV_ANKLE = np.dot(np.linalg.inv(foot_l.transform()), shin_l.transform())
         c.RIGHT_RRT_INV_ANKLE = np.dot(np.linalg.inv(foot_r.transform()), shin_r.transform())
 
-def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, render=1, video_save_dir=None):
+def test(env, length, n=8, seed=None, runway_length=15, runway_x=0, r=1, video_save_dir=None):
     env.clear_skeletons() # Necessary in order to change the runway length
     env.sdf_loader.ground_length = runway_length
     start_state = env.reset(seed=seed, random=0.005,
-            render=render, video_save_dir=video_save_dir)
+            render=r, video_save_dir=video_save_dir)
     env.sdf_loader.put_grounds([[runway_x,0,0]])
     action = np.zeros(sp.N_PARAMS)
     for i in range(n):
