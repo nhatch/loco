@@ -13,6 +13,10 @@ SIMULATION_FREQUENCY = 2000 # Hz
 CONTROL_FREQUENCY = 2000
 REAL_TIME_STEPS_PER_RENDER = 25
 
+# The maximum time it should take to get (e.g.) the right foot off the ground
+# after the left-foot heel strike.
+LIFTOFF_DURATION = 0.3
+
 perm = [0,1,2,3,4,5,6,7,8]
 sign_switches = []
 

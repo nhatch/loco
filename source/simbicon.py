@@ -5,10 +5,6 @@ from IPython import embed
 from inverse_kinematics import InverseKinematics
 from utils import heading_from_vector
 
-# The maximum time it should take to get (e.g.) the right foot off the ground
-# after the left-foot heel strike.
-LIFTOFF_DURATION = 0.3
-
 import simbicon_params as sp
 
 UP = 'UP'
@@ -197,7 +193,7 @@ class Simbicon(PDController):
             self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = c.BASE_GAIT[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
             if self.env.is_3D:
                 self.params[sp.SWING_ANKLE_ROLL] = c.BASE_GAIT[sp.SWING_ANKLE_ROLL]
-        early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
+        early_strike = (duration >= c.LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")
         q, dq = self.env.get_x()
@@ -206,6 +202,7 @@ class Simbicon(PDController):
         com_close = self.distance_to_go(q[:3]) < target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
+            print("{:.3f}: DOWN".format(self.time()))
             self.direction = DOWN
 
     def change_stance(self, contacts, swing_heel):

@@ -10,6 +10,7 @@ skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 SIMULATION_FREQUENCY = 2000
 CONTROL_FREQUENCY = 2000
 REAL_TIME_STEPS_PER_RENDER = 25
+LIFTOFF_DURATION = 0.3
 
 perm = [0,1,2,3,4,5, # Brick DOFs
         13,14,12,15,16,17, # Right leg
