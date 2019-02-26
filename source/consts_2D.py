@@ -86,3 +86,10 @@ def ankle_dofs_from_transform(_, relative_transform):
 
 def foot_transform_from_angles(_, pitch, __):
     return libtransform.euler_matrix(pitch, 0, 0, 'rzxy')
+
+# Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
+# Then modified for the new parameters format.
+BASE_GAIT = np.array([0.14, 0, 0.2, 0.0, 0.2,
+                      0.4, -1.1,   0.0, -0.05,
+                      0,    0, 0.05, -0.1,
+                      0,0,0,0,0,0]) # None of these last 6 are used in 2D

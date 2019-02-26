@@ -64,20 +64,12 @@ class Simbicon(PDController):
         # in the State object.
         return np.concatenate((self.stance_heel, self.target, self.prev_target))
 
-    def base_gait(self):
-        # Taken from Table 1 of https://www.cs.sfu.ca/~kkyin/papers/Yin_SIG07.pdf
-        # Then modified for the new parameters format.
-        gait = [0.14, 0, 0.2, 0.0, 0.2,
-                0.4, -1.1,   0.0, -0.05,
-                0,    0, 0.05, -0.1,
-                0,0,0,0,0,0] # None of these last 6 are used in 2D
-        return np.array(gait)
-
     def heading(self):
         return 0.0
 
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
-        params = self.base_gait()
+        c = self.env.consts()
+        params = c.BASE_GAIT.copy()
         if raw_gait is not None:
             params += raw_gait * sp.PARAM_SCALE
         self.set_gait(Params(params))
@@ -94,7 +86,6 @@ class Simbicon(PDController):
             if self.env.is_3D:
                 # Lateral balance feedback usually tends to put the swing foot too far "outside"
                 # the target. Hack: adjust the target heading to roughly compensate for this.
-                c = self.env.consts()
                 dist = np.linalg.norm(d)
                 adj = -dist*0.2
                 if self.swing_idx == c.LEFT_IDX:
@@ -203,9 +194,9 @@ class Simbicon(PDController):
         duration = self.time() - self.step_started
         if duration >= 0.2:
             # Once toe-off is complete, return to neutral ankle angle
-            self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = self.base_gait()[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
+            self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = c.BASE_GAIT[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
             if self.env.is_3D:
-                self.params[sp.SWING_ANKLE_ROLL] = self.base_gait()[sp.SWING_ANKLE_ROLL]
+                self.params[sp.SWING_ANKLE_ROLL] = c.BASE_GAIT[sp.SWING_ANKLE_ROLL]
         early_strike = (duration >= LIFTOFF_DURATION) and (len(contacts) > 0)
         if early_strike:
             print("Early strike!")

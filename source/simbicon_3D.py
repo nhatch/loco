@@ -12,14 +12,6 @@ from simbicon_params import *
 ZERO_GAIN = False
 
 class Simbicon3D(Simbicon):
-
-    def base_gait(self):
-        gait = [0.14, 0.5, 0.2, -0.1, 0.2,
-                0.4, -1.1,   0.0, -0.05,
-                -0.0, -0.00, 0.1, -0.1,
-                0.5, 0.2, 0.0, 0.0, 0.0, 0.0]
-        return np.array(gait)
-
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         if raw_gait is not None and self.swing_idx == LEFT_IDX:
             raw_gait = raw_gait * MIRROR_PARAMS
@@ -103,5 +95,5 @@ if __name__ == "__main__":
     #env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
     test(env, 0.5, delta_a=0.33, n=8)
-    #test(env, 0.2)
+    #test(env, 0.2, r=3)
     embed()

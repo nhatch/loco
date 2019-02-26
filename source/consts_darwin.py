@@ -135,3 +135,8 @@ def foot_transform_from_angles(stance_idx, pitch, roll):
 ALLOWED_COLLISION_IDS = [
         RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
         LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET]
+
+BASE_GAIT = np.array([0.14, 0.5, 0.2, -0.1, 0.2,
+                      0.4, -1.1,   0.0, -0.05,
+                      -0.0, -0.00, 0.1, -0.1,
+                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0])

@@ -105,3 +105,8 @@ def ankle_dofs_from_transform(_, relative_transform):
 def foot_transform_from_angles(_, pitch, roll):
     correction = libtransform.euler_matrix(0, -np.pi/2, 0, 'rxyz')
     return correction.dot(libtransform.euler_matrix(pitch, 0, roll, 'rzxy'))
+
+BASE_GAIT = np.array([0.14, 0.5, 0.2, -0.1, 0.2,
+                      0.4, -1.1,   0.0, -0.05,
+                      -0.0, -0.00, 0.1, -0.1,
+                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0])
