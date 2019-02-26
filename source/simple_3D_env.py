@@ -64,13 +64,13 @@ class Simple3DEnv(SteppingStonesEnv):
         tb.zoom_to = zoom_to
         return tb
 
-    def run(self, seconds, fps=60):
+    def run(self, seconds, render=1.0):
         self.render()
         import time
         # Give the GUI time to launch
         time.sleep(0.1)
         c = self.consts()
-        framerate = int(c.SIMULATION_FREQUENCY / fps)
+        framerate = int(c.REAL_TIME_STEPS_PER_RENDER / render)
         for i in range(int(seconds * c.SIMULATION_FREQUENCY)):
             self.world.step()
             if self.world.frame % framerate == 0:
