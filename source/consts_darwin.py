@@ -29,6 +29,7 @@ def inverse_convert_root(brick_dof):
 
 skel_file = "skel/darwinmodel/darwin_ground.skel"
 robot_model = "skel/darwinmodel/robotis_op2.urdf"
+doppelganger_model = "skel/darwinmodel/doppelganger.urdf"
 
 perm = [0,2,1,3,4,5,
         20,21,22,23,24,25,

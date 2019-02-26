@@ -9,7 +9,7 @@ from stepping_stones_env import SteppingStonesEnv
 import consts_armless as consts
 
 THETA = -np.pi/12
-PHI = np.pi / 1.5
+PHI = np.pi * 2/3
 
 class Simple3DEnv(SteppingStonesEnv):
     def update_viewer(self):
