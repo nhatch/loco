@@ -46,14 +46,6 @@ def virtual_torque_idx(standardized_idx):
     else:
         raise "Invalid stance index"
 
-def fix_Kd_idx(standardized_idx):
-    if standardized_idx == RIGHT_IDX:
-        return 15
-    elif standardized_idx == LEFT_IDX:
-        return 9
-    else:
-        raise "Invalid stance index"
-
 CONTROL_BOUNDS = 1000 * np.array([[-100]*Q_DIM, [100]*Q_DIM])
 
 PELVIS_BODYNODE_IDX = 2

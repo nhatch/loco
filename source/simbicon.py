@@ -167,14 +167,14 @@ class Simbicon(PDController):
         #   python inverse_dynamics.py     # Don't run any training iters or load the train set
         #   learn.evaluate(seed=39738)
         tol = -0.06
-        lower = min(self.starting_swing_heel[1], self.target[1])
-        upper = max(self.starting_swing_heel[1], self.target[1])
+        lower = min(self.prev_target[1], self.target[1])
+        upper = max(self.prev_target[1], self.target[1])
         below_lower = swing_heel[1] - lower < tol
         below_upper = swing_heel[1] - upper < tol
         # Calculate the distance of the swing heel from the line between the
         # start and end targets.
         # Technically in 3D this is a plane, not a line.
-        below_line = np.dot(swing_heel - self.starting_swing_heel, self.unit_normal) < tol
+        below_line = np.dot(swing_heel - self.prev_target, self.unit_normal) < tol
         if below_lower or (below_line and below_upper):
             print("FELL OFF")
             return True
@@ -245,6 +245,9 @@ class Simbicon(PDController):
         tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
         tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
         tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
+        # Note = not +=. This overwrites parallel-to-ground correction for stance ankle.
+        # I guess I'd rather not do this, but fixing this "bug" breaks the controller
+        # for the simple 2D and 3D models.
         tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
@@ -286,8 +289,8 @@ class Simbicon(PDController):
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = (not self.env.is_3D) and self.direction == UP \
                 and self.time() - self.step_started < 0.1
-        fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
         if fix_Kd:
+            fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
             self.Kd[fix_Kd_idx] *= 8
         raw_control = self.compute_PD()
         if fix_Kd:

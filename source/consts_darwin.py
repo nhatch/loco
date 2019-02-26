@@ -70,14 +70,6 @@ def virtual_torque_idx(standardized_idx):
     else:
         raise "Invalid stance index"
 
-def fix_Kd_idx(standardized_idx):
-    if standardized_idx == RIGHT_IDX:
-        return 23
-    elif standardized_idx == LEFT_IDX:
-        return 17
-    else:
-        raise "Invalid stance index"
-
 CONTROL_BOUNDS = np.array([-7.5*np.ones(20,), 7.5*np.ones(20,)])
 
 KP_GAIN = np.array([154.019]*20)
