@@ -178,8 +178,7 @@ class Simbicon(PDController):
     # Returns True if the swing foot has made contact.
     def swing_contact(self, contacts, swing_heel):
         if self.direction == UP:
-            self.maybe_start_down_phase(contacts, swing_heel)
-            return False
+            return self.maybe_start_down_phase(contacts, swing_heel)
         elif len(contacts) > 0: # and self.direction == DOWN
             return True
         else:
@@ -204,6 +203,7 @@ class Simbicon(PDController):
             # Start the DOWN phase
             print("{:.3f}: DOWN".format(self.time()))
             self.direction = DOWN
+        return early_strike
 
     def change_stance(self, contacts, swing_heel):
         self.step_started = self.time()
