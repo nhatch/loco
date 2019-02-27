@@ -91,9 +91,9 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     from darwin_env import DarwinEnv
-    env = Simple3DEnv(Simbicon3D)
-    #env = DarwinEnv(Simbicon3D)
+    #env = Simple3DEnv(Simbicon3D)
+    env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    test(env, 0.5, delta_a=0.33, n=8)
-    #test(env, 0.2, r=3)
+    #test(env, 0.5, delta_a=0.33, n=8)
+    test(env, 0.15, r=8, n=4)
     embed()

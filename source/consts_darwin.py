@@ -75,6 +75,7 @@ CONTROL_BOUNDS = np.array([-7.5*np.ones(20,), 7.5*np.ones(20,)])
 
 KP_GAIN = np.array([154.019]*20)
 KD_GAIN = np.array([0.1002]*20)
+KP_GAIN /= 8 # TODO figure out how to achieve this effect without modifying the gains
 
 FOOT_RADIUS = 0.004
 L_FOOT = 0.104
@@ -130,7 +131,7 @@ ALLOWED_COLLISION_IDS = [
         RIGHT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET,
         LEFT_BODYNODE_IDX + FOOT_BODYNODE_OFFSET]
 
-BASE_GAIT = np.array([0.14, 0.5, 0.2, -0.1, 0.2,
-                      0.4, -1.1,   0.0, -0.05,
-                      -0.0, -0.00, 0.1, -0.1,
+BASE_GAIT = np.array([0.06, 0.5, 0.2, 0.03, -0.2,
+                      0.4, -1.1,   -0.05, -0.05,
+                      -0.0, -0.2, -0.05, -0.1,
                       0.5, 0.2, 0.0, 0.0, 0.0, 0.0])

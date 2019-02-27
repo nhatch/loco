@@ -118,6 +118,8 @@ class Simbicon(PDController):
         return v
 
     def adjust_targets(self):
+        #return # Don't try to adjust step length until I can get Darwin walking at all....
+
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         params = self.params # This should work like np.array
