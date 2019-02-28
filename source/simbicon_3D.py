@@ -66,10 +66,11 @@ def next_target(start, heading, length, env):
     target = start + np.dot(rot, offset)
     return target
 
-def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=True):
+def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=True, mirror=False):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed)
-    #obs.mirror()
+    if mirror:
+        obs.mirror()
     obs.rotate(a)
     env.reset(obs, video_save_dir=None, render=r)
     env.sdf_loader.put_grounds([[-3.0,env.consts().GROUND_LEVEL,0]])
