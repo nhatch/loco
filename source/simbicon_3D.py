@@ -96,5 +96,5 @@ if __name__ == "__main__":
     env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
     #test(env, 0.5, delta_a=0.33, n=8)
-    test(env, 0.15, r=8, n=4)
+    test(env, 0.15, r=3, n=60, mirror=True)
     embed()

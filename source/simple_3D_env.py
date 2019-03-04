@@ -26,10 +26,10 @@ class Simple3DEnv(SteppingStonesEnv):
         # Move z_2 back by `zoom` so the camera has some distance from the agent.
         trans = [-x2, -y2, -(z2+self.zoom)]
         self.viewer.scene.tb.trans[0:3] = trans
+        self.set_rot(self.viewer.scene.tb)
 
     def set_rot_manual(self, phi):
         self.phi = phi
-        self.set_rot(self.viewer.scene.tb)
 
     def set_rot(self, tb):
         # The default Trackball parameters rotate phi around the z axis
@@ -57,7 +57,6 @@ class Simple3DEnv(SteppingStonesEnv):
         # Overwrite the drag_to method so we only change phi, not theta.
         def drag_to(x,y,dx,dy):
             self.phi += -dx/80
-            self.set_rot(self.viewer.scene.tb)
         def zoom_to(dx, dy):
             self.zoom -= dy/20
         tb.drag_to = drag_to

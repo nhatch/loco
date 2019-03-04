@@ -282,7 +282,7 @@ class Simbicon(PDController):
         params = self.params
         if self.env.world.frame % c.FRAMES_PER_CONTROL == 0:
             self.target_q = c.raw_dofs(self.compute_target_q(q, dq))
-            self.update_doppelganger()
+        self.update_doppelganger()
 
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
