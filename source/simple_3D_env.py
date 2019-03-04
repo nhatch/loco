@@ -102,7 +102,7 @@ def test_pd_control(env, secs=2):
     env.run(secs)
 
 def setup_dof_test(env):
-    env.controller.inactive = True
+    env.controller.inactive = False
     env.reset()
     env.sdf_loader.put_grounds([[-5,env.consts().GROUND_LEVEL,0]])
     q = env.robot_skeleton.q
