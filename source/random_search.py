@@ -1,8 +1,5 @@
 import numpy as np
 from IPython import embed
-import pickle
-import time
-import gym
 from simbicon_params import PARAM_SCALE
 
 class RandomSearch:
