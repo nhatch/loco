@@ -127,14 +127,14 @@ Our main contributions are as follows:
 
 Many approaches to locomotion on physical robots use optimization-based planning with detailed models.
 These approaches tend to generate \emph{hierarchical} plans in order to reduce computational requirements.
-At the highest level, the planner chooses footstep locations using, e.g. A* search~\citep{huang2013step}.
+At the highest level, the planner chooses footstep locations using e.g. A* search~\citep{huang2013step}.
 Based on the footstep plan, a lower-level planner generates a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum~\citep{mordatch2010robust} or contact wrench cone~\citep{dai2016planning}.
 Next, inverse kinematics are used to plan trajectories for end-effectors \citep{zucker2010optimization}.
 Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details~\citep{ratliff2009chomp}.
 
-Hierarchical planning approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
+Hierarchical optimization approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
 This is because static walking is easier to model and optimization takes a lot of computation time.
-They also require significant domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
+These approaches also require significant domain knowledge and manual tuning in order to engineer good models and handle situations when the real world deviates from ideal physics.
 Hierarchical planners are currently the best known approaches to robotic locomotion, given the supreme importance of safety and reliability for large physical systems and high-stakes competitions such as the DARPA Robotics and Learning Locomotion Challenges.
 However, we are interested in exploring alternative possibilities that can exploit the dynamics of the system to achieve faster and more energy-efficient gaits.
 
@@ -162,7 +162,7 @@ This allows the HLP to use a very simple hypothesis class (e.g. linear) and a ve
 However, PMTG has been applied only to control walking speed for a quadruped on flat ground.
 The policy architecture in our work is similar to PMTG in that we learn a high-level policy that modulates a TG.
 However, one important difference is that in our work, the HLP and the TG run at different frequencies.
-In the next section, we give a detailed description of this and other differences.
+In the next section, we give a detailed description of the differences.
 
 \section{Our approach} \label{sec:approach}
 
@@ -359,7 +359,7 @@ In this section, we evaluate CIM against a baseline that does not use imitation 
 Instead, the baseline uses ARS \citep{mania2018simple} over entire episodes.
 That is, at each iteration we update the HLP directly by estimating the gradient as a weighted combination of $Q$ random directions,
 with weights determined by the change in total shaped reward as defined in section \ref{sec:expert}.
-Note that this baseline is very similar to PMTG \citep{iscen2018pmtg}.
+Note that this baseline is very similar to PMTG (specifically, the experiments with linear HLPs in \citet{iscen2018pmtg}).
 The only difference is that its policy architecture still uses the temporal abstraction explained in section \ref{sec:tg}.\footnote{
 As we have not implemented a TG for bipedal locomotion that can be continuously modulated, this seems like the fairest comparison we could make.}
 
