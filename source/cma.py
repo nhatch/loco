@@ -2,15 +2,14 @@ import numpy as np
 from scipy.special import gamma
 from IPython import embed
 
-class CMA_ES:
-    def __init__(self, f, initial_mean, initial_sigma, settings):
+class CMA:
+    def __init__(self, f, initial_mean, initial_sigma):
         self.f = f
         self.N = initial_mean.shape[0]
         self.set_consts()
         self.mean = initial_mean.reshape((-1,1))
         self.sigma = initial_sigma
         self.cov = np.eye(self.N)
-        self.settings = settings
         self.cov_path = np.zeros((self.N,1))
         self.std_path = np.zeros((self.N,1))
 
@@ -101,14 +100,14 @@ class CMA_ES:
         ratio = np.linalg.norm(new_std_path) / self.E_NORM
         return self.sigma * np.exp(self.C_SIGMA / self.D_SIGMA * (ratio - 1))
 
+
+
 if __name__ == "__main__":
     f = lambda x: np.linalg.norm(x)**2
     initial_mean = np.ones(20)
     initial_sigma = 0.5
-    settings = {} # not used yet
-    opzer = CMA_ES(f, initial_mean, initial_sigma, settings)
+    opzer = CMA(f, initial_mean, initial_sigma)
     for i in range(50):
-        #print(opzer.mean.reshape(-1))
         print(np.linalg.norm(opzer.mean))
         opzer.iter()
 
