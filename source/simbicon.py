@@ -118,7 +118,8 @@ class Simbicon(PDController):
         return v
 
     def adjust_targets(self):
-        return # Don't try to adjust step length until I can get Darwin walking at all....
+        if not self.env.consts().GRAVITY_Y: # Hack: this is Darwin.
+            return # Don't try to adjust step length until I can get Darwin walking at all....
 
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
@@ -244,10 +245,14 @@ class Simbicon(PDController):
         tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
         tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
         tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
-        # Note = not +=. This overwrites parallel-to-ground correction for stance ankle.
-        # I guess I'd rather not do this, but fixing this "bug" breaks the controller
-        # for the simple 2D and 3D models.
-        tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
+        if self.env.consts().GRAVITY_Y: # Hack: this is not Darwin
+            # Note = not +=. This overwrites parallel-to-ground correction for stance ankle.
+            # I guess I'd rather not do this, but fixing this "bug" breaks the controller
+            # for the simple 2D and 3D models.
+            tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
+        else:
+            # For some reason keeping Darwin's feet totally flat seems to help.
+            tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
