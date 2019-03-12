@@ -1,7 +1,7 @@
 import numpy as np
 from IPython import embed
 
-from simbicon import Simbicon, UP, DOWN
+from simbicon import Simbicon
 from inverse_kinematics import InverseKinematics
 from sdf_loader import RED, GREEN, BLUE
 import utils

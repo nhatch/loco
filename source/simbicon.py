@@ -204,7 +204,6 @@ class Simbicon(PDController):
         com_close = self.distance_to_go(q[:3]) < target_diff
         if (heel_close and com_close) or early_strike:
             # Start the DOWN phase
-            print("{:.3f}: DOWN".format(self.time()))
             self.direction = DOWN
         return early_strike
 

@@ -3,13 +3,13 @@ from scipy.special import gamma
 from IPython import embed
 
 class CMA:
-    def __init__(self, f, initial_mean, initial_sigma):
+    def __init__(self, f, initial_mean, initial_sigma, initial_cov):
         self.f = f
         self.N = initial_mean.shape[0]
         self.set_consts()
         self.mean = initial_mean.reshape((-1,1))
         self.sigma = initial_sigma
-        self.cov = np.eye(self.N)
+        self.cov = initial_cov
         self.cov_path = np.zeros((self.N,1))
         self.std_path = np.zeros((self.N,1))
 
@@ -106,7 +106,8 @@ if __name__ == "__main__":
     f = lambda x: np.linalg.norm(x)**2
     initial_mean = np.ones(20)
     initial_sigma = 0.5
-    opzer = CMA(f, initial_mean, initial_sigma)
+    initial_cov = np.eye(20)
+    opzer = CMA(f, initial_mean, initial_sigma, initial_cov)
     for i in range(50):
         print(np.linalg.norm(opzer.mean))
         opzer.iter()
