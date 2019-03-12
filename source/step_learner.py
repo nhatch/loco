@@ -1,8 +1,9 @@
 
 import numpy as np
 from IPython import embed
-from random_search import RandomSearch
-from curriculum import *
+import cma_wrapper
+import curriculum as cur
+import simbicon_params as sp
 import utils
 
 class Runner:
@@ -47,12 +48,13 @@ def learn_last_move(env, targets, video_save_dir=None):
     stones = not env.is_3D
     start_state = collect_start_state(env, targets, video_save_dir, use_stepping_stones=stones)
     runner = Runner(env, start_state, targets[-1], use_stepping_stones=stones)
-    if env.is_3D:
-        rs = RandomSearch(runner, TRAIN_SETTINGS_3D)
-    else:
-        rs = RandomSearch(runner, TRAIN_SETTINGS_2D)
-    rs.random_search(render=1, video_save_dir=video_save_dir)
-    return rs
+    def f(action, video_save_dir=None, render=None):
+        runner.reset(video_save_dir, render)
+        return 1-runner.run(action.reshape(-1))
+    settings = cur.TRAIN_SETTINGS_3D if env.is_3D else cur.TRAIN_SETTINGS_2D
+    opzer = cma_wrapper.CMAWrapper(f, np.zeros((sp.N_PARAMS,1)), 0.2, settings)
+    opzer.optimize()
+    return opzer
 
 def test_2D():
     from stepping_stones_env import SteppingStonesEnv
@@ -80,6 +82,6 @@ def test_3D(video_save_dir):
     return rs
 
 if __name__ == '__main__':
-    rs = test_2D()
+    #rs = test_2D()
     rs = test_3D(None)
     embed()
