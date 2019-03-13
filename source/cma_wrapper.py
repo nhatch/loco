@@ -3,11 +3,11 @@ import numpy as np
 import simbicon_params as sp
 
 class CMAWrapper():
-    def __init__(self, initial_sigma=0.05, initial_cov=None):
+    def reset(self, initial_sigma=0.2, initial_cov=None):
         self.sigma = initial_sigma
         self.cov = initial_cov
         if self.cov is None:
-            self.cov = np.diag(sp.PARAM_SCALE)
+            self.cov = np.diag(sp.PARAM_SCALE**2)
 
     def optimize(self, f, initial_mean, settings):
         cp = settings['controllable_params']

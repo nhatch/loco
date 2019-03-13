@@ -91,7 +91,7 @@ class CMA:
         return prev_cov + rank_one_update + rank_mu_update
 
     def update_std_path(self, y_w):
-        C_sqrtinv = self.B.dot(self.D * self.B.T)
+        C_sqrtinv = self.B.dot(self.B.T / self.D)
         d = C_sqrtinv.dot(y_w)
         C_S = self.C_SIGMA
         return (1-C_S)*self.std_path + np.sqrt(C_S*(2-C_S)*self.MU_EFF) * d

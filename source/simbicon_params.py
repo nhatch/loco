@@ -23,7 +23,8 @@ STANCE_HIP_ROLL_EXTRA = 16
 STANCE_ANKLE_ROLL = 17
 SWING_ANKLE_ROLL = 18
 
-MIRROR_PARAMS = [1,1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,-1,-1,-1,-1]
-PARAM_SCALE = [1,1,1,1,3., 1,1,3,2, 2,2,3,2, 1,1,1,2,3,3]
+import numpy as np
+MIRROR_PARAMS = np.array([1,1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,-1,-1,-1,-1])
+PARAM_SCALE = np.array([1,1,1,1,3., 1,1,3,2, 2,2,3,2, 1,1,1,2,3,3])
 
 N_PARAMS = len(PARAM_SCALE)
