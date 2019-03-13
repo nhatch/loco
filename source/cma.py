@@ -17,13 +17,14 @@ class CMA:
         self.LAMBDA = int(4 + np.floor(3 * np.log(self.N)))
         RECOMB_W = np.array([np.log(self.LAMBDA+1) - np.log(2*(i+1))
             for i in range(self.LAMBDA)])
-        # TODO implement negative weights
-        RECOMB_W[RECOMB_W < 0] = 0
-        RECOMB_W /= RECOMB_W.sum()
-        self.RECOMB_W = RECOMB_W.reshape((-1,1))
-        self.C_MEAN = 1.0
+        self.MU = int(np.floor(self.LAMBDA / 2))
+        RECOMB_W[:self.MU] /= RECOMB_W[:self.MU].sum()
+        RECOMB_W[self.MU:] /= -RECOMB_W[self.MU:].sum()
         # Should be approx lambda/4
-        self.MU_EFF = 1/(self.RECOMB_W**2).sum()
+        self.MU_EFF =  1/(RECOMB_W[:self.MU]**2).sum()
+        MU_EFF_MINUS = 1/(RECOMB_W[self.MU:]**2).sum()
+
+        self.C_MEAN = 1.0
 
         # Expected norm of a random normal vector with zero mean and identity covariance
         # Should be approx sqrt(N)
@@ -45,10 +46,18 @@ class CMA:
         # Should be approx MU_EFF/N^2 (and less than 1)
         self.C_MU = min(1-self.C_1, ALPHA_COV * thingy)
 
+        rescale_neg_w = np.min([
+                1 + self.C_1/self.C_MU,
+                1 + 2*MU_EFF_MINUS / (self.MU_EFF + 2),
+                (1 - self.C_1 - self.C_MU) / (self.N * self.C_MU)
+            ])
+        RECOMB_W[self.MU:] *= rescale_neg_w
+        self.RECOMB_W = RECOMB_W.reshape((-1,1))
+
     def iter(self):
         self.recalc_eig()
         y = self.sample_population()
-        y_w = y.dot(self.RECOMB_W)
+        y_w = y.dot(self.RECOMB_W*(self.RECOMB_W > 0))
         new_mean = self.update_mean(y_w)
         new_cov_path = self.update_cov_path(y_w)
         new_std_path = self.update_std_path(y_w)
@@ -85,7 +94,11 @@ class CMA:
         return (1-C_C)*self.cov_path + np.sqrt(C_C*(2-C_C)*self.MU_EFF) * y_w
 
     def update_cov(self, y, new_cov_path):
-        rank_mu_update = self.C_MU * np.dot(y*self.RECOMB_W.T, y.T)
+        C_sqrtinv = self.B.dot(self.B.T / self.D)
+        rescale_neg_w = self.N / (np.dot(C_sqrtinv, y)**2).sum()
+        W_CIRC = self.RECOMB_W.copy()
+        W_CIRC[self.MU:] *= rescale_neg_w
+        rank_mu_update = self.C_MU * np.dot(y*W_CIRC.T, y.T)
         rank_one_update = self.C_1 * new_cov_path.dot(new_cov_path.T)
         prev_cov = (1 - self.C_1 - self.C_MU*self.RECOMB_W.sum())*self.cov
         return prev_cov + rank_one_update + rank_mu_update
