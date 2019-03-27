@@ -92,7 +92,7 @@ class CMA:
         y = self.B.dot(self.D * z)
         pop = self.sigma*y + self.mean
         # Sort from lowest to highest
-        f_vals = [self.f(x) for x in pop.T]
+        f_vals = [self.f(x, render=None) for x in pop.T]
         perm = np.argsort(f_vals)
         return (y.T)[perm].T
 
@@ -132,7 +132,8 @@ class CMA:
 
 
 if __name__ == "__main__":
-    f = lambda x: np.linalg.norm(x)**2
+    def f(x, render=None):
+        return np.linalg.norm(x)**2
     initial_mean = np.ones(20)
     initial_sigma = 0.5
     initial_cov = np.eye(20)

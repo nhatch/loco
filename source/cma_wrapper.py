@@ -1,6 +1,7 @@
 import cma
 import numpy as np
 import simbicon_params as sp
+from IPython import embed
 
 class CMAWrapper():
     def reset(self, initial_sigma=0.15, initial_cov=None):

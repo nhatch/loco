@@ -11,7 +11,7 @@ from sklearn.pipeline import make_pipeline
 import simbicon_params as sp
 from state import reconstruct_state
 from step_learner import Runner
-from random_search import RandomSearch
+import cma_wrapper
 from evaluator import Evaluator
 
 TRAIN_FMT = 'data/{}/train.pkl'
@@ -117,12 +117,12 @@ class LearnInverseDynamics:
         start_state, target = reconstruct_state(features, self.env.consts())
         runner = Runner(self.env, start_state, target,
                 use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'])
-        rs = RandomSearch(runner, self.train_settings)
-        runner.reset()
-        rs.w_policy = action # Initialize with something reasonable
-        w_policy = rs.random_search(render=None)
+        opzer = cma_wrapper.CMAWrapper()
+        opzer.reset()
+        learned_action = opzer.optimize(runner, action.reshape((-1,1)), self.train_settings)
         self.total_steps += runner.n_runs
-        return w_policy
+        if learned_action is not None:
+            return learned_action.reshape(-1)
 
     def train_inverse_dynamics(self):
         if len(self.train_features) > 0:
