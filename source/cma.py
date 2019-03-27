@@ -92,7 +92,7 @@ class CMA:
         y = self.B.dot(self.D * z)
         pop = self.sigma*y + self.mean
         # Sort from lowest to highest
-        f_vals = [self.f(x, render=0.1) for x in pop.T]
+        f_vals = [self.f(x) for x in pop.T]
         perm = np.argsort(f_vals)
         return (y.T)[perm].T
 

@@ -77,11 +77,11 @@ def test_3D(video_save_dir):
     BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
     learn_last_move(env, opzer, BASIC_3D, video_save_dir=video_save_dir)
     env.simulate([1.7, -.9, -.1], 0.3)
-    env.clear_skeletons()
-    learn_last_move(env, opzer, LONG_STEP_3D, video_save_dir=video_save_dir)
-    env.simulate([1.7, -.9, -.1], 0.3)
+    #env.clear_skeletons()
+    #learn_last_move(env, opzer, LONG_STEP_3D, video_save_dir=video_save_dir)
+    #env.simulate([1.7, -.9, -.1], 0.3)
 
 if __name__ == '__main__':
-    #test_2D()
+    test_2D()
     test_3D(None)
     embed()
