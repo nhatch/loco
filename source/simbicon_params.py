@@ -25,6 +25,6 @@ SWING_ANKLE_ROLL = 18
 
 import numpy as np
 MIRROR_PARAMS = np.array([1,1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,-1,-1,-1,-1])
-PARAM_SCALE = np.array([1,1,1,1,3., 1,1,3,2, 2,2,3,2, 1,1,1,2,3,3])
+PARAM_SCALE = np.array([1,1,1,1,3., 1,1,2,2, 2,2,3,2, 1,1,1,2,3,3])
 
 N_PARAMS = len(PARAM_SCALE)

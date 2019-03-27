@@ -12,6 +12,7 @@ class CMA:
         self.cov = initial_cov
         self.cov_path = np.zeros((self.N,1))
         self.std_path = np.zeros((self.N,1))
+        self.generation = 0
 
     def set_consts(self):
         self.LAMBDA = int(4 + np.floor(3 * np.log(self.N)))
@@ -54,14 +55,18 @@ class CMA:
         RECOMB_W[self.MU:] *= rescale_neg_w
         self.RECOMB_W = RECOMB_W.reshape((-1,1))
 
+        # For calculating h_sigma
+        self.RHS = (1.4 + 2/(self.N+1))*self.E_NORM
+
     def iter(self):
         self.recalc_eig()
         y = self.sample_population()
         y_w = y.dot(self.RECOMB_W*(self.RECOMB_W > 0))
         new_mean = self.update_mean(y_w)
-        new_cov_path = self.update_cov_path(y_w)
         new_std_path = self.update_std_path(y_w)
-        new_cov = self.update_cov(y, new_cov_path)
+        h_sigma = self.calc_h_sigma(new_std_path)
+        new_cov_path = self.update_cov_path(y_w, h_sigma)
+        new_cov = self.update_cov(y, new_cov_path, h_sigma)
         new_sigma = self.update_sigma(new_std_path)
 
         self.mean = new_mean
@@ -69,18 +74,25 @@ class CMA:
         self.std_path = new_std_path
         self.cov = new_cov
         self.sigma = new_sigma
+        self.generation += 1
+
+    def calc_h_sigma(self, new_std_path):
+        LHS = np.linalg.norm(new_std_path) / np.sqrt(1-(1-self.C_SIGMA)**(2*self.generation+2))
+        return LHS < self.RHS
 
     def recalc_eig(self):
         # D**2 and B in the notation of https://arxiv.org/pdf/1604.00772.pdf
-        D2, self.B = np.linalg.eig(self.cov)
-        self.D = (D2**0.5).reshape((self.N, 1))
+        D2, B = np.linalg.eig(self.cov)
+        # In case for numerical reasons there are imaginary values
+        self.B = B.astype(np.double)
+        self.D = (D2.astype(np.double)**0.5).reshape((self.N, 1))
 
     def sample_population(self):
         z = np.random.randn(self.LAMBDA, self.N).T # We want column vectors
         y = self.B.dot(self.D * z)
         pop = self.sigma*y + self.mean
         # Sort from lowest to highest
-        f_vals = [self.f(x) for x in pop.T]
+        f_vals = [self.f(x, render=0.1) for x in pop.T]
         perm = np.argsort(f_vals)
         return (y.T)[perm].T
 
@@ -88,20 +100,24 @@ class CMA:
         update = self.C_MEAN * self.sigma * y_w
         return update + self.mean
 
-    def update_cov_path(self, y_w):
+    def update_cov_path(self, y_w, h_sigma):
         C_C = self.C_C
-        # TODO do the heaviside step thing
-        return (1-C_C)*self.cov_path + np.sqrt(C_C*(2-C_C)*self.MU_EFF) * y_w
+        new_cov_path = (1-C_C)*self.cov_path
+        if h_sigma:
+            new_cov_path += np.sqrt(C_C*(2-C_C)*self.MU_EFF) * y_w
+        return new_cov_path
 
-    def update_cov(self, y, new_cov_path):
+    def update_cov(self, y, new_cov_path, h_sigma):
         C_sqrtinv = self.B.dot(self.B.T / self.D)
         rescale_neg_w = self.N / (np.dot(C_sqrtinv, y)**2).sum()
         W_CIRC = self.RECOMB_W.copy()
         W_CIRC[self.MU:] *= rescale_neg_w
         rank_mu_update = self.C_MU * np.dot(y*W_CIRC.T, y.T)
         rank_one_update = self.C_1 * new_cov_path.dot(new_cov_path.T)
-        prev_cov = (1 - self.C_1 - self.C_MU*self.RECOMB_W.sum())*self.cov
-        return prev_cov + rank_one_update + rank_mu_update
+        cov_decay = 1 - self.C_1 - self.C_MU*self.RECOMB_W.sum()
+        if not h_sigma:
+            cov_decay += self.C_1*self.C_C*(2-self.C_C)
+        return cov_decay*self.cov + rank_one_update + rank_mu_update
 
     def update_std_path(self, y_w):
         C_sqrtinv = self.B.dot(self.B.T / self.D)
