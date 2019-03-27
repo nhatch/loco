@@ -94,7 +94,7 @@ TRAIN_SETTINGS_3D = {
     'n_trajectories': 4,
     'n_dirs': 8,
     'tol': 0.05,
-    'max_iters': 5,
+    'max_iters': 8,
     'max_intolerable_steps': 3,
     'controllable_params':
         build_mask(sp.N_PARAMS,

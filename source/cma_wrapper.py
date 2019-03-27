@@ -4,7 +4,7 @@ import simbicon_params as sp
 from IPython import embed
 
 class CMAWrapper():
-    def reset(self, initial_sigma=0.15, initial_cov=None):
+    def reset(self, initial_sigma=0.1, initial_cov=None):
         self.sigma = initial_sigma
         self.cov = initial_cov
         if self.cov is None:
