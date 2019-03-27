@@ -48,12 +48,9 @@ def learn_last_move(env, opzer, targets, video_save_dir=None):
     stones = not env.is_3D
     start_state = collect_start_state(env, targets, video_save_dir, use_stepping_stones=stones)
     runner = Runner(env, start_state, targets[-1], use_stepping_stones=stones)
-    def f(action, video_save_dir=None, render=None):
-        runner.reset(video_save_dir, render)
-        return 1-runner.run(action.reshape(-1))
     settings = cur.TRAIN_SETTINGS_3D if env.is_3D else cur.TRAIN_SETTINGS_2D
     opzer.reset()
-    return opzer.optimize(f, np.zeros((sp.N_PARAMS,1)), settings)
+    return opzer.optimize(runner, np.zeros((sp.N_PARAMS,1)), settings)
 
 def test_2D():
     from stepping_stones_env import SteppingStonesEnv

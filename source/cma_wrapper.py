@@ -9,17 +9,18 @@ class CMAWrapper():
         if self.cov is None:
             self.cov = np.diag(sp.PARAM_SCALE**2)
 
-    def optimize(self, f, initial_mean, settings):
+    def optimize(self, runner, initial_action, settings):
         cp = settings['controllable_params']
-        def new_f(x, video_save_dir=None, render=None):
-            new_x = initial_mean.copy()
-            new_x[cp] = x.reshape((-1,1))
-            return f(new_x, video_save_dir, render)
-        self.initial_mean = initial_mean
-        new_initial_mean = initial_mean[cp]
+        def f(action, video_save_dir=None, render=None):
+            new_action = initial_action.copy()
+            new_action[cp] = action.reshape((-1,1))
+            runner.reset(video_save_dir, render)
+            return 1-runner.run(new_action.reshape(-1))
+        self.initial_action = initial_action
+        new_initial_action = initial_action[cp]
         initial_cov = self.cov[cp,:][:,cp]
-        opzer = cma.CMA(new_f, new_initial_mean, self.sigma, initial_cov)
-        self.do_iters(opzer, settings)
+        opzer = cma.CMA(f, new_initial_action, self.sigma, initial_cov)
+        return self.do_iters(opzer, settings)
 
     def do_iters(self, opzer, settings):
         i = 0
@@ -39,6 +40,6 @@ class CMAWrapper():
         cov[cp.dot(cp.T)] = opzer.cov.reshape(-1)
         self.cov = cov
         self.sigma = opzer.sigma
-        r = self.initial_mean.copy()
-        r[cp.reshape(-1)] = opzer.mean
-        return r
+        action = self.initial_action.copy()
+        action[cp.reshape(-1)] = opzer.mean
+        return action
