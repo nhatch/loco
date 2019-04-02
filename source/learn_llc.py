@@ -5,7 +5,7 @@ from simbicon_3D import Simbicon3D
 from consts_common3D import *
 import simbicon_params as sp
 
-MAX_SLIPPING = 0.005 # meters
+MAX_SLIPPING = 0.02 # meters
 REFERENCE_STEP_LENGTH = 0.1
 import cma
 import utils
@@ -30,20 +30,26 @@ def test(env, length, param_setting, r=None, n=8):
     env.reset(seed=seed, video_save_dir=None, render=r) # TODO maybe randomize this a bit?
     env.sdf_loader.put_grounds([[-3.0, GL, 0]])
     prev_stance_heel = env.controller.stance_heel
+    penalty = 0.0
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = np.array([prev_stance_heel[0]+l, GL, 0])
-        obs, terminated = env.simulate(t, target_heading=0.0, action=param_setting)
+        obs, terminated = env.simulate(t, target_heading=0.0, action=param_setting, put_dots=True)
+        new_stance_heel = env.controller.stance_heel
+        penalty += np.abs(new_stance_heel[0] - t[0])
         slip_dist = slipping(env, prev_stance_heel)
+        penalty += slip_dist
+        if terminated:
+            penalty += 100.0
         if r is not None:
             print("Slip:", slip_dist)
         if terminated or slip_dist > MAX_SLIPPING:
             break
-        prev_stance_heel = env.controller.stance_heel
+        prev_stance_heel = new_stance_heel
     dist = prev_stance_heel[0]
     if r is not None:
-        print("Distance achieved:", dist)
-    return -dist
+        print("Distance achieved:", dist, "Penalty:", penalty)
+    return -dist + penalty
 
 def slipping(env, prev_stance_heel):
     c = env.controller
@@ -57,13 +63,18 @@ def init_opzer(env):
         params[controllable_params] = action.reshape(-1)
         return test(env, REFERENCE_STEP_LENGTH, params, r=render)
     init_mean = np.zeros((controllable_params.sum(),1))
-    init_cov = np.diag(sp.PARAM_SCALE[controllable_params]**2)
-    opzer = cma.CMA(f, init_mean, 0.2, init_cov, extra_lambda=0)
+    init_cov = np.diag(sp.PARAM_SCALE[controllable_params]**2) / 10
+    opzer = cma.CMA(f, init_mean, 0.2, init_cov, extra_lambda=40)
     return opzer
+
+means = []
+vals = []
 
 def learn(opzer, n_iters):
     for i in range(n_iters):
         val = opzer.f(opzer.mean, render=4)
+        means.append(opzer.mean)
+        vals.append(val)
         print("Iteration", i, ":", val)
         opzer.iter()
 
@@ -74,5 +85,5 @@ if __name__ == "__main__":
     p = np.zeros(len(controllable_params))
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
     opzer = init_opzer(env)
-    learn(opzer, 40)
+    learn(opzer, 3)
     embed()
