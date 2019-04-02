@@ -3,10 +3,10 @@ from scipy.special import gamma
 from IPython import embed
 
 class CMA:
-    def __init__(self, f, initial_mean, initial_sigma, initial_cov):
+    def __init__(self, f, initial_mean, initial_sigma, initial_cov, extra_lambda=0):
         self.f = f
         self.N = initial_mean.shape[0]
-        self.set_consts()
+        self.set_consts(extra_lambda)
         self.mean = initial_mean.reshape((-1,1))
         self.sigma = initial_sigma
         self.cov = initial_cov
@@ -14,8 +14,8 @@ class CMA:
         self.std_path = np.zeros((self.N,1))
         self.generation = 0
 
-    def set_consts(self):
-        self.LAMBDA = int(4 + np.floor(3 * np.log(self.N)))
+    def set_consts(self, extra_lambda):
+        self.LAMBDA = int(4 + np.floor(3 * np.log(self.N))) + extra_lambda
         RECOMB_W = np.array([np.log(self.LAMBDA+1) - np.log(2*(i+1))
             for i in range(self.LAMBDA)])
         self.MU = int(np.floor(self.LAMBDA / 2))

@@ -5,9 +5,24 @@ from simbicon_3D import Simbicon3D
 from consts_common3D import *
 import simbicon_params as sp
 
-MAX_SLIPPING = 0.02 # meters
+MAX_SLIPPING = 0.005 # meters
 REFERENCE_STEP_LENGTH = 0.1
 import cma
+import utils
+
+controllable_params = utils.build_mask(sp.N_PARAMS,
+        [
+        sp.IK_GAIN,
+        sp.TORSO_WORLD,
+        sp.STANCE_HIP_ROLL_EXTRA,
+        sp.STANCE_ANKLE_RELATIVE,
+        sp.UP_IDX+sp.SWING_HIP_WORLD,
+        sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
+        sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
+        sp.DN_IDX+sp.SWING_HIP_WORLD,
+        sp.DN_IDX+sp.SWING_KNEE_RELATIVE,
+        sp.DN_IDX+sp.STANCE_KNEE_RELATIVE,
+        ])
 
 def test(env, length, param_setting, r=None, n=8):
     GL = env.consts().GROUND_LEVEL
@@ -15,31 +30,40 @@ def test(env, length, param_setting, r=None, n=8):
     env.reset(seed=seed, video_save_dir=None, render=r) # TODO maybe randomize this a bit?
     env.sdf_loader.put_grounds([[-3.0, GL, 0]])
     prev_stance_heel = env.controller.stance_heel
-    a = param_setting.reshape(-1)
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = np.array([prev_stance_heel[0]+l, GL, 0])
-        obs, terminated = env.simulate(t, target_heading=0.0, action=a)
-        if terminated or slipping(env, prev_stance_heel) > MAX_SLIPPING:
+        obs, terminated = env.simulate(t, target_heading=0.0, action=param_setting)
+        slip_dist = slipping(env, prev_stance_heel)
+        if r is not None:
+            print("Slip:", slip_dist)
+        if terminated or slip_dist > MAX_SLIPPING:
             break
         prev_stance_heel = env.controller.stance_heel
     dist = prev_stance_heel[0]
-    print("Distance achieved:", dist)
+    if r is not None:
+        print("Distance achieved:", dist)
     return -dist
 
 def slipping(env, prev_stance_heel):
     c = env.controller
     curr_swing_heel = c.ik.forward_kine(c.swing_idx)
     slip_distance = np.linalg.norm(prev_stance_heel - curr_swing_heel)
-    print("Slip:", slip_distance)
     return slip_distance
 
-def learn(env, n_iters):
+def init_opzer(env):
     def f(action, render=None):
-        return test(env, REFERENCE_STEP_LENGTH, action, r=render)
-    opzer = cma.CMA(f, np.zeros((sp.N_PARAMS,1)), 0.1, np.diag(sp.PARAM_SCALE**2))
+        params = np.zeros(sp.N_PARAMS)
+        params[controllable_params] = action.reshape(-1)
+        return test(env, REFERENCE_STEP_LENGTH, params, r=render)
+    init_mean = np.zeros((controllable_params.sum(),1))
+    init_cov = np.diag(sp.PARAM_SCALE[controllable_params]**2)
+    opzer = cma.CMA(f, init_mean, 0.2, init_cov, extra_lambda=0)
+    return opzer
+
+def learn(opzer, n_iters):
     for i in range(n_iters):
-        val = f(opzer.mean, render=4)
+        val = opzer.f(opzer.mean, render=4)
         print("Iteration", i, ":", val)
         opzer.iter()
 
@@ -47,6 +71,8 @@ if __name__ == "__main__":
     from darwin_env import DarwinEnv
     env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    p = np.zeros(sp.N_PARAMS)
+    p = np.zeros(len(controllable_params))
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
-    learn(env, 10)
+    opzer = init_opzer(env)
+    learn(opzer, 40)
+    embed()
