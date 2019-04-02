@@ -7,6 +7,7 @@ Q_DIM_RAW = 26
 SIMULATION_FREQUENCY = 500
 CONTROL_FREQUENCY = 50 # Hz
 REAL_TIME_STEPS_PER_RENDER = 8
+OBSERVE_TARGET = False
 GROUND_LEVEL = -0.34
 DEFAULT_ZOOM = 1.2
 LIFTOFF_DURATION = 0.1
@@ -134,4 +135,5 @@ ALLOWED_COLLISION_IDS = [
 BASE_GAIT = np.array([0.06, 0.5, 0.2, 0.03, -0.01,
                       0.4, -1.1,   -0.05, -0.05,
                       -0.0, -0.2, -0.05, -0.1,
-                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0])
+                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0,
+                      0.1])

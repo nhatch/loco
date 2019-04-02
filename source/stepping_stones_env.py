@@ -138,8 +138,8 @@ class SteppingStonesEnv:
         if self.render_rate:
             steps_per_render = int(self.consts().REAL_TIME_STEPS_PER_RENDER / self.render_rate)
             if put_dots:
-                self.sdf_loader.put_dot(target, 'step_target', color=GREEN)
-                self.sdf_loader.put_dot(self.controller.prev_target, 'prev_step_target', color=GREEN)
+                si = self.controller.swing_idx
+                self.sdf_loader.put_dot(target, 'step_target_{}'.format(si), color=GREEN)
         while True:
             # We don't render on frame 0 to avoid distracting jumps when resetting things like
             # ground platforms and dots.

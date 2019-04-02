@@ -12,6 +12,7 @@ skel_file = 'skel/walker2d.skel'
 SIMULATION_FREQUENCY = 2000 # Hz
 CONTROL_FREQUENCY = 2000
 REAL_TIME_STEPS_PER_RENDER = 25
+OBSERVE_TARGET = True
 
 # The maximum time it should take to get (e.g.) the right foot off the ground
 # after the left-foot heel strike.
@@ -96,4 +97,4 @@ def foot_transform_from_angles(_, pitch, __):
 BASE_GAIT = np.array([0.14, 0, 0.2, 0.0, 0.2,
                       0.4, -1.1,   0.0, -0.05,
                       0,    0, 0.05, -0.1,
-                      0,0,0,0,0,0]) # None of these last 6 are used in 2D
+                      0,0,0,0,0,0,0]) # None of these last 7 are used in 2D

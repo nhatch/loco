@@ -10,6 +10,7 @@ skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 SIMULATION_FREQUENCY = 2000
 CONTROL_FREQUENCY = 2000
 REAL_TIME_STEPS_PER_RENDER = 25
+OBSERVE_TARGET = True
 LIFTOFF_DURATION = 0.3
 
 perm = [0,1,2,3,4,5, # Brick DOFs
@@ -102,4 +103,5 @@ def foot_transform_from_angles(_, pitch, roll):
 BASE_GAIT = np.array([0.14, 0.5, 0.2, -0.1, 0.2,
                       0.4, -1.1,   0.0, -0.05,
                       -0.0, -0.00, 0.1, -0.1,
-                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0])
+                      0.5, 0.2, 0.0, 0.0, 0.0, 0.0,
+                      0.0]) # This last one is only used for Darwin

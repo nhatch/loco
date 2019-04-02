@@ -70,10 +70,15 @@ class Simbicon(PDController):
             params += raw_gait * sp.PARAM_SCALE
         self.set_gait(Params(params))
 
-        self.target, self.prev_target = target, self.target
-
         swing_heel = self.ik.forward_kine(self.swing_idx)
         self.starting_swing_heel = swing_heel
+
+        if not c.OBSERVE_TARGET:
+            self.target_heading = target_heading # TODO remove dependence on this
+            self.unit_normal = np.array([0., 1., 0.])
+            return # Skip the rest of setup
+
+        self.target, self.prev_target = target, self.target
         d = self.target - self.starting_swing_heel
 
         if target_heading is None:
@@ -118,9 +123,6 @@ class Simbicon(PDController):
         return v
 
     def adjust_targets(self):
-        if not self.env.consts().GRAVITY_Y: # Hack: this is Darwin.
-            return # Don't try to adjust step length until I can get Darwin walking at all....
-
         # All of these adjustments are just rough linear estimates from
         # fiddling around manually.
         params = self.params # This should work like np.array
@@ -196,14 +198,15 @@ class Simbicon(PDController):
             if self.env.is_3D:
                 self.params[sp.SWING_ANKLE_ROLL] = c.BASE_GAIT[sp.SWING_ANKLE_ROLL]
         early_strike = (duration >= c.LIFTOFF_DURATION) and (len(contacts) > 0)
-        #if early_strike:
-        #    print("Early strike!")
-        q, dq = self.env.get_x()
-        target_diff = self.params[sp.IK_GAIN] * self.speed(dq)
-        heel_close = self.distance_to_go(swing_heel) < target_diff
-        com_close = self.distance_to_go(q[:3]) < target_diff
-        if (heel_close and com_close) or early_strike:
-            # Start the DOWN phase
+        if c.OBSERVE_TARGET:
+            q, dq = self.env.get_x()
+            target_diff = self.params[sp.IK_GAIN] * self.speed(dq)
+            heel_close = self.distance_to_go(swing_heel) < target_diff
+            com_close = self.distance_to_go(q[:3]) < target_diff
+            start_down = early_strike or (heel_close and com_close)
+        else:
+            start_down = early_strike or duration >= self.params[sp.UP_DURATION]
+        if start_down:
             self.direction = DOWN
         return early_strike
 
@@ -244,7 +247,7 @@ class Simbicon(PDController):
         tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
         tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
         tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
-        if self.env.consts().GRAVITY_Y: # Hack: this is not Darwin
+        if c.GRAVITY_Y: # Hack: this is not Darwin
             # Note = not +=. This overwrites parallel-to-ground correction for stance ankle.
             # I guess I'd rather not do this, but fixing this "bug" breaks the controller
             # for the simple 2D and 3D models.
@@ -254,6 +257,7 @@ class Simbicon(PDController):
             tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
+        # TODO remove this for Darwin. (We probably won't have good enough sensors on hardware.)
         # The stance hip pitch torque will be overwritten in `compute` below.
         target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
         hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
