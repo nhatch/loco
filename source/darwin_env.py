@@ -19,6 +19,20 @@ class DarwinEnv(Simple3DEnv):
 
         for dof in skel.dofs[6:]:
             dof.set_damping_coefficient(0.2165)
+            # Copied limits from
+            # http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.822.6324&rep=rep1&type=pdf
+            # (not all of them, just the ankle and knee (which seemed most important))
+            if dof.name == 'j_tibia_r':
+                dof.set_position_lower_limit(0.)
+            if dof.name == 'j_tibia_l':
+                dof.set_position_upper_limit(0.)
+            if dof.name in ['j_ankle1_r', 'j_ankle1_l']:
+                dof.set_position_lower_limit(-np.pi/3)
+                dof.set_position_upper_limit(np.pi/3)
+
+        for j in skel.joints:
+            j.set_position_limit_enforced(True)
+
         for body in skel.bodynodes:
             if body.name == "base_link":
                 body.set_mass(0.001)

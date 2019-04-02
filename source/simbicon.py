@@ -254,6 +254,7 @@ class Simbicon(PDController):
             tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
         else:
             # For some reason keeping Darwin's feet totally flat seems to help.
+            # TODO remove the ankle-flattening code (we probably won't have good enough sensors)
             tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
