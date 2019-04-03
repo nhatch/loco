@@ -242,20 +242,17 @@ class Simbicon(PDController):
         torso_actual = q[c.ROOT_PITCH]
         tq[self.swing_idx+c.HIP_PITCH] = target_swing_angle - torso_actual
 
-        # The following sets the ankles to be flat relative to the ground.
-        ANKLE_DOF = 2 if self.env.is_3D else 1
-        tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
-        tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
-        tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
-        if c.GRAVITY_Y: # Hack: this is not Darwin
-            # Note = not +=. This overwrites parallel-to-ground correction for stance ankle.
+        if c.OBSERVE_TARGET:
+            # The following sets the ankles to be flat relative to the ground.
+            ANKLE_DOF = 2 if self.env.is_3D else 1
+            tq[self.swing_idx+c.ANKLE:self.swing_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.swing_idx)
+            tq[self.stance_idx+c.ANKLE:self.stance_idx+c.ANKLE+ANKLE_DOF] = self.ik.get_ankle(self.stance_idx)
+            # This overwrites parallel-to-ground correction for stance ankle pitch.
             # I guess I'd rather not do this, but fixing this "bug" breaks the controller
             # for the simple 2D and 3D models.
-            tq[self.stance_idx+c.ANKLE] = params[sp.STANCE_ANKLE_RELATIVE]
-        else:
-            # For some reason keeping Darwin's feet totally flat seems to help.
-            # TODO remove the ankle-flattening code (we probably won't have good enough sensors)
-            tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
+            tq[self.stance_idx+c.ANKLE] = 0
+        tq[self.swing_idx+c.ANKLE] += params[sp.SWING_ANKLE_RELATIVE+DIR_IDX]
+        tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
         # TODO remove this for Darwin. (We probably won't have good enough sensors on hardware.)
