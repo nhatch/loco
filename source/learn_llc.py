@@ -12,16 +12,17 @@ import utils
 
 controllable_params = utils.build_mask(sp.N_PARAMS,
         [
-        sp.IK_GAIN,
+        #sp.IK_GAIN,
+        sp.UP_DURATION,
         sp.TORSO_WORLD,
         sp.STANCE_HIP_ROLL_EXTRA,
         sp.STANCE_ANKLE_RELATIVE,
         sp.UP_IDX+sp.SWING_HIP_WORLD,
         sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
         sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
-        #sp.DN_IDX+sp.SWING_HIP_WORLD,
-        #sp.DN_IDX+sp.SWING_KNEE_RELATIVE,
-        #sp.DN_IDX+sp.STANCE_KNEE_RELATIVE,
+        sp.DN_IDX+sp.SWING_HIP_WORLD,
+        sp.DN_IDX+sp.SWING_KNEE_RELATIVE,
+        sp.DN_IDX+sp.STANCE_KNEE_RELATIVE,
         ])
 
 def test(env, length, param_setting, render=None, n=100, terminate_on_slip=True):
@@ -30,10 +31,13 @@ def test(env, length, param_setting, render=None, n=100, terminate_on_slip=True)
     env.reset(seed=seed, random=0.005, video_save_dir=None, render=render)
     env.sdf_loader.put_grounds([[-3.0, GL, 0]])
     prev_stance_heel = env.controller.stance_heel
+    t = prev_stance_heel.copy()
+    t[2] = 0.0
     penalty = 0.0
     for i in range(n):
         l = length*0.5 if i == 0 else length
-        t = np.array([prev_stance_heel[0]+l, GL, 0])
+        #t[0] = prev_stance_heel[0]
+        t[0] += l
         obs, terminated = env.simulate(t, target_heading=0.0, action=param_setting, put_dots=True)
         if terminated:
             penalty += 100.0
@@ -81,23 +85,29 @@ def learn(opzer, n_iters):
 
 b0 = np.zeros((controllable_params.sum(),1))
 
-b1 = np.array([[-0.05633947],
-       [-0.10391195],
-       [ 0.19594712],
-       [-0.29332311],
-       [ 0.73152416],
-       [-0.08017792],
-       [-0.50171348]])
+# Best so far: observes target
+# Works only if you check out commit 6e2c0667db5df3b42548ac8b14a47aeea5929826
+# (use these same numbers though)
+b2 = np.array([[-0.18549841],
+       [-0.06580528],
+       [ 0.15634049],
+       [-0.37124493],
+       [ 0.97356754],
+       [-0.05797221],
+       [-0.19359471]])
 
+# Best so far: does not observe target (problem: knees don't obey joint limits)
+b3 = np.array([[-0.12618084],
+       [ 0.227121  ],
+       [-0.09054774],
+       [ 0.35178088],
+       [ 0.27585969],
+       [-0.1552619 ],
+       [ 0.63135911],
+       [ 0.01060128],
+       [ 0.07810596],
+       [-0.01016673]])
 
-# Pretty unrealistic gait, but manages to travel half a meter.
-b2 = np.array([[-0.05523002],
-       [-0.06248358],
-       [ 0.06476047],
-       [-0.23927093],
-       [-0.41171155],
-       [ 0.11570557],
-       [-1.22143857]])
 
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
@@ -105,6 +115,7 @@ if __name__ == "__main__":
     env.sdf_loader.ground_width = 8.0
     p = np.zeros(len(controllable_params))
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
-    opzer = init_opzer(env, b1)
-    learn(opzer, 3)
+    opzer = init_opzer(env, b0)
+    opzer.f(b3, render=2, terminate_on_slip=False)
+    #learn(opzer, 40)
     embed()

@@ -30,8 +30,8 @@ class DarwinEnv(Simple3DEnv):
                 dof.set_position_lower_limit(-np.pi/3)
                 dof.set_position_upper_limit(np.pi/3)
 
-        for j in skel.joints:
-            j.set_position_limit_enforced(True)
+        #for j in skel.joints:
+        #    j.set_position_limit_enforced(True)
 
         for body in skel.bodynodes:
             if body.name == "base_link":
