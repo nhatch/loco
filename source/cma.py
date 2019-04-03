@@ -3,10 +3,11 @@ from scipy.special import gamma
 from IPython import embed
 
 class CMA:
-    def __init__(self, f, initial_mean, initial_sigma, initial_cov, extra_lambda=0):
+    def __init__(self, f, initial_mean, initial_sigma, initial_cov,
+            extra_lambda=0, alpha_cov=2.):
         self.f = f
         self.N = initial_mean.shape[0]
-        self.set_consts(extra_lambda)
+        self.set_consts(extra_lambda, alpha_cov)
         self.mean = initial_mean.reshape((-1,1))
         self.sigma = initial_sigma
         self.cov = initial_cov
@@ -14,7 +15,7 @@ class CMA:
         self.std_path = np.zeros((self.N,1))
         self.generation = 0
 
-    def set_consts(self, extra_lambda):
+    def set_consts(self, extra_lambda, alpha_cov):
         self.LAMBDA = int(4 + np.floor(3 * np.log(self.N))) + extra_lambda
         RECOMB_W = np.array([np.log(self.LAMBDA+1) - np.log(2*(i+1))
             for i in range(self.LAMBDA)])
@@ -40,12 +41,11 @@ class CMA:
 
         # Should be between 1/N and 1/sqrt(N)
         self.C_C = (4+self.MU_EFF/self.N) / (self.N+4+2*self.MU_EFF/self.N)
-        ALPHA_COV = 2.0
         # Should be approx 2/N^2
-        self.C_1 = ALPHA_COV/((self.N+1.3)**2 + self.MU_EFF)
-        thingy = (self.MU_EFF-2+1/self.MU_EFF)/((self.N+2)**2 + ALPHA_COV*self.MU_EFF/2)
+        self.C_1 = alpha_cov/((self.N+1.3)**2 + self.MU_EFF)
+        thingy = (self.MU_EFF-2+1/self.MU_EFF)/((self.N+2)**2 + alpha_cov*self.MU_EFF/2)
         # Should be approx MU_EFF/N^2 (and less than 1)
-        self.C_MU = min(1-self.C_1, ALPHA_COV * thingy)
+        self.C_MU = min(1-self.C_1, alpha_cov * thingy)
 
         rescale_neg_w = np.min([
                 1 + self.C_1/self.C_MU,
