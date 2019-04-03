@@ -24,14 +24,21 @@ class DarwinEnv(Simple3DEnv):
             # (not all of them, just the ankle and knee (which seemed most important))
             if dof.name == 'j_tibia_r':
                 dof.set_position_lower_limit(0.)
+                dof.set_position_upper_limit(130/180*np.pi)
             if dof.name == 'j_tibia_l':
                 dof.set_position_upper_limit(0.)
+                dof.set_position_lower_limit(-130/180*np.pi)
             if dof.name in ['j_ankle1_r', 'j_ankle1_l']:
                 dof.set_position_lower_limit(-np.pi/3)
                 dof.set_position_upper_limit(np.pi/3)
+            if dof.name in ['j_ankle2_r', 'j_ankle2_l']:
+                # Note this does not match the document above. I decreased the upper limit
+                # in order to get bilateral symmetry.
+                dof.set_position_lower_limit(-np.pi/6)
+                dof.set_position_upper_limit(np.pi/6)
 
-        #for j in skel.joints:
-        #    j.set_position_limit_enforced(True)
+        for j in skel.joints:
+            j.set_position_limit_enforced(True)
 
         for body in skel.bodynodes:
             if body.name == "base_link":
@@ -54,5 +61,5 @@ class DarwinEnv(Simple3DEnv):
 if __name__ == "__main__":
     from pd_control import PDController
     env = DarwinEnv(PDController)
-    #setup_dof_test(env)
+    setup_dof_test(env)
     test_pd_control(env, secs=2)
