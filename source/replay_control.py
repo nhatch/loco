@@ -20,7 +20,7 @@ class ReplayController(PDController):
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
     env = DarwinEnv(ReplayController)
-    env.controller.load("data/States.txt")
+    env.controller.load("data/cma_states.txt")
     c = env.consts()
     env.reset(random=0.005, render=1)
     env.sdf_loader.put_grounds([[-1, c.GROUND_LEVEL, 0]])

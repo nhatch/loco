@@ -94,14 +94,14 @@ b1 = np.array(
 
 # Most recent trained gait; adjusts balance gains
 b2 = np.array([
--1.063469804507329863e-01,
-4.722661697983582263e-02,
--4.860981230322012486e-02,
-1.301636224517406237e-01,
-1.834327175617274375e-03,
--4.033243178337514445e-01,
-5.302104274635328213e-02,
-1.032243505121583027e+00,
+3.481975631115105663e-01,
+-3.501715375626047178e-01,
+-1.052174403778687040e-01,
+1.403727068552419743e-01,
+2.621220874820474056e-01,
+-4.264195414790594718e-01,
+-8.261033834150999233e-04,
+-6.957290456205512258e-03,
 ]).reshape((-1, 1))
 
 
@@ -112,6 +112,6 @@ if __name__ == "__main__":
     p = np.zeros(len(controllable_params))
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
     opzer = init_opzer(env, b0)
-    #opzer.f(b2, render=2, terminate_on_slip=False)
-    learn(opzer, 40)
+    opzer.f(b2, render=2, terminate_on_slip=False)
+    #learn(opzer, 40)
     embed()
