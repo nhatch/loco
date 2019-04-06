@@ -121,6 +121,9 @@ class SteppingStonesEnv:
             status_string = self.controller.change_stance(contacts, swing_heel)
 
         obs = self.current_observation()
+        stance_idx = self.controller.stance_idx
+        stance_foot = self.controller.ik.get_bodynode(stance_idx, c.FOOT_BODYNODE_OFFSET)
+        stance_contact = (len(self.find_contacts(stance_foot)) > 0)
         if self.world.time() > EPISODE_TIME_LIMIT:
             return obs, True, "ERROR: Time limit reached"
         elif crashed or obs.crashed():
@@ -129,10 +132,11 @@ class SteppingStonesEnv:
             return obs, False, status_string
         else:
             self.world.step()
-            return None, False, None
+            return None, False, stance_contact
 
     # Run one footstep of simulation, returning the final state
-    def simulate(self, target, target_heading=None, action=None, put_dots=False):
+    def simulate(self, target, target_heading=None, action=None, put_dots=False,
+            count_float=False):
         self.controller.set_gait_raw(raw_gait=action, target_heading=target_heading, target=target)
         steps_per_render = None
         if self.render_rate:
@@ -140,6 +144,7 @@ class SteppingStonesEnv:
             if put_dots:
                 si = self.controller.swing_idx
                 self.sdf_loader.put_dot(target, 'step_target_{}'.format(si), color=GREEN)
+        n_float = 0
         while True:
             # We don't render on frame 0 to avoid distracting jumps when resetting things like
             # ground platforms and dots.
@@ -150,7 +155,12 @@ class SteppingStonesEnv:
                 if self.render_rate:
                     self._render()
                     self.log(status_string)
-                return obs, terminated
+                if count_float:
+                    return obs, terminated, n_float
+                else:
+                    return obs, terminated
+            elif status_string is False:
+                n_float += 1
 
     def get_x(self):
         c = self.consts()
