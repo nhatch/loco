@@ -46,7 +46,7 @@ def test(env, length, param_setting, render=None, n=50, terminate_on_slip=True):
     penalty += np.abs(obs.pose()[env.consts().ROOT_PITCH]) # Stay upright
     if render is not None:
         print("Distance achieved:", dist, "Penalty:", penalty)
-    return -dist + penalty
+    return -i*length + penalty
 
 def init_opzer(env, init_mean):
     def f(action, **kwargs):
@@ -113,5 +113,5 @@ if __name__ == "__main__":
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
     opzer = init_opzer(env, b0)
     #opzer.f(b2, render=2, terminate_on_slip=False)
-    #learn(opzer, 40)
+    learn(opzer, 40)
     embed()

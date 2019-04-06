@@ -255,16 +255,22 @@ class Simbicon(PDController):
         tq[self.stance_idx+c.ANKLE] += params[sp.STANCE_ANKLE_RELATIVE]
 
         # This code is only useful in 3D.
-        # TODO remove this for Darwin. (We probably won't have good enough sensors on hardware.)
         # The stance hip pitch torque will be overwritten in `compute` below.
         target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
         hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
         if self.env.is_3D:
-            tq[self.stance_idx:self.stance_idx+3] = hip_dofs
-            # This is a hack; the hip was dipping a little bit too much on the swing side.
-            # The proper fix: rather than just using kinematics to set the target angles,
-            # also compensate for the torques from other forces on the pelvis.
-            tq[self.stance_idx+c.HIP_ROLL] += 0.1 if self.stance_idx == c.LEFT_IDX else -0.1
+            if c.OBSERVE_TARGET:
+                tq[self.stance_idx:self.stance_idx+3] = hip_dofs
+                # This is a hack; the hip was dipping a little bit too much on the swing side.
+                # The proper fix: rather than just using kinematics to set the target angles,
+                # also compensate for the torques from other forces on the pelvis.
+                tq[self.stance_idx+c.HIP_ROLL] += 0.1 if self.stance_idx == c.LEFT_IDX else -0.1
+            else:
+                # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
+                extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
+                if self.stance_idx == c.RIGHT_IDX:
+                    extra_roll *= -1
+                tq[self.stance_idx+c.HIP_ROLL] += extra_roll
         else:
             tq[self.stance_idx] = hip_dofs
 

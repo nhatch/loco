@@ -21,7 +21,6 @@ class DarwinEnv(Simple3DEnv):
             dof.set_damping_coefficient(0.2165)
             # Copied limits from
             # http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.822.6324&rep=rep1&type=pdf
-            # (not all of them, just the ankle and knee (which seemed most important))
             if dof.name == 'j_tibia_r':
                 dof.set_position_lower_limit(0.)
                 dof.set_position_upper_limit(130/180*np.pi)
@@ -36,6 +35,20 @@ class DarwinEnv(Simple3DEnv):
                 # in order to get bilateral symmetry.
                 dof.set_position_lower_limit(-np.pi/6)
                 dof.set_position_upper_limit(np.pi/6)
+            if dof.name == 'j_thigh1_l':
+                dof.set_position_lower_limit(-np.pi/3)
+                dof.set_position_upper_limit(0.)
+            if dof.name == 'j_thigh1_r':
+                dof.set_position_lower_limit(0.)
+                dof.set_position_upper_limit(np.pi/3)
+            if dof.name == 'j_thigh2_l':
+                dof.set_position_lower_limit(-100/180*np.pi)
+                dof.set_position_upper_limit(np.pi/6)
+            if dof.name == 'j_thigh2_r':
+                dof.set_position_lower_limit(-np.pi/6)
+                dof.set_position_upper_limit(100/180*np.pi)
+            # I don't think we need to set the limits for hip yaw, since
+            # it's unlikely that we'll hit the numbers pu blished in the above document.
 
         for j in skel.joints:
             j.set_position_limit_enforced(True)
