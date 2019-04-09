@@ -21,11 +21,20 @@ class Simbicon3D(Simbicon):
         return self.env.get_x()[0][ROOT_YAW]
 
     def balance_params(self, q, dq):
-        theta = self.target_heading
-        rot = utils.rotmatrix(theta)
-        com_displacement = np.dot(rot, q[:3] - self.stance_heel)
-        heading_velocity = np.dot(rot, dq[:3])
-        return com_displacement, heading_velocity
+        c = self.env.consts()
+        if c.OBSERVE_TARGET:
+            theta = self.target_heading
+            rot = utils.rotmatrix(theta)
+            com_displacement = np.dot(rot, q[:3] - self.stance_heel)
+            heading_velocity = np.dot(rot, dq[:3])
+            return com_displacement, heading_velocity
+        else:
+            # return np.zeros(3), np.zeros(3) # Oddly, this works fine.
+            # On the Darwin hardware, it may be easier to use the direct IMU measurements
+            # Divide by five to avoid triggering the "GOING BACKWARDS" crash detector
+            d = np.array([-q[c.ROOT_PITCH], 0, q[c.ROOT_ROLL]]) / 5
+            v = np.array([-dq[c.ROOT_PITCH], 0, dq[c.ROOT_ROLL]]) / 5
+            return d,v
 
     def compute_target_q(self, q, dq):
         tq = super().compute_target_q(q, dq)
