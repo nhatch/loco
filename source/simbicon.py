@@ -210,7 +210,7 @@ class Simbicon(PDController):
             self.direction = DOWN
         return early_strike
 
-    def change_stance(self, contacts, swing_heel):
+    def change_stance(self, swing_heel):
         self.step_started = self.time()
         self.stance_heel = swing_heel
         self.direction = UP

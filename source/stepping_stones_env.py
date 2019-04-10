@@ -118,7 +118,7 @@ class SteppingStonesEnv:
         crashed = self.controller.crashed(swing_heel)
         step_complete = crashed or self.controller.swing_contact(contacts, swing_heel)
         if step_complete:
-            status_string = self.controller.change_stance(contacts, swing_heel)
+            status_string = self.controller.change_stance(swing_heel)
 
         obs = self.current_observation()
         stance_idx = self.controller.stance_idx
