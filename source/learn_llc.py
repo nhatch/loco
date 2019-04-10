@@ -63,7 +63,7 @@ vals = []
 def learn(opzer, n_iters):
     try:
         for i in range(n_iters):
-            val = opzer.f(opzer.mean, render=4)
+            val = opzer.f(opzer.mean, render=2)
             means.append(opzer.mean)
             vals.append(val)
             graph(vals, opzer)
@@ -81,18 +81,8 @@ def graph(vals, opzer):
     np.savetxt(root+'mean.txt', opzer.mean)
 
 b0 = np.zeros((controllable_params.sum(),1))
-b1 = np.array(
-      [[-0.33859163],
-       [-0.13842327],
-       [ 0.6797675 ],
-       [ 0.30470689],
-       [ 1.57372148],
-       [ 0.22417648],
-       [0],
-       [0],
-       ])
 
-# Most recent trained gait; adjusts balance gains
+# Tends to wander off to one side, but otherwise seems stable.
 b2 = np.array([
 3.481975631115105663e-01,
 -3.501715375626047178e-01,
@@ -104,6 +94,31 @@ b2 = np.array([
 -6.957290456205512258e-03,
 ]).reshape((-1, 1))
 
+# Best gait in simulation so far, but it walks (almost runs actually) on
+# its toes, so might have a significant reality gap.
+b3 = np.array([
+-2.957959711096587618e+00,
+8.040670712779093066e+00,
+-4.122368782998938053e-01,
+8.294588160103437413e-02,
+6.341520027721733177e-01,
+-6.218221083543284955e-01,
+-4.472706620440605185e-01,
+1.026835137362170219e-01,
+]).reshape((-1, 1))
+
+# Similar to b2 but takes shorter steps (and cheats the reward function by
+# veering off to one side).
+b4 = np.array([
+7.932323594614991702e-01,
+2.417523841346104832e-02,
+-3.799954860905408460e-01,
+1.111652927157003035e-01,
+4.505880339777921240e-01,
+-3.561543977275546946e-01,
+3.848848174979641046e-02,
+8.111822670230919852e-02,
+]).reshape((-1, 1))
 
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
@@ -111,7 +126,8 @@ if __name__ == "__main__":
     env.sdf_loader.ground_width = 8.0
     p = np.zeros(len(controllable_params))
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
-    opzer = init_opzer(env, b0)
-    opzer.f(b2, render=2, terminate_on_slip=False)
-    #learn(opzer, 40)
+    b_ckpt = np.loadtxt('data/learn_llc/mean.txt')
+    opzer = init_opzer(env, b2)
+    #opzer.f(b2, render=2, terminate_on_slip=False)
+    learn(opzer, 300)
     embed()
