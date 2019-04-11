@@ -205,7 +205,9 @@ class Simbicon(PDController):
             com_close = self.distance_to_go(q[:3]) < target_diff
             start_down = early_strike or (heel_close and com_close)
         else:
-            start_down = early_strike or duration >= self.params[sp.UP_DURATION]
+            # Avoid DOWN phase entirely; don't perceive footstrikes
+            early_strike = duration >= self.params[sp.UP_DURATION]
+            start_down = False
         if start_down:
             self.direction = DOWN
         return early_strike

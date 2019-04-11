@@ -19,6 +19,7 @@ controllable_params = utils.build_mask(sp.N_PARAMS,
         sp.UP_IDX+sp.STANCE_KNEE_RELATIVE,
         sp.POSITION_BALANCE_GAIN,
         sp.VELOCITY_BALANCE_GAIN,
+        sp.UP_DURATION,
         ])
 
 def test(env, length, param_setting, render=None, n=50, terminate_on_slip=True):
@@ -92,6 +93,7 @@ b2 = np.array([
 -4.264195414790594718e-01,
 -8.261033834150999233e-04,
 -6.957290456205512258e-03,
+0.
 ]).reshape((-1, 1))
 
 # Best gait in simulation so far, but it walks (almost runs actually) on
@@ -118,6 +120,19 @@ b4 = np.array([
 -3.561543977275546946e-01,
 3.848848174979641046e-02,
 8.111822670230919852e-02,
+]).reshape((-1, 1))
+
+# Best gait that does not sense foot contact.
+b5 = np.array([
+3.276537604032837003e-01,
+-1.434436935541073543e-01,
+-5.828843916042253381e-02,
+1.035756304579435322e-01,
+2.329927247942931157e-01,
+-4.275840260264782144e-01,
+2.700659007320869304e-02,
+2.015317691669641850e-02,
+6.731144574614608689e-02,
 ]).reshape((-1, 1))
 
 if __name__ == "__main__":
