@@ -7,6 +7,8 @@ import consts_darwin
 from learn_llc import EMBED_B5
 import time
 
+SAVED_TRAJ = np.loadtxt('data/b5_controls.txt')
+
 class RealDarwinEnv:
     def __init__(self, controller_class=Simbicon3D):
         self.robot_skeleton = self.load_robot()
@@ -23,14 +25,15 @@ class RealDarwinEnv:
     def load_robot(self):
         self.robot_skeleton = None
 
-    def control_tick(self):
+    def control_tick(self, i):
         c = self.consts()
-        q, dq = self.talk_to_sensors()
         if self.controller.swing_contact(None, None): # TODO rename: not contact, just timeout
             status_string = self.controller.change_stance(np.zeros(3))
             self.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
             print(status_string)
-        target_q = c.raw_dofs(self.controller.compute_target_q(q, dq))
+        #q, dq = self.talk_to_sensors()
+        #target_q = c.raw_dofs(self.controller.compute_target_q(q, dq))
+        target_q = SAVED_TRAJ[i]
         self.send_to_robot(target_q)
 
     def talk_to_sensors(self):
@@ -49,7 +52,7 @@ if __name__ == '__main__':
     duration = 5 # seconds
     env.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
     while i < freq*duration:
-        env.control_tick()
+        env.control_tick(i)
         i += 1
         time_left = i/freq - env.time()
         if time_left > 0:
