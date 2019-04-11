@@ -18,11 +18,6 @@ import time
 
 EPISODE_TIME_LIMIT = 10.0 # seconds
 
-class StepResult(Enum):
-    ERROR = -1
-    IN_PROGRESS = 0
-    COMPLETE = 1
-
 class SteppingStonesEnv:
     def __init__(self, controller_class=Simbicon):
         self.controller_class = controller_class
@@ -44,6 +39,9 @@ class SteppingStonesEnv:
 
     def consts(self):
         return consts_2D
+
+    def time(self):
+        return self.world.time()
 
     def wrap_state(self, raw_state):
         swing_left = self.controller.swing_idx == self.consts().LEFT_IDX
@@ -107,6 +105,28 @@ class SteppingStonesEnv:
     def find_contacts(self, bodynode):
         return [c for c in self.world.collision_result.contacts if (c.bodynode1 == bodynode or c.bodynode2 == bodynode)]
 
+    def crashed(self):
+        c = self.consts()
+        for contact in self.world.collision_result.contacts:
+            if contact.skel_id1 == 1:
+                bodynode = contact.bodynode1
+            elif contact.skel_id2 == 1:
+                bodynode = contact.bodynode2
+            else:
+                continue
+            if contact.skel_id1 == contact.skel_id2:
+                # The robot crashed into itself
+                print("SELF COLLISION")
+                return True
+            if not bodynode.id in c.ALLOWED_COLLISION_IDS:
+                print("HIT THE GROUND")
+                return True
+        q, dq = self.get_x()
+        _, v = self.controller.balance_params(q, dq)
+        if v[c.X] < -0.2:
+            print("GOING BACKWARDS")
+            return True
+
     # Executes one world step.
     # Returns (observation, episode_terminated, human-readable message) tuple.
     def simulation_step(self):
@@ -115,7 +135,7 @@ class SteppingStonesEnv:
         swing_foot = self.controller.ik.get_bodynode(swing_idx, c.FOOT_BODYNODE_OFFSET)
         contacts = self.find_contacts(swing_foot)
         swing_heel = self.controller.ik.forward_kine(swing_idx)
-        crashed = self.controller.crashed(swing_heel)
+        crashed = self.crashed() or self.controller.crashed(swing_heel)
         step_complete = crashed or self.controller.swing_contact(contacts, swing_heel)
         if step_complete:
             status_string = self.controller.change_stance(swing_heel)

@@ -48,7 +48,7 @@ class DarwinEnv(Simple3DEnv):
                 dof.set_position_lower_limit(-np.pi/6)
                 dof.set_position_upper_limit(100/180*np.pi)
             # I don't think we need to set the limits for hip yaw, since
-            # it's unlikely that we'll hit the numbers pu blished in the above document.
+            # it's unlikely that we'll hit the numbers published in the above document.
 
         for j in skel.joints:
             j.set_position_limit_enforced(True)

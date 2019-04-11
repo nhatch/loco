@@ -24,7 +24,8 @@ class Simbicon(PDController):
 
     def __init__(self, env):
         super().__init__(env)
-        self.set_RRTs()
+        if hasattr(env, 'world'):
+            self.set_RRTs()
 
     def reset(self, state=None):
         c = self.env.consts()
@@ -70,16 +71,13 @@ class Simbicon(PDController):
             params += raw_gait * sp.PARAM_SCALE
         self.set_gait(Params(params))
 
-        swing_heel = self.ik.forward_kine(self.swing_idx)
-        self.starting_swing_heel = swing_heel
-
         if not c.OBSERVE_TARGET:
-            self.target_heading = target_heading # TODO remove dependence on this
             self.unit_normal = np.array([0., 1., 0.])
             return # Skip the rest of setup
 
+        swing_heel = self.ik.forward_kine(self.swing_idx)
         self.target, self.prev_target = target, self.target
-        d = self.target - self.starting_swing_heel
+        d = self.target - swing_heel
 
         if target_heading is None:
             branch = self.heading()
@@ -137,29 +135,9 @@ class Simbicon(PDController):
         self.params = params
 
     def time(self):
-        return self.env.world.time()
+        return self.env.time()
 
     def crashed(self, swing_heel):
-        c = self.env.consts()
-        for contact in self.env.world.collision_result.contacts:
-            if contact.skel_id1 == 1:
-                bodynode = contact.bodynode1
-            elif contact.skel_id2 == 1:
-                bodynode = contact.bodynode2
-            else:
-                continue
-            if contact.skel_id1 == contact.skel_id2:
-                # The robot crashed into itself
-                print("SELF COLLISION")
-                return True
-            if not bodynode.id in c.ALLOWED_COLLISION_IDS:
-                print("HIT THE GROUND")
-                return True
-        q, dq = self.env.get_x()
-        _, v = self.balance_params(q, dq)
-        if v[c.X] < -0.2:
-            print("GOING BACKWARDS")
-            return True
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
         # However, setting the tolerance too large (larger than .04 or so) makes certain crashes
@@ -192,24 +170,23 @@ class Simbicon(PDController):
     def maybe_start_down_phase(self, contacts, swing_heel):
         c = self.env.consts()
         duration = self.time() - self.step_started
-        if duration >= 0.2:
-            # Once toe-off is complete, return to neutral ankle angle
-            self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = c.BASE_GAIT[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
-            if self.env.is_3D:
-                self.params[sp.SWING_ANKLE_ROLL] = c.BASE_GAIT[sp.SWING_ANKLE_ROLL]
-        early_strike = (duration >= c.LIFTOFF_DURATION) and (len(contacts) > 0)
         if c.OBSERVE_TARGET:
+            if duration >= 0.2:
+                # Once toe-off is complete, return to neutral ankle angle
+                self.params[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX] = c.BASE_GAIT[sp.SWING_ANKLE_RELATIVE+sp.UP_IDX]
+                if self.env.is_3D:
+                    self.params[sp.SWING_ANKLE_ROLL] = c.BASE_GAIT[sp.SWING_ANKLE_ROLL]
+            early_strike = (duration >= c.LIFTOFF_DURATION) and (len(contacts) > 0)
             q, dq = self.env.get_x()
             target_diff = self.params[sp.IK_GAIN] * self.speed(dq)
             heel_close = self.distance_to_go(swing_heel) < target_diff
             com_close = self.distance_to_go(q[:3]) < target_diff
             start_down = early_strike or (heel_close and com_close)
+            if start_down:
+                self.direction = DOWN
         else:
             # Avoid DOWN phase entirely; don't perceive footstrikes
             early_strike = duration >= self.params[sp.UP_DURATION]
-            start_down = False
-        if start_down:
-            self.direction = DOWN
         return early_strike
 
     def change_stance(self, swing_heel):
@@ -258,23 +235,23 @@ class Simbicon(PDController):
 
         # This code is only useful in 3D.
         # The stance hip pitch torque will be overwritten in `compute` below.
-        target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
-        hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
-        if self.env.is_3D:
-            if c.OBSERVE_TARGET:
+        if c.OBSERVE_TARGET:
+            target_orientation = self.ik.root_transform_from_angles(self.target_heading, params[sp.TORSO_WORLD])
+            hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
+            if self.env.is_3D:
                 tq[self.stance_idx:self.stance_idx+3] = hip_dofs
                 # This is a hack; the hip was dipping a little bit too much on the swing side.
                 # The proper fix: rather than just using kinematics to set the target angles,
                 # also compensate for the torques from other forces on the pelvis.
                 tq[self.stance_idx+c.HIP_ROLL] += 0.1 if self.stance_idx == c.LEFT_IDX else -0.1
             else:
-                # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
-                extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
-                if self.stance_idx == c.RIGHT_IDX:
-                    extra_roll *= -1
-                tq[self.stance_idx+c.HIP_ROLL] += extra_roll
+                tq[self.stance_idx] = hip_dofs
         else:
-            tq[self.stance_idx] = hip_dofs
+            # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
+            extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
+            if self.stance_idx == c.RIGHT_IDX:
+                extra_roll *= -1
+            tq[self.stance_idx+c.HIP_ROLL] += extra_roll
 
         # Make modifications to control torso pitch
         virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)
@@ -293,7 +270,6 @@ class Simbicon(PDController):
     def compute(self):
         c = self.env.consts()
         q, dq = self.env.get_x()
-        params = self.params
         if self.env.world.frame % c.FRAMES_PER_CONTROL == 0:
             self.target_q = c.raw_dofs(self.compute_target_q(q, dq))
         self.update_doppelganger()

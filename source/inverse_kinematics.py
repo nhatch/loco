@@ -11,6 +11,8 @@ class InverseKinematics:
 
     def forward_kine(self, swing_idx):
         c = self.env.consts()
+        if not hasattr(self.env, 'world'):
+            return np.zeros(3)
         if c.BRICK_DOF == 3:
             foot_centric_offset = np.array([-0.5*c.L_FOOT, -c.FOOT_RADIUS, 0.0])
         elif c.GRAVITY_Y:

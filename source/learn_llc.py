@@ -49,11 +49,14 @@ def test(env, length, param_setting, render=None, n=50, terminate_on_slip=True):
         print("Distance achieved:", dist, "Penalty:", penalty)
     return -i*length + penalty
 
+def embed_action(action):
+    params = np.zeros(sp.N_PARAMS)
+    params[controllable_params] = action.reshape(-1)
+    return params
+
 def init_opzer(env, init_mean):
     def f(action, **kwargs):
-        params = np.zeros(sp.N_PARAMS)
-        params[controllable_params] = action.reshape(-1)
-        return test(env, REFERENCE_STEP_LENGTH, params, **kwargs)
+        return test(env, REFERENCE_STEP_LENGTH, embed_action(action), **kwargs)
     init_cov = np.diag(sp.PARAM_SCALE[controllable_params]**2) / 10
     opzer = cma.CMA(f, init_mean, 0.2, init_cov, extra_lambda=40)
     return opzer
@@ -135,6 +138,8 @@ b5 = np.array([
 6.731144574614608689e-02,
 ]).reshape((-1, 1))
 
+EMBED_B5 = embed_action(b5)
+
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
     env = DarwinEnv(Simbicon3D)
@@ -143,6 +148,6 @@ if __name__ == "__main__":
     #test(env, REFERENCE_STEP_LENGTH, p, r=8)
     b_ckpt = np.loadtxt('data/learn_llc/mean.txt')
     opzer = init_opzer(env, b2)
-    #opzer.f(b2, render=2, terminate_on_slip=False)
-    learn(opzer, 300)
+    opzer.f(b5, render=2, terminate_on_slip=False)
+    #learn(opzer, 300)
     embed()

@@ -45,10 +45,11 @@ class Simbicon3D(Simbicon):
         cd = params[POSITION_BALANCE_GAIN_LAT]
         cv = params[VELOCITY_BALANCE_GAIN_LAT]
 
-        proj = q[:3]
-        proj[Y] = self.stance_heel[Y]
-        self.env.sdf_loader.put_dot(proj, 'root_projection', color=BLUE)
-        self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=RED)
+        if hasattr(self.env, 'sdf_loader'):
+            proj = q[:3]
+            proj[Y] = self.stance_heel[Y]
+            self.env.sdf_loader.put_dot(proj, 'root_projection', color=BLUE)
+            self.env.sdf_loader.put_dot(self.stance_heel, 'stance_heel', color=RED)
 
         d, v = self.balance_params(q, dq)
         if ZERO_GAIN and d[Z]*v[Z] < 0:
