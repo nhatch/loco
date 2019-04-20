@@ -1,9 +1,9 @@
 import numpy as np
 from IPython import embed
-import pydart2.utils.transformations as libtransform
+import libtransform
 
 def convert_euler(eulers, start_config, end_config):
-    rotation = libtransform.euler_matrix(*eulers, start_config)
+    rotation = libtransform.euler_matrix(eulers[0], eulers[1], eulers[2], start_config)
     return libtransform.euler_from_matrix(rotation, end_config)
 
 def heading_from_vector(d, branch=0.0):

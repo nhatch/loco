@@ -1,4 +1,5 @@
 # THIS IS A STUB
+print("LOADED DYNAMIXEL STUB")
 class PortHandler():
     def __init__(self, port):
         pass

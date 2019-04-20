@@ -2,7 +2,7 @@ from IPython import embed
 import numpy as np
 from sdf_loader import RED, GREEN, BLUE
 from utils import heading_from_vector
-import pydart2.utils.transformations as libtransform
+import libtransform
 
 class InverseKinematics:
     def __init__(self, skel, env):
