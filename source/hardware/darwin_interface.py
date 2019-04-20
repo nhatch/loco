@@ -30,8 +30,8 @@ class DarwinInterface():
         if not self.port_handler.setBaudRate(BAUD):
                 raise RuntimeError("Couldn't change baud rate")
         print("############## Successfully Opened Port ######################")
-        #self.enable_torque()
-        #self.reset(self.init_state)
+        self.enable_torque()
+        self.reset(self.init_state)
         input('Press Enter to continue')
         self.leg_writer = self.build_writer('GOAL_POSITION', P2, dxl_ids_legs)
         # 40 and 42 are pitch and roll

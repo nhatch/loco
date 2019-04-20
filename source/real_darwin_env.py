@@ -29,7 +29,7 @@ class RealDarwinEnv:
         return consts_darwin
 
     def load_robot(self):
-        init_state = np.zeros(self.consts().Q_DIM_RAW)
+        init_state = self.consts().raw_dofs(np.zeros(self.consts().Q_DIM_RAW))
         self.robot = DarwinInterface(init_state)
 
     def tick(self):
@@ -58,17 +58,14 @@ class RealDarwinEnv:
         q[c.LEFT_IDX+c.HIP_PITCH] = q_raw[16]
         dq[c.LEFT_IDX+c.HIP_PITCH] = dq_raw[16]
         target_q = c.raw_dofs(self.controller.compute_target_q(q, dq))
-        #print("{:.3f} {:.3f}".format(q[c.RIGHT_IDX+c.HIP_PITCH], dq[c.RIGHT_IDX+c.HIP_PITCH]))
-        #print("{:.3f} {:.3f}".format(q[c.ROOT_ROLL], dq[c.ROOT_ROLL]))
-        #print("{:.3f} {:.3f}".format(q[c.ROOT_PITCH], dq[c.ROOT_PITCH]))
-        target_q = SAVED_TRAJ[self.control_tick]
-        #self.robot.write(target_q)
+        #target_q = SAVED_TRAJ[self.control_tick]
+        self.robot.write(target_q)
         self.prev_control_time = t
         self.control_tick += 1
 
 if __name__ == '__main__':
     env = RealDarwinEnv()
-    duration = 5 # seconds
+    duration = 2 # seconds
     env.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
     while env.time() < duration:
         env.tick()
