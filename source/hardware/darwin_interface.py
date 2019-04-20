@@ -30,8 +30,8 @@ class DarwinInterface():
         if not self.port_handler.setBaudRate(BAUD):
                 raise RuntimeError("Couldn't change baud rate")
         print("############## Successfully Opened Port ######################")
-        self.enable_torque()
-        self.reset(self.init_state)
+        #self.enable_torque()
+        #self.reset(self.init_state)
         input('Press Enter to continue')
         self.leg_writer = self.build_writer('GOAL_POSITION', P2, dxl_ids_legs)
         # 40 and 42 are pitch and roll
@@ -90,13 +90,14 @@ class DarwinInterface():
         except:
             self.port_handler.closePort()
             raise
-        robot_to_radian = 1000./1024*np.pi/180
+        robot_to_radian = 1000./1024*np.pi/180*3.5
         pitch_rate = (pitch_rate-512)*robot_to_radian
-        roll_rate = (roll_rate-512)*robot_to_radian
+        roll_rate = -(roll_rate-512)*robot_to_radian
         dt = t1 - t0
         # Trapezoidal integration
-        self.pitch += (pitch_rate + self.prev_pitch_rate)*dt/2.
-        self.roll  += (roll_rate + self.prev_roll_rate)*dt/2.
+        if dt > 1./300: # HACK: sometimes we got absurdly big values on the initial timestep
+            self.pitch += (pitch_rate + self.prev_pitch_rate)*dt/2.
+            self.roll  += (roll_rate + self.prev_roll_rate)*dt/2.
         self.prev_pitch_rate, self.prev_roll_rate = pitch_rate, roll_rate
 
     def read(self, t0, t1):
@@ -105,6 +106,9 @@ class DarwinInterface():
         except:
             self.port_handler.closePort()
             raise
+        if hip_right == 0: # TODO some weird interference bug makes this happen sometimes
+            hip_right = self.prev_hip_right
+            hip_left = self.prev_hip_left
         dt = t1 - t0
         # Finite difference to find hip angle rates.
         hip_rate_right = (hip_right - self.prev_hip_right) / dt
@@ -114,7 +118,8 @@ class DarwinInterface():
         positions = np.zeros(20, dtype=int)
         positions[10:12] = [self.prev_hip_right, self.prev_hip_left]
         d_positions = np.zeros(20, dtype=int)
-        d_positions[10:12] = [hip_rate_right, hip_rate_left]
+        # HACK because fromRobot thinks 2048 is zero.
+        d_positions[10:12] = [hip_rate_right+2048, hip_rate_left+2048]
         pose = np.zeros(6)
         pose[4:6] = [self.pitch, self.roll]
         d_pose = np.zeros(6)
