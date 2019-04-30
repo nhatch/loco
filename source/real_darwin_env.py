@@ -47,7 +47,7 @@ class RealDarwinEnv:
             self.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
             print(status_string)
         q, dq = self.robot.read(self.prev_control_time, t)
-        target_q = c.raw_dofs(self.controller.compute_target_q(q, dq))
+        target_q = c.clip(c.raw_dofs(self.controller.compute_target_q(q, dq)))
         self.assert_safe(target_q)
         target_q = SAVED_TRAJ[self.control_tick]
         self.robot.write(target_q)

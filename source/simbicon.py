@@ -271,7 +271,7 @@ class Simbicon(PDController):
         c = self.env.consts()
         q, dq = self.env.get_x()
         if self.env.world.frame % c.FRAMES_PER_CONTROL == 0:
-            self.target_q = c.raw_dofs(self.compute_target_q(q, dq))
+            self.target_q = c.clip(c.raw_dofs(self.compute_target_q(q, dq)))
         self.update_doppelganger()
 
         # We briefly increase Kd (mechanical impedance?) for the stance knee

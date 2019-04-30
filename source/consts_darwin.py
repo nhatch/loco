@@ -64,6 +64,17 @@ def raw_dofs(standardized_dofs):
     base[sign_switches] *= -1
     return base
 
+def clip(raw_dofs):
+    for limit in LIMITS:
+        v = raw_dofs[limit[1]]
+        if v < limit[2]:
+            #print("clipping {:.3f} to {:.3f}".format(v, limit[2]))
+            raw_dofs[limit[1]] = limit[2]
+        if v > limit[3]:
+            #print("clipping {:.3f} to {:.3f}".format(v, limit[3]))
+            raw_dofs[limit[1]] = limit[3]
+    return raw_dofs
+
 def virtual_torque_idx(standardized_idx):
     if standardized_idx == RIGHT_IDX:
         return 22

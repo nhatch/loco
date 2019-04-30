@@ -40,6 +40,9 @@ def raw_dofs(standardized_dofs):
     base[sign_switches] *= -1
     return base
 
+def clip(raw_dofs):
+    return raw_dofs
+
 def virtual_torque_idx(standardized_idx):
     if standardized_idx == RIGHT_IDX:
         return 14

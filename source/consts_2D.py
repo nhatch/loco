@@ -49,6 +49,9 @@ def standardized_dofs(raw_dofs):
 def raw_dofs(standardized_dofs):
     return standardized_dofs
 
+def clip(raw_dofs):
+    return raw_dofs
+
 def virtual_torque_idx(standardized_idx):
     return standardized_idx + HIP_PITCH
 
