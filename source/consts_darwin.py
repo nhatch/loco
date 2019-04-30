@@ -137,3 +137,32 @@ BASE_GAIT = np.array([0.06, 0.5, 0.2, 0.03, -0.01,
                       -0.0, -0.2,  0.3, -0.1,
                       0.5, 0.2, 0.0, 0.0, 0.0, 0.0,
                       0.1])
+
+# Copied limits from
+# http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.822.6324&rep=rep1&type=pdf
+# I don't think we need to set the limits for hip yaw, since
+# it's unlikely that we'll hit the numbers published in the above document.
+LIMITS = [
+            ('j_tibia_r', 23,
+                0., 130/180*np.pi),
+            ('j_tibia_l', 17,
+                -130/180*np.pi, 0.),
+            ('j_ankle1_r', 24,
+                -np.pi/3, np.pi/3),
+            ('j_ankle1_l', 18,
+                -np.pi/3, np.pi/3),
+            # Note the ankle2 angles do not match the document above. I decreased the
+            # upper limit in order to get bilateral symmetry.
+            ('j_ankle2_r', 25,
+                -np.pi/6, np.pi/6),
+            ('j_ankle2_l', 19,
+                -np.pi/6, np.pi/6),
+            ('j_thigh1_r', 21,
+                0., np.pi/3),
+            ('j_thigh1_l', 15,
+                -np.pi/3, 0.),
+            ('j_thigh2_r', 22,
+                -np.pi/6, 100/180*np.pi),
+            ('j_thigh2_l', 16,
+                -100/180*np.pi, np.pi/6),
+         ]

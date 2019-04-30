@@ -48,16 +48,29 @@ class RealDarwinEnv:
             print(status_string)
         q, dq = self.robot.read(self.prev_control_time, t)
         target_q = c.raw_dofs(self.controller.compute_target_q(q, dq))
+        self.assert_safe(target_q)
         target_q = SAVED_TRAJ[self.control_tick]
         self.robot.write(target_q)
         self.prev_control_time = t
         self.control_tick += 1
 
+    def assert_safe(self, target_q):
+        for limit in self.consts().LIMITS:
+            v = target_q[limit[1]]
+            if v < limit[2] or v > limit[3]:
+                msg = "Value {:.3f} exceeds limits [{:.3f}, {:.3f}] for joint {}".format(
+                        v, limit[2], limit[3], limit[0])
+                raise RuntimeError(msg)
+
 if __name__ == '__main__':
     env = RealDarwinEnv()
     duration = 5 # seconds
     env.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
-    while env.time() < duration:
-        env.tick()
-    print("Control frequency: ", env.control_tick//duration)
-    print("IMU read frequency:", env.imu_tick//duration)
+    try:
+        while env.time() < duration:
+            env.tick()
+        print("Control frequency: ", env.control_tick//duration)
+        print("IMU read frequency:", env.imu_tick//duration)
+    finally:
+        env.robot.reset(env.robot.init_state)
+        env.robot.port_handler.closePort()

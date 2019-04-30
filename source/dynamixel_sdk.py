@@ -6,6 +6,9 @@ class PortHandler():
     def openPort(self):
         return True
 
+    def closePort(self):
+        return True
+
     def setBaudRate(self, baud):
         return True
 
