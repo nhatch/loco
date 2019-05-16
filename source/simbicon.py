@@ -37,29 +37,29 @@ class Simbicon(PDController):
             self.swing_idx = c.RIGHT_IDX
             self.stance_idx = c.LEFT_IDX
             self.stance_heel = self.ik.forward_kine(self.stance_idx)
-            self.target = self.stance_heel
+            self.stance_platform = self.stance_heel
             swing_heel = self.ik.forward_kine(self.swing_idx)
-            self.prev_target = swing_heel
+            self.swing_platform = swing_heel
+            self.target = swing_heel # For Darwin's sake. This is never set, otherwise.
         else:
             self.swing_idx = c.LEFT_IDX if state.swing_left else c.RIGHT_IDX
             self.stance_idx = c.RIGHT_IDX if state.swing_left else c.LEFT_IDX
             self.stance_heel = state.stance_heel_location()
-            # The method `set_gait_raw` must also be called before simulation continues,
-            # in order to set a new target and gait.
-            # At that point, we will rotate self.target to self.prev_target.
-            self.target = state.stance_platform()
-            # We track prev_target so that, in principle, we know all of the possible
+            self.stance_platform = state.stance_platform()
+            # We track swing_platform so that, in principle, we know all of the possible
             # places where the agent is in contact with the environment. However, the
             # algorithm does not use this (yet) except when resetting the environment
             # to a previously visited state.
-            self.prev_target = state.swing_platform()
+            self.swing_platform = state.swing_platform()
+        # The method `set_gait_raw` must also be called before simulation continues,
+        # in order to set a target and gait.
 
     def state(self):
         # TODO make State attributes settable, so we can construct this like
-        # state.stance_platform = self.target
+        # state.stance_platform = self.stance_platform
         # Until then, make sure that this order corresponds to the indices defined
         # in the State object.
-        return np.concatenate((self.stance_heel, self.target, self.prev_target))
+        return np.concatenate((self.stance_heel, self.stance_platform, self.swing_platform))
 
     def heading(self):
         return 0.0
@@ -76,7 +76,7 @@ class Simbicon(PDController):
             return # Skip the rest of setup
 
         swing_heel = self.ik.forward_kine(self.swing_idx)
-        self.target, self.prev_target = target, self.target
+        self.target = target
         d = self.target - swing_heel
 
         if target_heading is None:
@@ -141,19 +141,16 @@ class Simbicon(PDController):
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
         # to learn very weird behaviors. TODO: why does this have such a large effect??
         # However, setting the tolerance too large (larger than .04 or so) makes certain crashes
-        # go undetected. E.g.:
-        #
-        #   python inverse_dynamics.py     # Don't run any training iters or load the train set
-        #   learn.evaluate(seed=39738)
+        # go undetected.
         tol = -0.06
-        lower = min(self.prev_target[1], self.target[1])
-        upper = max(self.prev_target[1], self.target[1])
+        lower = min(self.swing_platform[1], self.target[1])
+        upper = max(self.swing_platform[1], self.target[1])
         below_lower = swing_heel[1] - lower < tol
         below_upper = swing_heel[1] - upper < tol
         # Calculate the distance of the swing heel from the line between the
         # start and end targets.
         # Technically in 3D this is a plane, not a line.
-        below_line = np.dot(swing_heel - self.prev_target, self.unit_normal) < tol
+        below_line = np.dot(swing_heel - self.swing_platform, self.unit_normal) < tol
         if below_lower or (below_line and below_upper):
             print("FELL OFF")
             return True
@@ -190,6 +187,7 @@ class Simbicon(PDController):
         return early_strike
 
     def change_stance(self, swing_heel):
+        self.swing_platform, self.stance_platform = self.stance_platform, self.target
         self.step_started = self.time()
         self.stance_heel = swing_heel
         self.direction = UP
