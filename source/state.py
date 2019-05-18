@@ -71,7 +71,7 @@ class State:
     def extract_features(self, target):
         # Combines state and target into a single vector, and discards any information
         # that does not affect the dynamics (heading, mirroring, and absolute location).
-        # This vector is still very high dimenstional for debugging purposes.
+        # This vector is still very high dimensional (for debugging purposes).
         # When actually training the model, many of these features are discarded.
         copy = self.copy()
         target = target.copy()

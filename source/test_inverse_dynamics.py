@@ -15,19 +15,25 @@ def retrieve_index(learn, i=None):
     if i is None:
         i = np.random.randint(len(learn.train_features))
         print("Testing index:", i)
-    # TODO: restore the evaluation settings that were used at this training index.
+    for h in learn.history:
+        if h[0] > i:
+            learn.evaluator.set_eval_settings(h[4])
+            break
     features = learn.train_features[i]
     response = learn.train_responses[i]
     start_state, target = reconstruct_state(features, learn.env.consts())
     return start_state, target, response, features
 
-def demo_train_set(learn):
-    for i in range(len(learn.train_responses)):
+def demo_train_set(learn, render=1.0, indices=None):
+    ii = indices or range(len(learn.train_responses))
+    for i in ii:
         start_state, target, response, features = retrieve_index(learn, i)
-        #learn.evaluator.set_eval_settings(learn.history[0][4])
-        runner = Runner(learn.env, start_state, target)#, use_stepping_stones=False)
-        runner.reset(render=1.0)
-        print("Score:", runner.run(response)) # Should be pretty close to zero.
+        uss = learn.evaluator.eval_settings['use_stepping_stones']
+        runner = Runner(learn.env, start_state, target, use_stepping_stones=uss)
+        runner.reset(render=render)
+        reward = runner.run(response)
+        print("Index {} Score: {}".format(i, reward)) # Should be pretty close to 1
+    return reward
 
 def test_regression_bias(learn, i=None):
     start_state, target, response, features = retrieve_index(learn, i)

@@ -63,13 +63,15 @@ class Experiment:
             results = defaultdict(lambda: [])
             for i in range(self.n_eval_trajectories):
                 print("Starting evaluation", i)
-                result = self.learn.evaluate(render=None)
+                render = None
+                #if i == 0:
+                #    render = 1 # For human consumption
+                result = self.learn.evaluate(render=render)
                 for k in KEYS_TO_SAVE:
                     results[k].append(result[k])
             for k,v in results.items():
                 self.results[settings_name][k].append(v)
         self.save()
-        #self.learn.evaluate() # For human consumption
 
     def run_iters(self, n_iters, eval_settings, train_settings):
         self.learn.set_train_settings(train_settings)
@@ -129,4 +131,11 @@ def ex_2D_rs(uq_id):
 
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
-    ex_3D(UQ_ID)
+    if UQ_ID == 'load':
+        from stepping_stones_env import SteppingStonesEnv
+        env = SteppingStonesEnv()
+        ex = Experiment(env, LearnInverseDynamics, sys.argv[2], ['SETTINGS_2D_HARD'])
+        from test_inverse_dynamics import *
+        embed()
+    else:
+        ex_2D_cim(UQ_ID)
