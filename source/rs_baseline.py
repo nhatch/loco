@@ -6,7 +6,6 @@ import time
 
 import simbicon_params as sp
 from state import reconstruct_state
-from step_learner import Runner
 from random_search import RandomSearch
 from evaluator import Evaluator
 
@@ -51,7 +50,8 @@ class RandomSearchBaseline:
     def set_train_settings(self, settings):
         self.train_settings = settings
         # TODO implement switching to a quadratic model....
-        # ...I have no idea how one would do this
+        # This seems possible actually: just initialize the linear coefs the same as before
+        # and the quadratic coefs to zero.
 
     def dump_train_set(self):
         fname = TRAIN_FMT.format(self.name)
@@ -81,8 +81,7 @@ class RandomSearchBaseline:
     def training_iter(self):
         print("STARTING TRAINING ITERATION", len(self.history))
         t = time.time()
-        self.random_search()
-        self.random_search() # Do it twice so evaluations are only 1/3 of compute time
+        self._iter()
         self.total_train_time += time.time() - t
 
         self.history.append((
@@ -93,6 +92,12 @@ class RandomSearchBaseline:
             self.train_settings.copy()))
         print("Total steps:", self.total_steps)
         self.dump_train_set()
+
+    def _iter(self):
+        self.random_search()
+        self.random_search() # Do it twice so evaluations are only 1/3 of compute time
+        # I'm confused: each random_search() call does 2*n_dirs = 16 rollouts
+        # So calling it twice should take 4* the time spent on evaluations.
 
     def random_search(self):
         runner = EpisodeRunner(self.evaluator)

@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 from inverse_dynamics import LearnInverseDynamics
 from rs_baseline import RandomSearchBaseline
+from cma_baseline import CMABaseline
 import curriculum as cur
 
 DIR_FMT = 'data/{}/'
@@ -129,6 +130,12 @@ def ex_2D_rs(uq_id):
     ex = Experiment(env, RandomSearchBaseline, "rs_final_"+uq_id, ['SETTINGS_2D_EASY'])
     ex.run_iters(10, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_BASELINE_NOEXPERT)
 
+def ex_2D_cma(uq_id):
+    from stepping_stones_env import SteppingStonesEnv
+    env = SteppingStonesEnv()
+    ex = Experiment(env, CMABaseline, "cma_baseline_"+uq_id, ['SETTINGS_2D_EASY'])
+    ex.run_iters(10, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_BASELINE_NOEXPERT)
+
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
     if UQ_ID == 'load':
@@ -138,4 +145,4 @@ if __name__ == '__main__':
         from test_inverse_dynamics import *
         embed()
     else:
-        ex_2D_cim(UQ_ID)
+        ex_2D_cma(UQ_ID)
