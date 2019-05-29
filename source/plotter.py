@@ -12,6 +12,7 @@ matplotlib.rcParams.update({'font.size': 14})
 SETTINGS = {
         "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8], 'SETTINGS_2D_EASY'],
         "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20], 'SETTINGS_2D_HARD'],
+        "test_cim_final": ["magenta", "Test CIM", LearnInverseDynamics, [12,13,14,15], 'SETTINGS_2D_HARD'],
         "cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
         "3D_test": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
         "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16], 'SETTINGS_2D_EASY'],
@@ -74,7 +75,7 @@ def gen_figures():
 
     lines = []
     labels = []
-    for exp in ['cim_final', 'nocur_final']:
+    for exp in ['cim_final', 'nocur_final', 'test_cim_final']:
         lines.append(multiseed_plot(exp))
         labels.append(SETTINGS[exp][1])
     plt.legend(lines, labels, loc='lower right')
@@ -92,6 +93,6 @@ def all_single_seeds():
             plot_single_seed(exp_name, seed)
 
 if __name__ == '__main__':
-    #gen_figures()
+    gen_figures()
     #plot_single_seed('3D_test', 1)
     all_single_seeds()

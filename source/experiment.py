@@ -105,7 +105,7 @@ def ex_3D(uq_id):
 def ex_2D_cim(uq_id):
     from stepping_stones_env import SteppingStonesEnv
     env = SteppingStonesEnv()
-    ex = Experiment(env, LearnInverseDynamics, "cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
+    ex = Experiment(env, LearnInverseDynamics, "test_cim_final_"+uq_id, ['SETTINGS_2D_HARD'])
     ex.run_iters(3, cur.SETTINGS_2D_EASY, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(18, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D)
     ex.run_iters(12, cur.SETTINGS_2D_HARD, cur.TRAIN_SETTINGS_2D_PLUS)

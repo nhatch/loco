@@ -62,9 +62,11 @@ TRAIN_SETTINGS_2D_NOCUR_NEXT = {**TRAIN_SETTINGS_2D_PLUS,
     }
 
 SETTINGS_2D_EASY = {
-    'use_stepping_stones': False,
+    'use_stepping_stones': True,
+    'ground_length': 0.1,
+    'ground_width': 0.5,
     'dist_mean': 0.45,
-    'dist_spread': 0.3,
+    'dist_spread': 0.15,
     'n_steps': 16,
     'tol': 0.02,
     'z_mean': 0.0,
@@ -74,9 +76,7 @@ SETTINGS_2D_EASY = {
     }
 
 SETTINGS_2D_HARD = {**SETTINGS_2D_EASY,
-    'use_stepping_stones': True,
-    'ground_length': 0.1,
-    'ground_width': 0.5,
+    'dist_spread': 0.3,
     'y_mean': 0.05,
     'y_spread': 0.1,
     }
