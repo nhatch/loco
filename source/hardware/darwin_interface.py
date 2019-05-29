@@ -1,9 +1,16 @@
-from dynamixel_sdk import PortHandler, PacketHandler
+import importlib
+if importlib.util.find_spec('dynamixel_sdk') is not None:
+    # Found the hardware API, so use it
+    from dynamixel_sdk import PortHandler, PacketHandler
+    from hardware.WriteData import SyncMultiWriter
+    from hardware.ReadData import SyncMultiReader
+    from hardware.dabs import MultiReader
+else:
+    from hardware.dynamixel_sdk_stub import PortHandler, PacketHandler
+    from hardware.io_stub import SyncMultiWriter, SyncMultiReader, MultiReader
+
 import numpy as np
 from hardware.Sim2Robot import toRobot, fromRobot
-from hardware.WriteData import SyncMultiWriter
-from hardware.ReadData import SyncMultiReader
-from hardware.dabs import MultiReader
 import hardware.p1mx28
 import hardware.p2mx28
 
@@ -90,13 +97,14 @@ class DarwinInterface():
         except:
             self.port_handler.closePort()
             raise
-        robot_to_radian = 1000./1024*np.pi/180
+        robot_to_radian = 1000./1024*np.pi/180*3.5 # HACK: why is the IMU giving us such small numbers?
         pitch_rate = (pitch_rate-512)*robot_to_radian
-        roll_rate = (roll_rate-512)*robot_to_radian
+        roll_rate = -(roll_rate-512)*robot_to_radian
         dt = t1 - t0
         # Trapezoidal integration
-        self.pitch += (pitch_rate + self.prev_pitch_rate)*dt/2.
-        self.roll  += (roll_rate + self.prev_roll_rate)*dt/2.
+        if dt > 1./300: # HACK: sometimes we got absurdly big values on the initial timestep
+            self.pitch += (pitch_rate + self.prev_pitch_rate)*dt/2.
+            self.roll  += (roll_rate + self.prev_roll_rate)*dt/2.
         self.prev_pitch_rate, self.prev_roll_rate = pitch_rate, roll_rate
 
     def read(self, t0, t1):
@@ -105,6 +113,9 @@ class DarwinInterface():
         except:
             self.port_handler.closePort()
             raise
+        if hip_right == 0: # TODO some weird interference bug makes this happen sometimes
+            hip_right = self.prev_hip_right
+            hip_left = self.prev_hip_left
         dt = t1 - t0
         # Finite difference to find hip angle rates.
         hip_rate_right = (hip_right - self.prev_hip_right) / dt
@@ -114,7 +125,8 @@ class DarwinInterface():
         positions = np.zeros(20, dtype=int)
         positions[10:12] = [self.prev_hip_right, self.prev_hip_left]
         d_positions = np.zeros(20, dtype=int)
-        d_positions[10:12] = [hip_rate_right, hip_rate_left]
+        # HACK because fromRobot thinks 2048 is zero.
+        d_positions[10:12] = [hip_rate_right+2048, hip_rate_left+2048]
         pose = np.zeros(6)
         pose[4:6] = [self.pitch, self.roll]
         d_pose = np.zeros(6)

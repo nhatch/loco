@@ -1,5 +1,5 @@
 import numpy as np
-import pydart2.utils.transformations as libtransform
+import libtransform
 from utils import build_mask
 
 GRAVITY_Y = True

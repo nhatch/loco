@@ -29,7 +29,7 @@ class RealDarwinEnv:
         return consts_darwin
 
     def load_robot(self):
-        init_state = np.zeros(self.consts().Q_DIM_RAW)
+        init_state = self.consts().raw_dofs(np.zeros(self.consts().Q_DIM_RAW))
         self.robot = DarwinInterface(init_state)
 
     def tick(self):
@@ -46,10 +46,20 @@ class RealDarwinEnv:
             status_string = self.controller.change_stance(np.zeros(3))
             self.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
             print(status_string)
-        q, dq = self.robot.read(self.prev_control_time, t)
+        q_raw, dq_raw = self.robot.read(self.prev_control_time, t)
+        # Manually doing this instead of standardized_dofs to avoid the
+        # hip Euler angles conversion, which I don't understand.
+        q = np.zeros(c.Q_DIM)
+        dq = np.zeros(c.Q_DIM)
+        q[0:6] = q_raw[0:6]
+        dq[0:6] = dq_raw[0:6]
+        q[c.RIGHT_IDX+c.HIP_PITCH] = -q_raw[22]
+        dq[c.RIGHT_IDX+c.HIP_PITCH] = -dq_raw[22]
+        q[c.LEFT_IDX+c.HIP_PITCH] = q_raw[16]
+        dq[c.LEFT_IDX+c.HIP_PITCH] = dq_raw[16]
         target_q = c.clip(c.raw_dofs(self.controller.compute_target_q(q, dq)))
         self.assert_safe(target_q)
-        target_q = SAVED_TRAJ[self.control_tick]
+        #target_q = SAVED_TRAJ[self.control_tick]
         self.robot.write(target_q)
         self.prev_control_time = t
         self.control_tick += 1
@@ -64,7 +74,7 @@ class RealDarwinEnv:
 
 if __name__ == '__main__':
     env = RealDarwinEnv()
-    duration = 5 # seconds
+    duration = 2 # seconds
     env.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
     try:
         while env.time() < duration:
