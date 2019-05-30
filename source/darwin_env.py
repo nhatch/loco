@@ -2,6 +2,7 @@ from simple_3D_env import Simple3DEnv, test_pd_control, test_no_control, setup_d
 import numpy as np
 import consts_darwin
 from IPython import embed
+from hardware.Sim2Robot import raw_darwin_init_state
 
 class DarwinEnv(Simple3DEnv):
     def consts(self):
@@ -44,7 +45,13 @@ class DarwinEnv(Simple3DEnv):
         import curriculum as cur
         cur.SETTINGS_3D_EASY['z_mean'] /= 2
 
+        skel.q = raw_darwin_init_state
+
         return skel
+
+    def reset_world(self):
+        super().reset_world()
+        self.robot_skeleton.q = raw_darwin_init_state
 
 if __name__ == "__main__":
     from pd_control import PDController

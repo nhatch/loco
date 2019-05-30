@@ -40,3 +40,8 @@ def toRobot(positions):
 
 	return robotState[index].astype(int).tolist()
 
+# Taken from testPolicyJumper.py (and modified index 1 to make arms more symmetric)
+#init_pos_stand = [1898,2195,1845,2248,2381,1712,2048,2048,2052,2044,1637,2459,2653,1443,2389,1707,2057,2039,2048,2048]
+init_pos_stand = [2048,2048,2048,2048,2048,2048,2048,2048,2052,2044,1637,2459,2653,1443,2389,1707,2057,2039,2048,2048]
+raw_darwin_init_state = np.concatenate((np.zeros(6), fromRobot(init_pos_stand)))
+raw_darwin_init_state[[2,4]] = [-0.025, 0.2] # Make feet parallel to and close to the ground.

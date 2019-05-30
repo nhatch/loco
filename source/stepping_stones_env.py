@@ -81,12 +81,15 @@ class SteppingStonesEnv:
         tb.zoom_to = zoom_to
         return tb
 
+    def reset_world(self):
+        self.world.reset() # darwin_env overrides this
+
     def reset(self, state=None, video_save_dir=None, render=None, random=0.0, seed=None):
         if seed is None:
             seed = np.random.randint(100000)
         np.random.seed(seed)
 
-        self.world.reset()
+        self.reset_world()
         self.set_state(state, random)
         if self.video_recorder:
             self.close_video_recorder()
