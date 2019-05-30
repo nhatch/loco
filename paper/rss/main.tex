@@ -72,13 +72,13 @@
 \begin{abstract}
   Bipedal locomotion with precise foot placement has previously been achieved only for static gaits, using detailed dynamics models and hierarchical optimization-based planning.
   Meanwhile, learning-based approaches to locomotion, such as deep reinforcement learning, are still too sample-inefficient to achieve the precise foot placement necessary to traverse rough terrain.
-  In this paper, we improve sample efficiency for learning-based control techniques.
-  Our strategy applies to any periodic robotic control task that admits significant prior knowledge.
+  In this paper, we propose a sample-efficient learning-based control technique.
+  Our strategy applies to any periodic \nhatch{why is periodicity necessary?} robotic control task that admits significant prior knowledge.
   First, we engineer a versatile low-level policy (a.k.a. trajectory generator) with interpretable high-level parameters.
   Second, we use a combination of reward shaping, imitation learning, and curriculum learning to train a high-level policy for the control task.
   We evaluate this technique with a simulated bipedal locomotion task over rough terrain.
   To the best of our knowledge, our experiments are the first to achieve such precise foot placement
-  using a fast, non-static gait that requires no optimization during policy execution.
+  using a model-free, non-static gait that requires no optimization during policy execution.
 \end{abstract}
 
 \IEEEpeerreviewmaketitle
@@ -88,9 +88,9 @@
 
 Locomotion is a difficult, underactuated control problem.
 \emph{Bipedal} locomotion is more difficult because the support polygon is small and the center of mass is relatively high.
-bipedal locomotion on \emph{rough terrain} is more difficult still, because frequent large obstacles make even small mistakes catastrophic.
+Bipedal locomotion on \emph{rough terrain} is more difficult still, because frequent large obstacles make even small mistakes catastrophic.
 
-One way to handle these challenges is with detailed models and extensive optimization.
+One way to handle these challenges is with detailed dynamics models.
 For example, the WPI-CMU team in the DARPA Robotics Challenge (DRC) controlled ATLAS using a hierarchical optimization approach that carefully controlled the robot's center of mass (CoM) and center of pressure (CoP) \citep{feng2015optimization}.
 Such approaches tend to be reliable but slow.
 They are physically slow because accurate modeling requires relatively static walking, and also because the optimization procedures are computationally slow.
@@ -111,7 +111,7 @@ As shown in \citet{iscen2018pmtg}, this environmental simplification makes it fe
 
 In this manuscript, we propose several additional ways to simplify robotic learning tasks by taking advantage of prior knowledge.
 Our experiments then demonstrate that these simplifications, taken together, make it feasible to use machine learning for simulated bipedal locomotion over rough terrain.
-In contrast to prior work in footstep planning, our approach learns a dynamic policy that requires no optimization at execution time.
+In contrast to prior work in footstep planning, our approach learns a dynamic, model-free policy that requires no optimization at execution time.
 In contrast to prior work in learning-based locomotion, our learned policy \emph{controls its footstep locations}, which allows it to handle larger and more frequent obstacles.
 Our main contributions are as follows:
 \begin{itemize}
@@ -125,12 +125,12 @@ Our main contributions are as follows:
 
 \subsection{Step planning}
 
-Many approaches to locomotion on physical robots use optimization-based planning with detailed models.
+Many approaches to locomotion on physical robots use optimization-based planning with detailed dynamics models.
 These approaches tend to generate \emph{hierarchical} plans in order to reduce computational requirements.
 At the highest level, the planner chooses footstep locations using e.g. A* search~\citep{huang2013step}.
-Based on the footstep plan, a lower-level planner generates a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum~\citep{mordatch2010robust} or contact wrench cone~\citep{dai2016planning}.
+Based on the footstep plan, a lower-level planner optimizes a CoM trajectory with a simplified physics model such as a spring-loaded inverted pendulum~\citep{mordatch2010robust} or contact wrench cone~\citep{dai2016planning}.
 Next, inverse kinematics are used to plan trajectories for end-effectors \citep{zucker2010optimization}.
-Finally, these trajectories are optimized using the full dynamics model to account for obstacles and other details~\citep{ratliff2009chomp}.
+Finally, these trajectories are fine-tuned using the full dynamics model to account for obstacles and other details~\citep{ratliff2009chomp}.
 
 Hierarchical optimization approaches tend to be reliable but slow; e.g. four seconds per step in \citet{feng2015optimization}.
 This is because static walking is easier to model and optimization takes a lot of computation time.
@@ -142,8 +142,9 @@ However, we are interested in exploring alternative possibilities that can explo
 
 There are a few prior works that use learning-based approaches to do step planning for simulated systems.
 \citet{peng2017deeploco} use a hierarchical reinforcement learning algorithm where the upper-level controller chooses footstep locations and the lower-level controller tries to execute those plans.
-However, this strategy produces target step locations that are unrealistic and rarely actually achieved.
+However, in their experiments this strategy produces target step locations that are unrealistic and rarely actually achieved.
 The path that the agent follows is perfectly flat; on rough terrain, such inaccurate step planning would probably fail.
+\nhatch{TODO: expand upon why it probably still wouldn't work even if trained in rough-terrain environments}
 \citet{karpathy2012curriculum} use curriculum learning for a simple planar biped to collect a set of (state, action, resulting step distance) tuples.
 The final policy is based on nearest-neighbor search among this set of collected experience.
 However, the curse of dimensionality for nearest-neighbor search
@@ -154,7 +155,9 @@ makes it infeasible to apply this approach to a more complicated model.
 Most prior work on deep RL for bipedal locomotion on rough terrain does not explicitly plan individual footstep locations \citep{peng2018deepmimic, heess2017emergence, peng2016terrain}.
 The resulting policies travel forward quickly, avoid certain obstacles, and are robust to small missteps.
 However, they have not been shown to work in situations with dense or large obstacles where small missteps can be catastrophic.
-Such environments require accurate predictive planning at the level of individual contacts.
+Such environments require accurate predictive planning \nhatch{not planning exactly . . . planning implies multi-time-step optimization I think} at the level of individual contacts.
+
+\nhatch{TODO: add a dedicated discussion of MACE, which has the roughest terrain of all of this related work. Why can't it handle my version of rough terrain? Maybe also directly discuss Heess et al., why it also does not handle rough terrain}
 
 Perhaps the most closely related prior work is \citet{iscen2018pmtg}.
 As described in Section~\ref{sec:intro}, PMTGs use a trajectory generator to simplify the environment when learning challenging tasks, such as controllable robot locomotion.
@@ -162,6 +165,7 @@ This allows the HLP to use a very simple hypothesis class (e.g. linear) and a ve
 However, PMTG has been applied only to control walking speed for a quadruped on flat ground.
 The policy architecture in our work is similar to PMTG in that we learn a high-level policy that modulates a TG.
 However, one important difference is that in our work, the HLP and the TG run at different frequencies.
+\nhatch{Biped locomotion rough terrain is also, just, a more difficult problem}
 In the next section, we give a detailed description of the differences.
 
 \section{Our approach} \label{sec:approach}
@@ -212,7 +216,7 @@ For more details, see Appendix \ref{app:simbicon} in the supplemental material.}
     This allows the HLP to use the swing ankle to influence the robot's initial acceleration while still returing to a more neutral angle before heel-strike.
 
   \item Instead of a 0.3s delay, start the DOWN state when both the swing heel and the CoM are within a certain \emph{distance} of the target heel-strike location.\footnote{
-    If the swing foot hits the ground early, the step immediately ends.}
+    If the swing foot hits the ground early, the step immediately ends.\nhatch{i.e. switch immediately to the next UP state}}
     This distance is proportional to the CoM speed, where the proportionality constant (gain) is controlled by the parameter \texttt{down\_gain}.
     Getting the swing heel close enough to the target is important to ensure that the DOWN state accurately hits the target.
     Getting the CoM close enough is important to ensure that the heel strike will propel the robot forward rather than backward.
@@ -253,7 +257,7 @@ Its input is the robot and environment state plus any control input to indicate 
 Its output is a set of TG parameters.
 With a well-designed TG, the policy class for the HLP can be very simple.
 For example, in the locomotion experiments below, the control input is the location of the next footstep target,
-and we use a linear hypothesis class for the HLP.
+and we use a linear \nhatch{TODO} hypothesis class for the HLP.
 
 Assuming we have specified a reward function that usefully describes our learning objective, the next question is how to train this policy.
 One option would be to use the same algorithms as \citet{iscen2018pmtg}: reinforcement learning algorithms or evolutionary strategies.
@@ -268,7 +272,7 @@ Given an \emph{expert}---a policy that can choose good actions for any given sta
 a standard IL algorithm such as DAgger \citep{ross2011reduction} to generalize to a fast policy.
 
 Due to the unusual policy architecture of CIM, it is unlikely that preexisting experts exist,
-so CIM designs its own.
+so CIM designs its own \nhatch{this makes no sense\dots\emph{I} designed the expert}.
 For general RL problems, this would be difficult because of the infamous \emph{credit assignment problem}:
 sometimes, an action in an early part of an episode can leave the robot in a bad position to achieve the desired result in later parts.
 %Such an action is in fact a bad action, even if the robot does achieve the desired result during the earlier period.
@@ -289,9 +293,9 @@ Then the reward for this action is
 \[
 r(\mathbf{s},\mathbf{a}) := 1 - \norm{\mathbf{f}_{heel} - \mathbf{t}}_2 - \max\{|\delta-0.1|-0.1, 0\}
 \]
-The final term is the \emph{balance penalty}, ensuring that for high-reward actions, the CoM must be approximately ten centimeters behind the heel-strike location.
+The final term is the \emph{balance penalty}, ensuring that for high-reward actions, the CoM must be approximately ten centimeters behind the heel-strike location.\nhatch{explain why there's no $\lambda$ balancing the weights of these terms}
 
-Given a state $\mathbf{s}$, the expert attempts to find a good action $\mathbf{a}$ using random search, specifically Augmented Random Search (ARS) \citep{mania2018simple}.
+Given a state $\mathbf{s}$, the expert attempts to find a good action $\mathbf{a}$ using random search, specifically Augmented Random Search (ARS) \citep{mania2018simple}. \nhatch{TODO update}
 At each iteration, we estimate gradients for the objective $r(\mathbf s, \mathbf a)$ as a weighted average of $Q$ random directions, then take a step in that direction.
 We stop iterating once the accuracy reaches two centimeters ($r \geq 0.98$), or once a certain maximum number of iterations (in our case, five) is reached.
 
@@ -416,7 +420,7 @@ Moreover, it further simplifies the learning problem by (1) using a temporally a
 
 In particular, CIM is an intriguing direction for bipedal locomotion research.
 To the best of our knowledge, our experiments are the first to achieve such precise foot placement
-using a fast, non-static gait that requires no optimization during policy execution.
+using a model-free, non-static gait that requires no optimization during policy execution.
 However, one significant limitation of our work so far is that all experiments were performed in simulation.
 In future work, we plan to investigate how to transfer policies trained with CIM to real-world bipedal robots.
 We also plan to investigate whether it helps to have an \emph{adaptive} curriculum that adjusts to the learner's current ability.
