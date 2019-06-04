@@ -247,12 +247,13 @@ class Simbicon(PDController):
                 tq[self.stance_idx+c.HIP_ROLL] += 0.1 if self.stance_idx == c.LEFT_IDX else -0.1
             else:
                 tq[self.stance_idx] = hip_dofs
-        else:
+        if self.env.is_3D:
             # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
             extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
             if self.stance_idx == c.RIGHT_IDX:
                 extra_roll *= -1
             tq[self.stance_idx+c.HIP_ROLL] += extra_roll
+            tq[self.swing_idx+c.HIP_ROLL] -= extra_roll
 
         # Make modifications to control torso pitch
         virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)

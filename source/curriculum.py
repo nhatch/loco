@@ -103,7 +103,6 @@ TRAIN_SETTINGS_3D = {
             sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
             sp.STANCE_HIP_ROLL_EXTRA,
             sp.UP_IDX+sp.SWING_HIP_WORLD,
-            sp.POSITION_BALANCE_GAIN_LAT,
             ]),
     'observable_features': o3d,
     'model_class': 'linear',
