@@ -65,8 +65,8 @@ class Experiment:
             for i in range(self.n_eval_trajectories):
                 print("Starting evaluation", i)
                 render = None
-                #if i == 0:
-                #    render = 1 # For human consumption
+                if i == 0:
+                    render = 1 # For human consumption
                 result = self.learn.evaluate(render=render)
                 for k in KEYS_TO_SAVE:
                     results[k].append(result[k])
@@ -97,10 +97,9 @@ def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
-    ex = Experiment(env, LearnInverseDynamics, "cim_3D_"+uq_id, ['SETTINGS_3D_MEDIUM', 'SETTINGS_3D_HARD'])
+    ex = Experiment(env, LearnInverseDynamics, "test_cim_3D_"+uq_id, ['SETTINGS_3D_HARD'])
     ex.run_iters(5, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(15, cur.SETTINGS_3D_MEDIUM, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(6, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(21, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PLUS)
 
 def ex_2D_cim(uq_id):
@@ -145,4 +144,4 @@ if __name__ == '__main__':
         from test_inverse_dynamics import *
         embed()
     else:
-        ex_2D_cma(UQ_ID)
+        ex_3D(UQ_ID)

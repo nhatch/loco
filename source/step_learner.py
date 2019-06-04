@@ -3,6 +3,7 @@ import numpy as np
 from IPython import embed
 import cma_wrapper
 import curriculum as cur
+from evaluator import Evaluator
 import simbicon_params as sp
 import utils
 
@@ -28,26 +29,22 @@ class Runner:
         self.env.sdf_loader.put_grounds(self.grounds)
 
 def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
-    # Two short steps, then a long step. This causes issues for the basic SIMBICON
-    # controller, if the next step is another short step. This is because the
-    # velocity-based swing hip correction tends to overcorrect so that the robot
-    # steps far past the next target.
     env.reset(video_save_dir=video_save_dir, render=1.0)
     if use_stepping_stones:
         env.sdf_loader.put_grounds(targets)
     else:
         env.sdf_loader.put_grounds(targets[:1])
     env.render()
-    for t in targets[1:-1]:
+    steps = targets[2:-1] if env.is_3D else targets[1:-1] # TODO refactor so 2D also uses Evaluator
+    for t in steps:
         end_state, _ = env.simulate(t, target_heading=0.0, put_dots=True)
         env.render()
     env.clear_skeletons()
     return end_state
 
 def learn_last_move(env, opzer, targets, video_save_dir=None):
-    stones = not env.is_3D
-    start_state = collect_start_state(env, targets, video_save_dir, use_stepping_stones=stones)
-    runner = Runner(env, start_state, targets[-1], use_stepping_stones=stones)
+    start_state = collect_start_state(env, targets, video_save_dir)
+    runner = Runner(env, start_state, targets[-1])
     settings = cur.TRAIN_SETTINGS_3D if env.is_3D else cur.TRAIN_SETTINGS_2D
     opzer.reset()
     return opzer.optimize(runner, np.zeros((sp.N_PARAMS,1)), settings)
@@ -67,18 +64,23 @@ def test_3D(video_save_dir):
     from simple_3D_env import Simple3DEnv
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
+    evaluator = Evaluator(env)
+    settings = cur.SETTINGS_3D_EASY
+    settings['n_steps'] = 3
+    evaluator.set_eval_settings(settings)
+    start_state = env.reset()
+    BASIC_3D = evaluator.generate_targets(start_state)
     opzer = cma_wrapper.CMAWrapper()
     GY = env.consts().GROUND_LEVEL
+    learn_last_move(env, opzer, BASIC_3D[:-1], video_save_dir=video_save_dir)
+    env.simulate(BASIC_3D[-1], 0.0)
+    #env.clear_skeletons()
     # LONG_STEP is a little too hard, but BASIC at least should be learnable
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
-    BASIC_3D = np.array([[0, GY, 0], [0.2, GY, 0.1], [0.7, GY, -0.1], [1.2, GY, 0.1]])
-    learn_last_move(env, opzer, BASIC_3D, video_save_dir=video_save_dir)
-    env.simulate([1.7, -.9, -.1], 0.3)
-    #env.clear_skeletons()
     #learn_last_move(env, opzer, LONG_STEP_3D, video_save_dir=video_save_dir)
-    #env.simulate([1.7, -.9, -.1], 0.3)
+    #env.simulate([1.7, -.9, -.1], 0.0)
 
 if __name__ == '__main__':
-    test_2D()
+    #test_2D()
     test_3D(None)
     embed()

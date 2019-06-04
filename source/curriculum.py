@@ -103,6 +103,7 @@ TRAIN_SETTINGS_3D = {
             sp.UP_IDX+sp.SWING_ANKLE_RELATIVE,
             sp.STANCE_HIP_ROLL_EXTRA,
             sp.UP_IDX+sp.SWING_HIP_WORLD,
+            sp.POSITION_BALANCE_GAIN_LAT,
             ]),
     'observable_features': o3d,
     'model_class': 'linear',
@@ -113,30 +114,21 @@ TRAIN_SETTINGS_3D_PLUS = {**TRAIN_SETTINGS_3D,
     }
 
 SETTINGS_3D_EASY = {
-    'use_stepping_stones': False,
+    'use_stepping_stones': True,
+    'ground_length': 0.3,
+    'ground_width': 0.2,
     'dist_mean': 0.35,
     'dist_spread': 0.0,
     'tol': 0.05,
     'n_steps': 16,
-    'z_mean': 0.4,
+    'z_mean': 0.5,
     'z_spread': 0.0,
     'y_mean': 0.0,
     'y_spread': 0.0,
     }
 
-SETTINGS_3D_MEDIUM = {**SETTINGS_3D_EASY,
+SETTINGS_3D_HARD = {**SETTINGS_3D_EASY,
     'dist_spread': 0.2,
     'z_spread': 0.1,
-    }
-
-SETTINGS_3D_HARD = {**SETTINGS_3D_MEDIUM,
-    'use_stepping_stones': True,
-    'ground_length': 0.3,
-    'ground_width': 0.2,
-    }
-
-SETTINGS_3D_HARDER = {**SETTINGS_3D_HARD,
-    'dist_spread': 0.5,
-    'z_spread': 0.2,
     }
 

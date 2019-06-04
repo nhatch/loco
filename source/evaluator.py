@@ -1,6 +1,7 @@
 import numpy as np
 import utils
 from sdf_loader import GREEN
+from IPython import embed
 
 class Evaluator:
     def __init__(self, env):
@@ -71,14 +72,16 @@ class Evaluator:
     def generate_targets(self, start_state):
         s = self.eval_settings
         targets = start_state.starting_platforms()
+        current_swing_left = start_state.swing_left
         next_target = targets[-1]
         # TODO should we make the first step a bit shorter, since we're starting from "rest"?
         for i in range(s['n_steps']):
             dx = s['dist_mean'] + s['dist_spread'] * (np.random.uniform() - 0.5)
             dy = s['y_mean'] + s['y_spread'] * (np.random.uniform() - 0.5)
             dz = s['z_mean'] + s['z_spread'] * (np.random.uniform() - 0.5)
-            if i % 2 == 1:
+            if current_swing_left:
                 dz *= -1
+            current_swing_left = not current_swing_left
             next_target = next_target + [dx, dy, dz]
             targets.append(next_target)
         # Return value includes the two starting platforms
