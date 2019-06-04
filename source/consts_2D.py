@@ -86,6 +86,7 @@ def root_dofs_from_transform(transform):
     return np.array([translation[0], translation[1]-1.25, euler[2]])
 
 DEFAULT_GROUND_WIDTH = 0.5
+GROUND_OFFSET = 0.02
 DOT_RADIUS = 0.08
 
 def ankle_dofs_from_transform(_, relative_transform):

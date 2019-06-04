@@ -16,7 +16,7 @@ BLUE = "0.4 0.4 1 1"
 class SDFLoader:
     def __init__(self, consts):
         self.ground_length = 10.0
-        self.ground_offset = 0.02
+        self.ground_offset = consts.GROUND_OFFSET
         self.ground_thickness = 0.05
         self.ground_width = consts.DEFAULT_GROUND_WIDTH
         self.consts = consts

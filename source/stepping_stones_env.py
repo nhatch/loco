@@ -152,7 +152,10 @@ class SteppingStonesEnv:
         elif crashed or obs.crashed():
             return obs, True, "ERROR: Crashed"
         elif step_complete:
-            return obs, False, status_string
+            terminate = np.linalg.norm(obs.stance_platform() - obs.stance_heel_location()) > 0.12
+            if terminate:
+                print("ERROR: Missed target by more than 12 cm")
+            return obs, terminate, status_string
         else:
             self.world.step()
             return None, False, stance_contact

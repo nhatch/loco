@@ -121,7 +121,7 @@ SETTINGS_3D_EASY = {
     'dist_spread': 0.0,
     'tol': 0.05,
     'n_steps': 16,
-    'z_mean': 0.5,
+    'z_mean': 0.4,
     'z_spread': 0.0,
     'y_mean': 0.0,
     'y_spread': 0.0,

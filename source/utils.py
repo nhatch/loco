@@ -28,10 +28,11 @@ def reward(controller, state):
     # Balance penalty: Having the COM far away from the stance foot is bad
     com_dist = controller.distance_to_go(state.pose()[:3])
     heel_dist = controller.distance_to_go(state.stance_heel_location())
-    if heel_dist - com_dist > 0.0: # COM is past the heel
-        score -= heel_dist - com_dist
-    if com_dist - heel_dist > 0.2: # COM is far behind the heel
-        score -= com_dist - heel_dist - 0.2
+    d = com_dist - heel_dist
+    if d < 0.03: # COM is less than 5cm behind the heel
+        score -= (0.03-d)
+    if d > 0.2: # COM is far behind the heel
+        score -= (d-0.2)
     return score
 
 def rotmatrix(theta):

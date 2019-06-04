@@ -35,3 +35,4 @@ absolute_rotation_indices = [Z, ROOT_YAW, ROOT_ROLL,
         TORSO_ROLL]
 
 DEFAULT_GROUND_WIDTH = 2.0
+GROUND_OFFSET = 0.04
