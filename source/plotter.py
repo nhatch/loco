@@ -2,6 +2,7 @@ from IPython import embed
 from experiment import Experiment
 from inverse_dynamics import LearnInverseDynamics
 from rs_baseline import RandomSearchBaseline
+from cma_baseline import CMABaseline
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -13,8 +14,10 @@ SETTINGS = {
         "cim_final_easy": ["green", "CIM", LearnInverseDynamics, [5,6,7,8], 'SETTINGS_2D_EASY'],
         "cim_final": ["green", "CIM", LearnInverseDynamics, [17,18,19,20], 'SETTINGS_2D_HARD'],
         "test_cim_final": ["magenta", "Test CIM", LearnInverseDynamics, [12,13,14,15], 'SETTINGS_2D_HARD'],
+        "cma_baseline": ["black", "CMA individual step", CMABaseline, [0], 'SETTINGS_2D_EASY'],
         "cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
         "3D_test": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
+        "test_cim_3D": ["green", "CIM", LearnInverseDynamics, [1], 'SETTINGS_3D_HARD'],
         "rs_final": ["purple", "ARS baseline", RandomSearchBaseline, [13,14,15,16], 'SETTINGS_2D_EASY'],
         "nocur_final": ["blue", "No curriculum", LearnInverseDynamics, [9,10,11,12], 'SETTINGS_2D_HARD'],
         }
@@ -93,6 +96,6 @@ def all_single_seeds():
             plot_single_seed(exp_name, seed)
 
 if __name__ == '__main__':
-    gen_figures()
-    #plot_single_seed('3D_test', 1)
-    all_single_seeds()
+    #gen_figures()
+    plot_single_seed('test_cim_3D', 1)
+    #all_single_seeds()
