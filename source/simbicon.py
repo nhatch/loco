@@ -250,8 +250,6 @@ class Simbicon(PDController):
         if self.env.is_3D:
             # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
             extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
-            if self.stance_idx == c.RIGHT_IDX:
-                extra_roll *= -1
             tq[self.stance_idx+c.HIP_ROLL] += extra_roll
             tq[self.swing_idx+c.HIP_ROLL] -= extra_roll
 
