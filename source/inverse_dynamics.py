@@ -90,7 +90,7 @@ class LearnInverseDynamics:
         experience = []
         s = self.train_settings
         for i in range(s['n_trajectories']):
-            r = self.evaluate(max_intolerable_steps=s['max_intolerable_steps'], render=1)
+            r = self.evaluate(render=1)
             experience += self.evaluator.experience
             self.total_steps += r['n_steps']
         return experience

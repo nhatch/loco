@@ -29,7 +29,8 @@ def reward(controller, state):
     com_dist = controller.distance_to_go(state.pose()[:3])
     heel_dist = controller.distance_to_go(state.stance_heel_location())
     d = com_dist - heel_dist
-    if d < 0.03: # COM is less than 5cm behind the heel
+    # TODO: should set this to 0.0 for 2D model. Otherwise it learns "stompy" gaits.
+    if d < 0.03: # COM is less than 3cm behind the heel
         score -= (0.03-d)
     if d > 0.2: # COM is far behind the heel
         score -= (d-0.2)
