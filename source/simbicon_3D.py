@@ -58,7 +58,7 @@ class Simbicon3D(Simbicon):
             cv = 0
         balance_feedback = -(cd*d[Z] + cv*v[Z])
 
-        tq[self.swing_idx+HIP_ROLL] = balance_feedback - q[ROOT_ROLL]
+        tq[self.swing_idx+HIP_ROLL] += balance_feedback - q[ROOT_ROLL]
         tq[self.stance_idx+ANKLE_ROLL] += params[STANCE_ANKLE_ROLL]
         tq[self.swing_idx+ANKLE_ROLL] += params[SWING_ANKLE_ROLL]
 
