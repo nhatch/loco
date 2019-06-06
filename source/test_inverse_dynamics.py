@@ -7,7 +7,6 @@ import curriculum as cur
 
 TRAIN_SETTINGS_3D_TEST = {**cur.TRAIN_SETTINGS_3D,
     'n_trajectories': 1,
-    'max_intolerable_steps': 2,
     }
 
 def retrieve_index(learn, i=None):

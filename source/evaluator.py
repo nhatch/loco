@@ -17,7 +17,7 @@ class Evaluator:
             self.env.sdf_loader.ground_width = self.env.consts().DEFAULT_GROUND_WIDTH
         self.env.clear_skeletons()
 
-    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=None):
+    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=1):
         s = self.eval_settings
         seed = seed or np.random.randint(100000)
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
@@ -46,7 +46,7 @@ class Evaluator:
             total_reward += reward
             # In RL terms, (state,target) is the state.
             experience.append((state.extract_features(target), action, reward))
-            if (max_intolerable_steps is not None) and (error > s['tol']):
+            if (max_intolerable_steps is not None) and (error > s['termination_tol']):
                 num_intolerable_steps += 1
                 terminate_early = (num_intolerable_steps >= max_intolerable_steps)
                 terminated = terminated or terminate_early

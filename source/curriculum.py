@@ -19,7 +19,6 @@ TRAIN_SETTINGS_2D = {
     'n_dirs': 4,
     'tol': 0.02,
     'max_iters': 5,
-    'max_intolerable_steps': 4,
     'controllable_params':
         build_mask(sp.N_PARAMS,
             [
@@ -68,7 +67,7 @@ SETTINGS_2D_EASY = {
     'dist_mean': 0.45,
     'dist_spread': 0.15,
     'n_steps': 16,
-    'tol': 0.02,
+    'termination_tol': 0.07,
     'z_mean': 0.0,
     'z_spread': 0.0,
     'y_mean': 0.0,
@@ -95,7 +94,6 @@ TRAIN_SETTINGS_3D = {
     'n_dirs': 8,
     'tol': 0.05,
     'max_iters': 8,
-    'max_intolerable_steps': 3,
     'controllable_params':
         build_mask(sp.N_PARAMS,
             [
@@ -118,7 +116,7 @@ SETTINGS_3D_EASY = {
     'ground_width': 0.2,
     'dist_mean': 0.35,
     'dist_spread': 0.0,
-    'tol': 0.05,
+    'termination_tol': 0.12,
     'n_steps': 16,
     'z_mean': 0.4,
     'z_spread': 0.0,
