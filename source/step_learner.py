@@ -24,9 +24,11 @@ class Runner:
             self.env.pause(0.3)
         return utils.reward(self.env.controller, r)
 
-    def reset(self, video_save_dir=None, render=None):
+    def reset(self, video_save_dir=None, render=1):
         self.env.reset(self.start_state, video_save_dir=video_save_dir, render=render)
         self.env.sdf_loader.put_grounds(self.grounds)
+        if render is not None:
+            self.env.render()
 
 def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
     env.reset(video_save_dir=video_save_dir, render=1.0)
