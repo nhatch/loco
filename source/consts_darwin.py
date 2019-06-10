@@ -87,7 +87,7 @@ CONTROL_BOUNDS = np.array([-7.5*np.ones(20,), 7.5*np.ones(20,)])
 
 KP_GAIN = np.array([154.019]*20)
 KD_GAIN = np.array([0.1002]*20)
-KP_GAIN /= 8 # TODO figure out how to achieve this effect without modifying the gains
+#KP_GAIN /= 8 # TODO figure out how to achieve this effect without modifying the gains
 
 FOOT_RADIUS = 0.004
 L_FOOT = 0.104
@@ -176,4 +176,9 @@ LIMITS = [
                 -np.pi/6, 100/180*np.pi),
             ('j_thigh2_l', 16,
                 -100/180*np.pi, np.pi/6),
+            # I further constrained these yaw angles relative to the doc above (30/30 vs 150/45)
+            ('j_pelvis_r', 20,
+                -np.pi/6, np.pi/6),
+            ('j_pelvis_l', 14,
+                -np.pi/6, np.pi/6),
          ]

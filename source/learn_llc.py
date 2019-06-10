@@ -45,9 +45,10 @@ def test(env, length, param_setting, render=None, n=50, terminate_on_slip=True):
     dist = c.stance_heel[0]
     penalty += np.abs(dist - i*length)
     penalty += np.abs(obs.pose()[env.consts().ROOT_PITCH]) # Stay upright
+    penalty += n_float / 100
     if render is not None:
         print("Distance achieved:", dist, "Penalty:", penalty)
-    return -i*length + penalty
+    return penalty - dist#i*length # AAAAAAAAAAGH
 
 def embed_action(action):
     params = np.zeros(sp.N_PARAMS)
@@ -138,16 +139,13 @@ b5 = np.array([
 6.731144574614608689e-02,
 ]).reshape((-1, 1))
 
-EMBED_B5 = embed_action(b5)
+#EMBED_B5 = embed_action(b5)
 
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
     env = DarwinEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    p = np.zeros(len(controllable_params))
-    #test(env, REFERENCE_STEP_LENGTH, p, r=8)
-    b_ckpt = np.loadtxt('data/learn_llc/mean.txt')
-    opzer = init_opzer(env, b2)
-    opzer.f(b5, render=2, terminate_on_slip=False)
-    #learn(opzer, 300)
+    #b_ckpt = np.loadtxt('data/learn_llc/mean.txt')
+    opzer = init_opzer(env, b0)
+    learn(opzer, 300)
     embed()
