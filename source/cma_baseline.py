@@ -32,9 +32,10 @@ class CMABaseline(RandomSearchBaseline):
         experience = self.evaluator.experience
         cp = self.train_settings['controllable_params']
         runners = []
-        for features,_,_ in experience:
-            start_state, target = reconstruct_state(features, self.env.consts())
-            runners.append((features, Runner(self.env, start_state, target)))
+        for start_state, target, raw_pose_start, _, _ in experience:
+            features = start_state.extract_features(target)
+            runner = Runner(self.env, start_state, target, raw_pose_start=raw_pose_start)
+            runners.append((features, runner))
         def f(coef, video_save_dir=None, render=None):
             full_coef = self.squarify(coef)
             total_reward = 0.0

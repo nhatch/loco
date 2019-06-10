@@ -40,12 +40,18 @@ class Evaluator:
             target = targets[2+i]
             features = state.extract_features(target)
             action = policy(features)
+            raw_pose_start = self.env.robot_skeleton.x
             end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
             reward = utils.reward(self.env.controller, end_state)
             total_reward += reward
-            # In RL terms, (state,target) is the state.
-            experience.append((state.extract_features(target), action, reward))
+            # Actually `state` is just an observation. (In the "armless" model, for example,
+            # it's missing info from two DOFs.) So we also include `raw_pose_start` so that
+            # learning in simulation can accurately reset to the starting state.
+            # In RL terms, (state,target,raw_pose_start) is the state.
+            # To turn this into a vector suitable for ML processing, use
+            # state.extract_features(target).
+            experience.append((state, target, raw_pose_start, action, reward))
             if (max_intolerable_steps is not None) and (error > s['termination_tol']):
                 num_intolerable_steps += 1
                 terminate_early = (num_intolerable_steps >= max_intolerable_steps)

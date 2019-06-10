@@ -84,14 +84,18 @@ class State:
         if self.consts.BRICK_DOF == 6:
             # So it's still centered properly in the viewer later.
             # (The viewer doesn't currently adjust for Y coordinate.)
-            new_origin[1] += 0.9
+            new_origin[1] -= self.consts.GROUND_LEVEL
         copy.translate(new_origin)
         target -= new_origin
 
-        if self.consts.BRICK_DOF == 6:
-            angle = copy.raw_state[self.consts.ROOT_YAW]
-            rot = copy.rotate(-angle)
-            target[:3] = np.dot(rot, target[:3])
+        # This actually loses some important information (namely target_heading
+        # relative to the direction the robot's actually going). Until I can remove
+        # the dependence of Simbicon3D on knowing the target direction, I'm just going
+        # to keep that angle as part of the state (by removing these lines of code).
+        #if self.consts.BRICK_DOF == 6:
+        #    angle = copy.raw_state[self.consts.ROOT_YAW]
+        #    rot = copy.rotate(-angle)
+        #    target[:3] = np.dot(rot, target[:3])
 
         return np.concatenate([copy.raw_state, target])
 

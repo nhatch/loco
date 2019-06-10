@@ -8,9 +8,10 @@ import simbicon_params as sp
 import utils
 
 class Runner:
-    def __init__(self, env, start_state, target, use_stepping_stones=True):
+    def __init__(self, env, start_state, target, use_stepping_stones=True, raw_pose_start=None):
         self.env = env
         self.start_state = start_state
+        self.raw_pose_start = raw_pose_start
         self.grounds = start_state.starting_platforms() + [target]
         if not use_stepping_stones:
             self.grounds = self.grounds[:1]
@@ -27,6 +28,8 @@ class Runner:
     def reset(self, video_save_dir=None, render=1):
         self.env.reset(self.start_state, video_save_dir=video_save_dir, render=render)
         self.env.sdf_loader.put_grounds(self.grounds)
+        if self.raw_pose_start is not None:
+            self.env.robot_skeleton.x = self.raw_pose_start
         if render is not None:
             self.env.render()
 

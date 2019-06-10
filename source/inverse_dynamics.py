@@ -98,25 +98,25 @@ class LearnInverseDynamics:
     def expert_annotate(self, experience):
         self.env.clear_skeletons()
         total = len(experience)
-        for i, (state, action, reward) in enumerate(experience):
+        for i, (state, target, raw_pose_start, action, reward) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
             if reward < 1-self.train_settings['tol']:
-                action = self.learn_action(state, action)
+                action = self.learn_action(state, target, raw_pose_start, action)
             if action is None:
                 # Random search couldn't find a good enough action; don't use this for training.
                 self.total_failed_annotations += 1
             else:
                 # The action is good enough; use this (state, action) pair for training.
-                self.train_features.append(state)
+                self.train_features.append(state.extract_features(target))
                 # We don't need to mirror the action, because Simbicon3D already handled that
                 # during random search.
                 self.train_responses.append(action)
         self.env.clear_skeletons()
 
-    def learn_action(self, features, action):
-        start_state, target = reconstruct_state(features, self.env.consts())
+    def learn_action(self, start_state, target, raw_pose_start, action):
         runner = Runner(self.env, start_state, target,
-                use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'])
+                use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'],
+                raw_pose_start=raw_pose_start)
         opzer = cma_wrapper.CMAWrapper()
         opzer.reset()
         learned_action = opzer.optimize(runner, action.reshape((-1,1)), self.train_settings)
