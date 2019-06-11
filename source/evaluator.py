@@ -51,7 +51,8 @@ class Evaluator:
             # In RL terms, (state,target,raw_pose_start) is the state.
             # To turn this into a vector suitable for ML processing, use
             # state.extract_features(target).
-            experience.append((state, target, raw_pose_start, action, reward))
+            debug_info = (seed, i)
+            experience.append((state, target, raw_pose_start, action, reward, debug_info))
             if (max_intolerable_steps is not None) and (error > s['termination_tol']):
                 num_intolerable_steps += 1
                 terminate_early = (num_intolerable_steps >= max_intolerable_steps)

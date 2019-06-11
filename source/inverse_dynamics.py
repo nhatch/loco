@@ -98,7 +98,7 @@ class LearnInverseDynamics:
     def expert_annotate(self, experience):
         self.env.clear_skeletons()
         total = len(experience)
-        for i, (state, target, raw_pose_start, action, reward) in enumerate(experience):
+        for i, (state, target, raw_pose_start, action, reward, debug_info) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
             if reward < 1-self.train_settings['tol']:
                 action = self.learn_action(state, target, raw_pose_start, action)
@@ -114,9 +114,7 @@ class LearnInverseDynamics:
         self.env.clear_skeletons()
 
     def learn_action(self, start_state, target, raw_pose_start, action):
-        runner = Runner(self.env, start_state, target,
-                use_stepping_stones=self.evaluator.eval_settings['use_stepping_stones'],
-                raw_pose_start=raw_pose_start)
+        runner = Runner(self.env, start_state, target, raw_pose_start=raw_pose_start)
         opzer = cma_wrapper.CMAWrapper()
         opzer.reset()
         learned_action = opzer.optimize(runner, action.reshape((-1,1)), self.train_settings)

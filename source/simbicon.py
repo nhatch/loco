@@ -70,7 +70,7 @@ class Simbicon(PDController):
         if raw_gait is not None:
             if len(raw_gait) < sp.N_PARAMS:
                 # For backwards compatibility (if we add new Simbicon params later)
-                raw_gait = np.concatenate((raw_gait, [0.]*(len(raw_gait) - sp.N_PARAMS)))
+                raw_gait = np.concatenate((raw_gait, [0.]*(sp.N_PARAMS - len(raw_gait))))
             params += raw_gait * sp.PARAM_SCALE
         self.set_gait(Params(params))
 

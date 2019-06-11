@@ -97,7 +97,6 @@ def all_single_seeds():
 
 if __name__ == '__main__':
     #gen_figures()
-    plot_single_seed('test_cim_3D', 1)
-    plot_single_seed('test_cim_3D', 2)
+    plot_single_seed('test_cim_3D', 6)
     plot_single_seed('test_cim_final', 'test')
     #all_single_seeds()

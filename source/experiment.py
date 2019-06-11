@@ -138,9 +138,9 @@ def ex_2D_cma(uq_id):
 if __name__ == '__main__':
     UQ_ID = sys.argv[1]
     if UQ_ID == 'load':
-        from stepping_stones_env import SteppingStonesEnv
-        env = SteppingStonesEnv()
-        ex = Experiment(env, LearnInverseDynamics, sys.argv[2], ['SETTINGS_2D_HARD'])
+        from simple_3D_env import Simple3DEnv
+        env = Simple3DEnv()
+        ex = Experiment(env, LearnInverseDynamics, sys.argv[2], ['SETTINGS_3D_HARD'])
         from test_inverse_dynamics import *
         embed()
     else:

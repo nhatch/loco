@@ -32,7 +32,7 @@ class CMABaseline(RandomSearchBaseline):
         experience = self.evaluator.experience
         cp = self.train_settings['controllable_params']
         runners = []
-        for start_state, target, raw_pose_start, _, _ in experience:
+        for start_state, target, raw_pose_start, _, _, _ in experience:
             features = start_state.extract_features(target)
             runner = Runner(self.env, start_state, target, raw_pose_start=raw_pose_start)
             runners.append((features, runner))
