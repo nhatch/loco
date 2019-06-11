@@ -98,8 +98,8 @@ def ex_3D(uq_id):
     from simbicon_3D import Simbicon3D
     env = Simple3DEnv(Simbicon3D)
     ex = Experiment(env, LearnInverseDynamics, "test_cim_3D_"+uq_id, ['SETTINGS_3D_HARD'])
-    ex.run_iters(5, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
-    ex.run_iters(21, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(3, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PLUS)
 
 def ex_2D_cim(uq_id):
