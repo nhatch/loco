@@ -103,7 +103,7 @@ def t_simple():
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv(Simbicon3D)
     env.sdf_loader.ground_width = 8.0
-    test(env, 0.5, delta_a=0.33, n=8)
+    test(env, 0.5, delta_a=0., n=8)
 
 def t_darwin():
     from darwin_env import DarwinEnv

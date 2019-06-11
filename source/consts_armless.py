@@ -107,4 +107,5 @@ BASE_GAIT = np.array([0.14, 0.5, 0.2, -0.1, 0.2,
                       0.4, -1.1,   0.0, -0.05,
                       -0.0, -0.00, 0.1, -0.1,
                       0.5, 0.2, 0.0, 0.0, 0.0, 0.0,
-                      0.0]) # This last one is only used for Darwin
+                      0.0, # This one is only used for Darwin
+                      0.0])

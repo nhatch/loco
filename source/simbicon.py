@@ -241,6 +241,17 @@ class Simbicon(PDController):
             hip_dofs = self.ik.get_hip(self.stance_idx, target_orientation)
             if self.env.is_3D:
                 tq[self.stance_idx:self.stance_idx+3] = hip_dofs
+                # It turns out that this "virtual target" for stance hip angles causes
+                # extreme instability when the stance foot does not have enough friction
+                # with the ground. To fix this, we ignore the virtual target for the yaw
+                # angle and instead directly set that target using a parameter.
+                # TODO: This breaks the ability of Simbicon3D to turn (i.e. follow
+                # a target heading). Can we repair that by using this parametrization in
+                # a creative way?
+                # TODO: Since we're overwriting 2/3 stance hip angles, it probably makes
+                # sense just to remove the inverse-kinematics-based stance hip angle
+                # calculation completely.
+                tq[self.stance_idx+c.HIP_YAW] = params[sp.STANCE_YAW]
                 # This is a hack; the hip was dipping a little bit too much on the swing side.
                 # The proper fix: rather than just using kinematics to set the target angles,
                 # also compensate for the torques from other forces on the pelvis.
@@ -251,7 +262,7 @@ class Simbicon(PDController):
             # Don't use hip_dofs. (We probably won't have good enough sensors on hardware.)
             extra_roll = params[sp.STANCE_HIP_ROLL_EXTRA]
             tq[self.stance_idx+c.HIP_ROLL] += extra_roll
-            tq[self.swing_idx+c.HIP_ROLL] -= extra_roll
+            #tq[self.swing_idx+c.HIP_ROLL] -= extra_roll
 
         # Make modifications to control torso pitch
         virtual_torque_idx = c.virtual_torque_idx(self.stance_idx)
