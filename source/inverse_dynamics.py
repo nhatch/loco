@@ -14,7 +14,8 @@ from step_learner import Runner
 import cma_wrapper
 from evaluator import Evaluator
 
-TRAIN_FMT = 'data/{}/train.pkl'
+DIR_FMT = 'data/{}/'
+TRAIN_FMT = DIR_FMT + 'train.pkl'
 
 RIDGE_ALPHA = 0.1
 
@@ -40,6 +41,8 @@ class LearnInverseDynamics:
         self.train_inverse_dynamics()
 
     def dump_train_set(self):
+        if not os.path.exists(DIR_FMT.format(self.name)):
+            os.mkdir(DIR_FMT.format(self.name))
         fname = TRAIN_FMT.format(self.name)
         with open(fname, 'wb') as f:
             pickle.dump((self.history, self.train_features, self.train_responses), f)
