@@ -19,7 +19,8 @@ class Evaluator:
 
     def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=1):
         s = self.eval_settings
-        seed = seed or np.random.randint(100000)
+        if seed is None:
+            seed = np.random.randint(100000)
         state = self.env.reset(video_save_dir=video_save_dir, seed=seed, random=0.005, render=render)
         max_error = 0
         total_reward = 0
