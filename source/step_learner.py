@@ -67,8 +67,7 @@ def test_2D():
 
 def test_3D(video_save_dir):
     from simple_3D_env import Simple3DEnv
-    from simbicon_3D import Simbicon3D
-    env = Simple3DEnv(Simbicon3D)
+    env = Simple3DEnv()
     evaluator = Evaluator(env)
     settings = cur.SETTINGS_3D_EASY
     settings['n_steps'] = 3

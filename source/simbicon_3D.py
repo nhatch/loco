@@ -101,13 +101,13 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
 
 def t_simple():
     from simple_3D_env import Simple3DEnv
-    env = Simple3DEnv(Simbicon3D)
+    env = Simple3DEnv()
     env.sdf_loader.ground_width = 8.0
     test(env, 0.5, delta_a=0., n=8)
 
 def t_darwin():
     from darwin_env import DarwinEnv
-    env = DarwinEnv(Simbicon3D)
+    env = DarwinEnv()
     test(env, 0.15, r=3, n=60, mirror=True)
 
 if __name__ == "__main__":

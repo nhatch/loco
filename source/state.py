@@ -134,8 +134,7 @@ def test_feature_extraction(env):
 if __name__ == "__main__":
     from simple_3D_env import Simple3DEnv
     from stepping_stones_env import SteppingStonesEnv
-    from simbicon_3D import Simbicon3D
-    #env = Simple3DEnv(Simbicon3D)
+    #env = Simple3DEnv()
     env = SteppingStonesEnv()
     #test_mirror_state(env)
     test_feature_extraction(env)

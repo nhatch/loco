@@ -7,8 +7,7 @@ from IPython import embed
 def test(use_3D=False):
     if use_3D:
         from simple_3D_env import Simple3DEnv
-        from simbicon_3D import Simbicon3D
-        env = Simple3DEnv(Simbicon3D)
+        env = Simple3DEnv()
     else:
         from stepping_stones_env import SteppingStonesEnv
         env = SteppingStonesEnv()

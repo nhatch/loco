@@ -187,13 +187,12 @@ class InverseKinematics:
         self.env.pause(0.5)
 
 if __name__ == "__main__":
-    from simbicon_3D import Simbicon3D
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
     from darwin_env import DarwinEnv
     env = SteppingStonesEnv()
-    #env = Simple3DEnv(Simbicon3D)
-    #env = DarwinEnv(Simbicon3D)
+    #env = Simple3DEnv()
+    #env = DarwinEnv()
     env.track_point = [0,0,0]
     ik = InverseKinematics(env.robot_skeleton, env)
     #ik.test(False)

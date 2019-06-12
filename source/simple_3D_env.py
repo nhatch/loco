@@ -7,11 +7,15 @@ from OpenGL.GL import GLfloat
 
 from stepping_stones_env import SteppingStonesEnv
 import consts_armless as consts
+from simbicon_3D import Simbicon3D
 
 THETA = -np.pi/12
 PHI = np.pi * 2/3
 
 class Simple3DEnv(SteppingStonesEnv):
+    def __init__(self, controller_class=Simbicon3D):
+        super().__init__(controller_class)
+
     def update_viewer(self):
         com = self.consts().inverse_convert_root(self.robot_skeleton.com())
         x0, _, z0 = self.track_point or com

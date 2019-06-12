@@ -276,4 +276,3 @@ class SteppingStonesEnv:
             self.doppelganger = world.skeletons[2]
             assert(self.doppelganger.name == "doppelganger")
         return world
-

@@ -89,9 +89,8 @@ def test_mirroring(learn, i=3):
 if __name__ == '__main__':
     from stepping_stones_env import SteppingStonesEnv
     from simple_3D_env import Simple3DEnv
-    from simbicon_3D import Simbicon3D
     #env = SteppingStonesEnv()
-    env = Simple3DEnv(Simbicon3D)
+    env = Simple3DEnv()
 
     name = 'test'
     learn = LearnInverseDynamics(env, name)

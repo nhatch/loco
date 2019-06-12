@@ -1,6 +1,5 @@
 import numpy as np
 from IPython import embed
-from simbicon_3D import Simbicon3D
 
 from consts_common3D import *
 import simbicon_params as sp
@@ -143,7 +142,7 @@ b5 = np.array([
 
 if __name__ == "__main__":
     from darwin_env import DarwinEnv
-    env = DarwinEnv(Simbicon3D)
+    env = DarwinEnv()
     env.sdf_loader.ground_width = 8.0
     #b_ckpt = np.loadtxt('data/learn_llc/mean.txt')
     opzer = init_opzer(env, b0)
