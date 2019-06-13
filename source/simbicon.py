@@ -72,7 +72,7 @@ class Simbicon(PDController):
                 # For backwards compatibility (if we add new Simbicon params later)
                 raw_gait = np.concatenate((raw_gait, [0.]*(sp.N_PARAMS - len(raw_gait))))
             params += raw_gait * sp.PARAM_SCALE
-        self.set_gait(Params(params))
+        self.params = params
 
         if not c.OBSERVE_TARGET:
             self.unit_normal = np.array([0., 1., 0.])
@@ -134,8 +134,6 @@ class Simbicon(PDController):
         params[sp.STANCE_ANKLE_RELATIVE] += + step_dist_diff * 0.4
         params[sp.TORSO_WORLD]           += - step_dist_diff * 0.5
 
-    def set_gait(self, params):
-        self.params = params
 
     def time(self):
         return self.env.time()
