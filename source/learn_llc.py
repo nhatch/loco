@@ -29,7 +29,7 @@ def test(env, length, param_setting, render=None, n=50, terminate_on_slip=True):
     c = env.controller
     penalty = 0.0
     for i in range(n):
-        obs, terminated, n_float = env.simulate([i*length, GL, 0], target_heading=0.0,
+        obs, terminated, n_float = env.simulate([i*length, GL, 0],
                 action=param_setting,
                 put_dots=True, count_float=True)
         if terminated:

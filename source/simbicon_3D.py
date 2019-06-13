@@ -12,10 +12,10 @@ import simbicon_params as sp
 ZERO_GAIN = False
 
 class Simbicon3D(Simbicon):
-    def set_gait_raw(self, target, target_heading=None, raw_gait=None):
+    def set_gait_raw(self, target, raw_gait=None):
         if raw_gait is not None and self.swing_idx == LEFT_IDX:
             raw_gait = raw_gait * sp.MIRROR_PARAMS
-        return super().set_gait_raw(target, target_heading, raw_gait)
+        return super().set_gait_raw(target, raw_gait)
 
     def heading(self):
         return self.env.get_x()[0][ROOT_YAW]

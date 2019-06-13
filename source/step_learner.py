@@ -20,7 +20,7 @@ class Runner:
 
     def run(self, action):
         self.n_runs += 1
-        r, _ = self.env.simulate(self.target, target_heading=0.0, action=action, put_dots=True)
+        r, _ = self.env.simulate(self.target, action=action, put_dots=True)
         if self.env.video_recorder is not None:
             self.env.pause(0.3)
         return utils.reward(self.env.controller, r)
@@ -42,7 +42,7 @@ def collect_start_state(env, targets, video_save_dir, use_stepping_stones=True):
     env.render()
     steps = targets[2:-1] if env.is_3D else targets[1:-1] # TODO refactor so 2D also uses Evaluator
     for t in steps:
-        end_state, _ = env.simulate(t, target_heading=0.0, put_dots=True)
+        end_state, _ = env.simulate(t, put_dots=True)
         env.render()
     env.clear_skeletons()
     return end_state
@@ -77,12 +77,12 @@ def test_3D(video_save_dir):
     opzer = cma_wrapper.CMAWrapper()
     GY = env.consts().GROUND_LEVEL
     learn_last_move(env, opzer, BASIC_3D[:-1], video_save_dir=video_save_dir)
-    env.simulate(BASIC_3D[-1], 0.0)
+    env.simulate(BASIC_3D[-1])
     #env.clear_skeletons()
     # LONG_STEP is a little too hard, but BASIC at least should be learnable
     LONG_STEP_3D = np.array([[0, GY, 0], [0.3, GY, 0.1], [0.6, GY, -0.1], [1.4, GY, 0.1]])
     #learn_last_move(env, opzer, LONG_STEP_3D, video_save_dir=video_save_dir)
-    #env.simulate([1.7, -.9, -.1], 0.0)
+    #env.simulate([1.7, -.9, -.1])
 
 if __name__ == '__main__':
     #test_2D()

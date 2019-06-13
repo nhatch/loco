@@ -64,7 +64,7 @@ class Simbicon(PDController):
     def heading(self):
         return 0.0
 
-    def set_gait_raw(self, target, target_heading=None, raw_gait=None):
+    def set_gait_raw(self, target, raw_gait=None):
         c = self.env.consts()
         params = c.BASE_GAIT.copy()
         if raw_gait is not None:
@@ -82,11 +82,8 @@ class Simbicon(PDController):
         self.target = target
         d = self.target - swing_heel
 
-        if target_heading is None:
-            branch = self.heading()
-            self.target_heading = branch - self.params[sp.STANCE_YAW]
-        else:
-            self.target_heading = target_heading
+        branch = self.heading()
+        self.target_heading = branch - self.params[sp.STANCE_YAW]
         self.target_direction = np.array(
                 [np.cos(self.target_heading), 0, -np.sin(self.target_heading)])
 

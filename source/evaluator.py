@@ -42,7 +42,7 @@ class Evaluator:
             features = state.extract_features(target)
             action = policy(features)
             raw_pose_start = self.env.robot_skeleton.x
-            end_state, terminated = self.env.simulate(target, target_heading=0.0, action=action)
+            end_state, terminated = self.env.simulate(target, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
             reward = utils.reward(self.env.controller, end_state)
             total_reward += reward

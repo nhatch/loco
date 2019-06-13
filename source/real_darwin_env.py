@@ -44,7 +44,7 @@ class RealDarwinEnv:
         c = self.consts()
         if self.controller.swing_contact(None, None): # TODO rename: not contact, just timeout
             status_string = self.controller.change_stance(np.zeros(3))
-            self.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
+            self.controller.set_gait_raw(None, raw_gait=EMBED_B5)
             print(status_string)
         q_raw, dq_raw = self.robot.read(self.prev_control_time, t)
         # Manually doing this instead of standardized_dofs to avoid the
@@ -75,7 +75,7 @@ class RealDarwinEnv:
 if __name__ == '__main__':
     env = RealDarwinEnv()
     duration = 2 # seconds
-    env.controller.set_gait_raw(raw_gait=EMBED_B5, target_heading=None, target=None)
+    env.controller.set_gait_raw(None, raw_gait=EMBED_B5)
     try:
         while env.time() < duration:
             env.tick()
