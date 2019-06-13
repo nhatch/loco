@@ -92,10 +92,10 @@ class State:
         # relative to the direction the robot's actually going). Until I can remove
         # the dependence of Simbicon3D on knowing the target direction, I'm just going
         # to keep that angle as part of the state (by removing these lines of code).
-        #if self.consts.BRICK_DOF == 6:
-        #    angle = copy.raw_state[self.consts.ROOT_YAW]
-        #    rot = copy.rotate(-angle)
-        #    target[:3] = np.dot(rot, target[:3])
+        if self.consts.BRICK_DOF == 6:
+            angle = copy.raw_state[self.consts.ROOT_YAW]
+            rot = copy.rotate(-angle)
+            target[:3] = np.dot(rot, target[:3])
 
         return np.concatenate([copy.raw_state, target])
 

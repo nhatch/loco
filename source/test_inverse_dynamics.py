@@ -56,7 +56,7 @@ def test_regression_bias(learn, i=None):
     # This score should also be close to zero in the absence of model bias.
     print("Score:", runner.run(trained_response))
 
-def test_mirroring(learn, i=3):
+def test_mirroring(learn, i=2):
     start_state, target, response, features = retrieve_index(learn, i)
     runner = Runner(learn.env, start_state, target)
     trained_response = learn.act(features)
