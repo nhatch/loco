@@ -84,20 +84,9 @@ class Simbicon(PDController):
 
         if target_heading is None:
             branch = self.heading()
-            _, self.target_heading = heading_from_vector(d, branch)
-            if self.env.is_3D:
-                # Lateral balance feedback usually tends to put the swing foot too far "outside"
-                # the target. Hack: adjust the target heading to roughly compensate for this.
-                dist = np.linalg.norm(d)
-                adj = -dist*0.2
-                if self.swing_idx == c.LEFT_IDX:
-                    self.target_heading -= adj
-                else:
-                    self.target_heading += adj
+            self.target_heading = branch - self.params[sp.STANCE_YAW]
         else:
             self.target_heading = target_heading
-        if self.env.is_3D:
-            self.target_heading += self.params[sp.HEADING]
         self.target_direction = np.array(
                 [np.cos(self.target_heading), 0, -np.sin(self.target_heading)])
 

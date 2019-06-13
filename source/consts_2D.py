@@ -101,4 +101,4 @@ def foot_transform_from_angles(_, pitch, __):
 BASE_GAIT = np.array([0.14, 0, 0.2, 0.0, 0.2,
                       0.4, -1.1,   0.0, -0.05,
                       0,    0, 0.05, -0.1,
-                      0,0,0,0,0,0,0]) # None of these last 7 are used in 2D
+                      0,0,0,0,0,0,0,0,0]) # None of these are used in 2D

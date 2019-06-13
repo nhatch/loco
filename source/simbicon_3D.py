@@ -7,14 +7,14 @@ from sdf_loader import RED, GREEN, BLUE
 import utils
 
 from consts_common3D import *
-from simbicon_params import *
+import simbicon_params as sp
 
 ZERO_GAIN = False
 
 class Simbicon3D(Simbicon):
     def set_gait_raw(self, target, target_heading=None, raw_gait=None):
         if raw_gait is not None and self.swing_idx == LEFT_IDX:
-            raw_gait = raw_gait * MIRROR_PARAMS
+            raw_gait = raw_gait * sp.MIRROR_PARAMS
         return super().set_gait_raw(target, target_heading, raw_gait)
 
     def heading(self):
@@ -42,8 +42,8 @@ class Simbicon3D(Simbicon):
         c = self.env.consts()
         params = self.params
 
-        cd = params[POSITION_BALANCE_GAIN_LAT]
-        cv = params[VELOCITY_BALANCE_GAIN_LAT]
+        cd = params[sp.POSITION_BALANCE_GAIN_LAT]
+        cv = params[sp.VELOCITY_BALANCE_GAIN_LAT]
 
         if hasattr(self.env, 'sdf_loader'):
             proj = q[:3]
@@ -59,10 +59,10 @@ class Simbicon3D(Simbicon):
         balance_feedback = -(cd*d[Z] + cv*v[Z])
 
         tq[self.swing_idx+HIP_ROLL] += balance_feedback - q[ROOT_ROLL]
-        tq[self.stance_idx+ANKLE_ROLL] += params[STANCE_ANKLE_ROLL]
-        tq[self.swing_idx+ANKLE_ROLL] += params[SWING_ANKLE_ROLL]
+        tq[self.stance_idx+ANKLE_ROLL] += params[sp.STANCE_ANKLE_ROLL]
+        tq[self.swing_idx+ANKLE_ROLL] += params[sp.SWING_ANKLE_ROLL]
 
-        tq[TORSO_ROLL] = -q[ROOT_ROLL]
+        tq[TORSO_ROLL] = -q[ROOT_ROLL] + params[sp.TORSO_ROLL]
 
         return tq
 
@@ -76,7 +76,7 @@ def next_target(start, heading, length, env):
     target = start + np.dot(rot, offset)
     return target
 
-def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_target_heading=True, mirror=False):
+def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, mirror=False):
     seed = np.random.randint(100000)
     obs = env.reset(seed=seed)
     if mirror:
@@ -88,11 +88,11 @@ def test(env, length, r=1, n=8, a=0.0, delta_a=0.0, relative=False, provide_targ
     for i in range(n):
         l = length*0.5 if i == 0 else length
         t = next_target(t, a, l, env)
-        # TODO: Get the controller to work well even when we don't provide the target heading.
-        target_heading = None
-        if provide_target_heading:
-            target_heading = a+delta_a
-        _, terminated = env.simulate(t, target_heading=target_heading, put_dots=True)
+        action = np.zeros(sp.N_PARAMS)
+        action[sp.STANCE_YAW] = delta_a # Works approximately, for small delta_a
+        if i%2 == 0:
+            action[sp.STANCE_YAW] *= -1
+        _, terminated = env.simulate(t, action=action, put_dots=True)
         if relative:
             t = env.controller.stance_heel # Pretend that was the previous target
         a += delta_a
@@ -103,7 +103,7 @@ def t_simple():
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv()
     env.sdf_loader.ground_width = 8.0
-    test(env, 0.5, delta_a=0., n=8)
+    test(env, 0.4, delta_a=-.33, n=8)
 
 def t_darwin():
     from darwin_env import DarwinEnv
