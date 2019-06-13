@@ -8,6 +8,9 @@ import curriculum as cur
 TRAIN_SETTINGS_3D_TEST = {**cur.TRAIN_SETTINGS_3D,
     'n_trajectories': 1,
     }
+EVAL_SETTINGS_3D_TEST = {**cur.SETTINGS_3D_EASY,
+    'n_steps': 4,
+    }
 
 def retrieve_index(learn, i=None):
     learn.env.clear_skeletons()
@@ -27,8 +30,7 @@ def demo_train_set(learn, render=1.0, indices=None):
     ii = indices or range(len(learn.train_responses))
     for i in ii:
         start_state, target, response, features = retrieve_index(learn, i)
-        uss = learn.evaluator.eval_settings['use_stepping_stones']
-        runner = Runner(learn.env, start_state, target, use_stepping_stones=uss)
+        runner = Runner(learn.env, start_state, target)
         runner.reset(render=render)
         reward = runner.run(response)
         print("Index {} Score: {}".format(i, reward)) # Should be pretty close to 1
@@ -56,7 +58,7 @@ def test_regression_bias(learn, i=None):
 
 def test_mirroring(learn, i=3):
     start_state, target, response, features = retrieve_index(learn, i)
-    runner = Runner(learn.env, start_state, target, use_stepping_stones=False)
+    runner = Runner(learn.env, start_state, target)
     trained_response = learn.act(features)
 
     # Note this will only give accurate results if `learn` has been trained
@@ -64,7 +66,7 @@ def test_mirroring(learn, i=3):
     mirrored_start = start_state.copy()
     mirrored_start.mirror()
     mirrored_target = target*[1,1,-1]
-    mirrored_runner = Runner(learn.env, mirrored_start, mirrored_target, use_stepping_stones=False)
+    mirrored_runner = Runner(learn.env, mirrored_start, mirrored_target)
     mirrored_features = mirrored_start.extract_features(mirrored_target)
     mirrored_response = learn.act(mirrored_features)
 
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     learn = LearnInverseDynamics(env, name)
     learn.set_train_settings(TRAIN_SETTINGS_3D_TEST)
     #learn.load_train_set()
-    learn.evaluator.set_eval_settings(cur.SETTINGS_3D_EASY)
+    learn.evaluator.set_eval_settings(EVAL_SETTINGS_3D_TEST)
     #print('Score:', learn.evaluate()['total_score'])
     for i in range(2):
         learn.training_iter()
