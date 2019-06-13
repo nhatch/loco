@@ -84,6 +84,7 @@ class Simbicon(PDController):
 
         branch = self.heading()
         self.target_heading = branch - self.params[sp.STANCE_YAW]
+        self.target_heading = 0.0
         self.target_direction = np.array(
                 [np.cos(self.target_heading), 0, -np.sin(self.target_heading)])
 

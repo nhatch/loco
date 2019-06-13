@@ -34,10 +34,10 @@ def reward(controller, state):
         score -= (0.03-d)
     if d > 0.2: # COM is far behind the heel
         score -= (d-0.2)
-    #if state.consts.BRICK_DOF == 6:
-    #    slip_angle = np.abs(state.pose()[state.consts.ROOT_YAW])
-    #    if slip_angle > np.pi/20:
-    #        score -= (slip_angle-np.pi/20) # Hinge loss
+    if state.consts.BRICK_DOF == 6:
+        slip_angle = np.abs(state.pose()[state.consts.ROOT_YAW])
+        if slip_angle > np.pi/20:
+            score -= (slip_angle-np.pi/20) # Hinge loss
     return score
 
 def rotmatrix(theta):
