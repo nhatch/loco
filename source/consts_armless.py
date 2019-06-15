@@ -8,7 +8,7 @@ GROUND_LEVEL = -0.9
 
 skel_file = "skel/HumanSkel/kima_human_box_armless_visiblecollisionboxes.skel"
 SIMULATION_FREQUENCY = 2000
-CONTROL_FREQUENCY = 2000
+CONTROL_FREQUENCY = 50
 REAL_TIME_STEPS_PER_RENDER = 25
 OBSERVE_TARGET = True
 LIFTOFF_DURATION = 0.3
