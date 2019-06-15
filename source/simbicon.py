@@ -30,7 +30,7 @@ class Simbicon(PDController):
     def reset(self, state=None):
         c = self.env.consts()
         self.ik = InverseKinematics(self.env.robot_skeleton, self.env)
-        self.step_started = self.time()
+        self.step_started = self.env.time()
         self.direction = UP
 
         if state is None:
@@ -123,7 +123,7 @@ class Simbicon(PDController):
 
 
     def time(self):
-        return self.env.time()
+        return self.env.time() - self.step_started
 
     def crashed(self, swing_heel):
         # For some reason, setting the tolerance smaller than .05 or so causes the controller
@@ -154,7 +154,7 @@ class Simbicon(PDController):
 
     def maybe_start_down_phase(self, contacts, swing_heel):
         c = self.env.consts()
-        duration = self.time() - self.step_started
+        duration = self.time() / c.SIMULATION_FREQUENCY
         if c.OBSERVE_TARGET:
             if duration >= 0.2:
                 # Once toe-off is complete, return to neutral ankle angle
@@ -176,14 +176,14 @@ class Simbicon(PDController):
 
     def change_stance(self, swing_heel):
         self.swing_platform, self.stance_platform = self.stance_platform, self.target
-        self.step_started = self.time()
+        self.step_started = self.env.time()
         self.stance_heel = swing_heel
         self.direction = UP
         self.swing_idx, self.stance_idx = self.stance_idx, self.swing_idx
         hx, hy, hz = self.stance_heel
         dx, dy, dz = self.stance_heel - self.target
         res = "({:.2f}, {:.2f}, {:.2f}) ({:+.2f}, {:+.2f}, {:.2f})".format(hx, hy, hz, dx, dy, dz)
-        return "{:.3f}: Ended step at {}".format(self.time(), res)
+        return "{:.3f}: Ended step at {}".format(self.env.world.time(), res)
 
     def balance_params(self, q, dq):
         return q[:1] - self.stance_heel[:1], dq[:1] # Take just the X coordinate
@@ -266,14 +266,14 @@ class Simbicon(PDController):
     def compute(self):
         c = self.env.consts()
         q, dq = self.env.get_x()
-        if self.env.world.frame % c.FRAMES_PER_CONTROL == 0:
+        if self.time() % c.FRAMES_PER_CONTROL == 0:
             self.target_q = c.clip(c.raw_dofs(self.compute_target_q(q, dq)))
         self.update_doppelganger()
 
         # We briefly increase Kd (mechanical impedance?) for the stance knee
         # in order to prevent the robot from stepping so hard that it bounces.
         fix_Kd = (not self.env.is_3D) and self.direction == UP \
-                and self.time() - self.step_started < 0.1
+                and self.time() / c.SIMULATION_FREQUENCY < 0.1
         if fix_Kd:
             fix_Kd_idx = c.fix_Kd_idx(self.stance_idx)
             self.Kd[fix_Kd_idx] *= 8

@@ -41,7 +41,7 @@ class SteppingStonesEnv:
         return consts_2D
 
     def time(self):
-        return self.world.time()
+        return self.world.frame
 
     def wrap_state(self, raw_state):
         swing_left = self.controller.swing_idx == self.consts().LEFT_IDX
@@ -140,6 +140,7 @@ class SteppingStonesEnv:
         swing_heel = self.controller.ik.forward_kine(swing_idx)
         crashed = self.crashed() or self.controller.crashed(swing_heel)
         step_complete = crashed or self.controller.swing_contact(contacts, swing_heel)
+        # TODO do not change_stance until we get to the next control tick
         if step_complete:
             status_string = self.controller.change_stance(swing_heel)
 
