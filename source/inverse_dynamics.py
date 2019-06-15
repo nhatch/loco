@@ -104,7 +104,7 @@ class LearnInverseDynamics:
         for i, (state, target, raw_pose_start, action, reward, debug_info) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
             if reward < 1-self.train_settings['tol']:
-                action = self.learn_action(state, target, raw_pose_start, action)
+                action = self.learn_action(state, target, raw_pose_start, action, reward)
             if action is None:
                 # Random search couldn't find a good enough action; don't use this for training.
                 self.total_failed_annotations += 1
@@ -116,10 +116,11 @@ class LearnInverseDynamics:
                 self.train_responses.append(action)
         self.env.clear_skeletons()
 
-    def learn_action(self, start_state, target, raw_pose_start, action):
+    def learn_action(self, start_state, target, raw_pose_start, action, reward):
         runner = Runner(self.env, start_state, target, raw_pose_start=raw_pose_start)
         opzer = cma_wrapper.CMAWrapper()
         opzer.reset()
+        opzer.expected_first_val = 1-reward
         learned_action = opzer.optimize(runner, action.reshape((-1,1)), self.train_settings)
         self.total_steps += runner.n_runs
         if learned_action is not None:

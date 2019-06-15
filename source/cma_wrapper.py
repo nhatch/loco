@@ -9,6 +9,7 @@ class CMAWrapper():
         self.cov = initial_cov
         if self.cov is None:
             self.cov = np.diag(sp.PARAM_SCALE**2)
+        self.expected_first_val = None
 
     def optimize(self, runner, initial_action, settings):
         cp = settings['controllable_params']
@@ -27,6 +28,10 @@ class CMAWrapper():
         i = 0
         while True:
             val = opzer.f(opzer.mean, render=1)
+            if i == 0 and self.expected_first_val is not None:
+                if np.abs(val - self.expected_first_val) > 1e-4:
+                    print("ERROR: Initial val does not match. (Incorrectly reset environment?)")
+                    import pdb; pdb.set_trace()
             print('Iteration', i, ':', val)
             if val < settings['tol']:
                 return self.finalize(opzer, settings)

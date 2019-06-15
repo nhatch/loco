@@ -17,7 +17,9 @@ class Evaluator:
             self.env.sdf_loader.ground_width = self.env.consts().DEFAULT_GROUND_WIDTH
         self.env.clear_skeletons()
 
-    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=1):
+    def evaluate(self, policy, render=1.0, video_save_dir=None, seed=None, max_intolerable_steps=1, max_run=20):
+        # Parameter max_run is useful if you want to generate many stepping stones,
+        # but only take the first few steps before pausing for debugging.
         s = self.eval_settings
         if seed is None:
             seed = np.random.randint(100000)
@@ -37,7 +39,7 @@ class Evaluator:
         num_successful_steps = 0
         num_intolerable_steps = 0
         experience = []
-        for i in range(s['n_steps']):
+        for i in range(min(max_run, s['n_steps'])):
             target = targets[2+i]
             features = state.extract_features(target)
             action = policy(features)
@@ -45,6 +47,8 @@ class Evaluator:
             end_state, terminated = self.env.simulate(target, action=action)
             error = np.linalg.norm(end_state.stance_heel_location() - target)
             reward = utils.reward(self.env.controller, end_state)
+            if render is not None:
+                print("Cost: {:.3f}".format(1-reward))
             total_reward += reward
             # Actually `state` is just an observation. (In the "armless" model, for example,
             # it's missing info from two DOFs.) So we also include `raw_pose_start` so that

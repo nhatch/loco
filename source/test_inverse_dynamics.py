@@ -11,6 +11,9 @@ TRAIN_SETTINGS_3D_TEST = {**cur.TRAIN_SETTINGS_3D,
 EVAL_SETTINGS_3D_TEST = {**cur.SETTINGS_3D_EASY,
     'n_steps': 4,
     }
+EVAL_SETTINGS_3D_TEST_FIRST = {**cur.SETTINGS_3D_EASY,
+    'n_steps': 1,
+    }
 
 def retrieve_index(learn, i=None):
     learn.env.clear_skeletons()
@@ -98,10 +101,10 @@ if __name__ == '__main__':
     learn = LearnInverseDynamics(env, name)
     learn.set_train_settings(TRAIN_SETTINGS_3D_TEST)
     #learn.load_train_set()
+    learn.evaluator.set_eval_settings(EVAL_SETTINGS_3D_TEST_FIRST)
+    learn.training_iter()
     learn.evaluator.set_eval_settings(EVAL_SETTINGS_3D_TEST)
-    #print('Score:', learn.evaluate()['total_score'])
-    for i in range(2):
-        learn.training_iter()
+    learn.training_iter()
     #test_regression_bias(learn)
     test_mirroring(learn)
     embed()
