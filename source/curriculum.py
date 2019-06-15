@@ -102,7 +102,7 @@ TRAIN_SETTINGS_3D = {
             #sp.STANCE_HIP_ROLL_EXTRA,
             #sp.POSITION_BALANCE_GAIN_LAT,
             sp.UP_IDX+sp.SWING_HIP_WORLD,
-            sp.STANCE_YAW,
+            #sp.STANCE_YAW,
             sp.UP_IDX+sp.SWING_KNEE_RELATIVE,
             ]),
     'observable_features': o3d,
@@ -113,18 +113,22 @@ TRAIN_SETTINGS_3D_PLUS = {**TRAIN_SETTINGS_3D,
     'model_class': 'quadratic',
     }
 
-SETTINGS_3D_EASY = {
+SETTINGS_3D_FIRST = {
     'use_stepping_stones': True,
     'ground_length': 0.3,
     'ground_width': 0.2,
     'dist_mean': 0.35,
     'dist_spread': 0.0,
     'termination_tol': 0.12,
-    'n_steps': 16,
+    'n_steps': 1,
     'z_mean': 0.4,
     'z_spread': 0.0,
     'y_mean': 0.0,
     'y_spread': 0.0,
+    }
+
+SETTINGS_3D_EASY = {**SETTINGS_3D_FIRST,
+    'n_steps': 16,
     }
 
 SETTINGS_3D_HARD = {**SETTINGS_3D_EASY,

@@ -29,11 +29,14 @@ def reward(controller, state):
     com_dist = controller.distance_to_go(state.pose()[:3])
     heel_dist = controller.distance_to_go(state.stance_heel_location())
     d = com_dist - heel_dist
-    # TODO: should set this to 0.0 for 2D model. Otherwise it learns "stompy" gaits.
-    if d < 0.03: # COM is less than 3cm behind the heel
-        score -= (0.03-d)
-    if d > 0.2: # COM is far behind the heel
-        score -= (d-0.2)
+    v = controller.speed(state.dq())
+    time_before_com_passes_stance_heel = d/v
+    # TODO: is this right for the 2D model?
+    ideal_time = 0.13
+    diff = np.abs(time_before_com_passes_stance_heel - ideal_time)
+    # If CoM is too far behind, we fall over backwards eventually; if too far forward,
+    # we will fall forwards. Penalize this.
+    score -= max(0, diff-0.10)
     if state.consts.BRICK_DOF == 6:
         slip_angle = np.abs(state.pose()[state.consts.ROOT_YAW])
         if slip_angle > np.pi/20:

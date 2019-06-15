@@ -97,7 +97,8 @@ def ex_3D(uq_id):
     from simple_3D_env import Simple3DEnv
     env = Simple3DEnv()
     ex = Experiment(env, LearnInverseDynamics, "test_cim_3D_"+uq_id, ['SETTINGS_3D_HARD'])
-    ex.run_iters(3, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(1, cur.SETTINGS_3D_FIRST, cur.TRAIN_SETTINGS_3D)
+    ex.run_iters(2, cur.SETTINGS_3D_EASY, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D)
     ex.run_iters(12, cur.SETTINGS_3D_HARD, cur.TRAIN_SETTINGS_3D_PLUS)
 
