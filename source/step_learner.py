@@ -12,9 +12,6 @@ class Runner:
         self.env = env
         self.start_state = start_state
         self.raw_pose_start = raw_pose_start
-        self.grounds = start_state.starting_platforms() + [target]
-        if not use_stepping_stones:
-            self.grounds = self.grounds[:1]
         self.target = target
         self.n_runs = 0
 
@@ -26,8 +23,8 @@ class Runner:
         return utils.reward(self.env.controller, r)
 
     def reset(self, video_save_dir=None, render=1):
-        self.env.reset(self.start_state, video_save_dir=video_save_dir, render=render)
-        self.env.sdf_loader.put_grounds(self.grounds)
+        self.env.render_rate = render
+        self.env.controller.reset(self.start_state)
         if self.raw_pose_start is not None:
             self.env.robot_skeleton.x = self.raw_pose_start
         if render is not None:

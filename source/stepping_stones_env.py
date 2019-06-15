@@ -16,8 +16,6 @@ from gym.envs.dart.static_window import *
 from pydart2.gui.trackball import Trackball
 import time
 
-EPISODE_TIME_LIMIT = 10.0 # seconds
-
 class SteppingStonesEnv:
     def __init__(self, controller_class=Simbicon):
         self.controller_class = controller_class
@@ -148,9 +146,7 @@ class SteppingStonesEnv:
         stance_idx = self.controller.stance_idx
         stance_foot = self.controller.ik.get_bodynode(stance_idx, c.FOOT_BODYNODE_OFFSET)
         stance_contact = (len(self.find_contacts(stance_foot)) > 0)
-        if self.world.time() > EPISODE_TIME_LIMIT:
-            return obs, True, "ERROR: Time limit reached"
-        elif crashed or obs.crashed():
+        if crashed or obs.crashed():
             return obs, True, "ERROR: Crashed"
         elif step_complete:
             return obs, False, status_string

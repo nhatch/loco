@@ -74,7 +74,7 @@ class LearnInverseDynamics:
         print("STARTING TRAINING ITERATION", len(self.history))
         t = time.time()
 
-        experience = self.run_trajectories()
+        experience = self.run_trajectory()
         self.expert_annotate(experience)
         self.train_inverse_dynamics()
 
@@ -89,17 +89,13 @@ class LearnInverseDynamics:
         print("Size of train set:", len(self.train_features))
         self.dump_train_set()
 
-    def run_trajectories(self):
-        experience = []
+    def run_trajectory(self):
         s = self.train_settings
-        for i in range(s['n_trajectories']):
-            r = self.evaluate(render=1)
-            experience += self.evaluator.experience
-            self.total_steps += r['n_steps']
-        return experience
+        r = self.evaluate(render=1)
+        self.total_steps += r['n_steps']
+        return self.evaluator.experience
 
     def expert_annotate(self, experience):
-        self.env.clear_skeletons()
         total = len(experience)
         for i, (state, target, raw_pose_start, action, reward, debug_info) in enumerate(experience):
             print("Finding expert label for state {}/{}".format(i, total))
